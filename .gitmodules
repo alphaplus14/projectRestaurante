@@ -1,0 +1,3 @@
+[submodule "proyectoLibre"]
+	path = proyectoLibre
+	url = https://github.com/dranko1001/proyectoLibre_Restaurante.git
