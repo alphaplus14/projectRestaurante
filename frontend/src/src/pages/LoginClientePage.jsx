@@ -59,16 +59,6 @@ export function LoginClientePage() {
                             Inicia sesión para reservar mesa, ver tu historial y pedir ayuda a un mesero. (Por ahora es un
                             demo para validar la API).
                         </p>
-
-                        <div className="mt-8 flex gap-3 text-sm text-neutral-300">
-                            <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-                                <div className="font-medium text-neutral-100">Tip rápido</div>
-                                <div className="mt-1">
-                                    Usa <span className="text-neutral-100">cliente@gmail.com</span> /{' '}
-                                    <span className="text-neutral-100">clientee</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="lg:justify-self-end w-full max-w-md">
@@ -135,10 +125,6 @@ export function LoginClientePage() {
                                     Este login es solo para <span className="text-neutral-200">CLIENTE</span>.
                                 </div>
                             </form>
-                        </div>
-
-                        <div className="mt-4 text-center text-xs text-neutral-500">
-                            Restaurante demo • Tailwind + React
                         </div>
                     </div>
                 </div>
