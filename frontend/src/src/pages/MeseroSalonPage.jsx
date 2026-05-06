@@ -31,6 +31,7 @@ export function MeseroSalonPage() {
     const [loadingMesas, setLoadingMesas] = useState(true);
     const [loadingPedido, setLoadingPedido] = useState(false);
     const [addingId, setAddingId] = useState(null);
+    const [cerrando, setCerrando] = useState(false);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
 
@@ -141,6 +142,25 @@ export function MeseroSalonPage() {
             setBanner(e?.message || 'No se pudo agregar el producto.');
         } finally {
             setAddingId(null);
+        }
+    }
+
+    async function cerrarCuenta() {
+        if (!pedido?.idPedido || pedido.estado !== 'LISTO') return;
+        if (!window.confirm('¿Cerrar la cuenta? La mesa quedará libre para un nuevo servicio.')) return;
+        setCerrando(true);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/pedidos/${pedido.idPedido}/cerrar`, {
+                method: 'POST',
+            });
+            setPedido(null);
+            setBanner(res?.message || 'Cuenta cerrada.');
+            await fetchMesas();
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo cerrar la cuenta.');
+        } finally {
+            setCerrando(false);
         }
     }
 
@@ -309,11 +329,24 @@ export function MeseroSalonPage() {
                                                 <li className="px-3 py-4 text-stone-500 text-sm text-center">Aún no hay ítems.</li>
                                             )}
                                         </ul>
-                                        {['LISTO', 'CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
+                                        {pedido.estado === 'LISTO' ? (
+                                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                                                <p className="text-xs text-stone-500 flex-1 min-w-[200px]">
+                                                    Cuando el cliente haya pagado (o según política del local), cierra la cuenta para
+                                                    liberar la mesa.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    disabled={cerrando}
+                                                    onClick={cerrarCuenta}
+                                                    className="rounded-xl bg-stone-200 text-stone-900 px-4 py-2 text-sm font-semibold hover:bg-white disabled:opacity-50"
+                                                >
+                                                    {cerrando ? 'Cerrando…' : 'Cerrar cuenta'}
+                                                </button>
+                                            </div>
+                                        ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
                                             <p className="text-xs text-stone-500">
-                                                {pedido.estado === 'LISTO'
-                                                    ? 'Pedido listo: avisar en cocina para retiro o cierre de cuenta cuando corresponda.'
-                                                    : 'Este pedido ya no admite nuevos ítems desde aquí.'}
+                                                Este pedido ya no admite nuevos ítems desde aquí.
                                             </p>
                                         ) : null}
                                     </div>

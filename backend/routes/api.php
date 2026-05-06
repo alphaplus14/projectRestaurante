@@ -26,6 +26,7 @@ Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(func
     Route::get('mesas', [MeseroController::class, 'mesas']);
     Route::get('productos', [ProductoController::class, 'indexMesero']);
     Route::post('pedidos', [MeseroController::class, 'storePedido']);
+    Route::post('pedidos/{pedido:idPedido}/cerrar', [MeseroController::class, 'cerrarPedido']);
     Route::get('pedidos/{pedido:idPedido}', [MeseroController::class, 'showPedido']);
     Route::post('pedidos/{pedido:idPedido}/detalles', [MeseroController::class, 'storeDetalle']);
 });
