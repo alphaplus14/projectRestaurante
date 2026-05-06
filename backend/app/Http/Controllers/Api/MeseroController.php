@@ -11,7 +11,6 @@ use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MeseroController extends Controller
 {
@@ -22,7 +21,12 @@ class MeseroController extends Controller
      */
     public function mesas(Request $request): JsonResponse
     {
-        $authId = (int) $request->user()->idUsuario;
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        $authId = (int) $user->getAuthIdentifier();
 
         $mesas = Mesa::query()
             ->where('activa', true)
@@ -68,9 +72,9 @@ class MeseroController extends Controller
         ]);
     }
 
-    public function showPedido(Pedido $pedido): JsonResponse
+    public function showPedido(Request $request, Pedido $pedido): JsonResponse
     {
-        $this->authorizeMesero($pedido);
+        $this->authorizeMesero($request, $pedido);
 
         $pedido->load([
             'mesa:idMesa,numero,nombre',
@@ -87,8 +91,10 @@ class MeseroController extends Controller
      */
     public function storePedido(Request $request): JsonResponse
     {
-        /** @var Usuario $mesero */
         $mesero = $request->user();
+        if (! $mesero instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
 
         $data = $request->validate([
             'mesa_idMesa' => ['required', 'integer', 'exists:mesa,idMesa'],
@@ -98,7 +104,7 @@ class MeseroController extends Controller
 
         $mesa = Mesa::query()->where('idMesa', $data['mesa_idMesa'])->where('activa', true)->first();
         if (! $mesa) {
-            throw new HttpException(404, 'Mesa no disponible.');
+            abort(404, 'Mesa no disponible.');
         }
 
         $existe = Pedido::query()
@@ -118,7 +124,7 @@ class MeseroController extends Controller
 
             return Pedido::create([
                 'mesa_idMesa' => $mesa->idMesa,
-                'mesero_idUsuario' => $mesero->idUsuario,
+                'mesero_idUsuario' => (int) $mesero->getAuthIdentifier(),
                 'reserva_idReserva' => $data['reserva_idReserva'] ?? null,
                 'estado' => 'PENDIENTE',
                 'notas' => $data['notas'] ?? null,
@@ -143,7 +149,7 @@ class MeseroController extends Controller
      */
     public function storeDetalle(Request $request, Pedido $pedido): JsonResponse
     {
-        $this->authorizeMesero($pedido);
+        $this->authorizeMesero($request, $pedido);
 
         if (in_array($pedido->estado, ['CERRADO', 'CANCELADO', 'LISTO'], true)) {
             return response()->json([
@@ -202,12 +208,63 @@ class MeseroController extends Controller
         ], 201);
     }
 
-    private function authorizeMesero(Pedido $pedido): void
+    /**
+     * Cerrar cuenta: pedido CERRADO y mesa LIBRE (tras retiro en cocina).
+     */
+    public function cerrarPedido(Request $request, Pedido $pedido): JsonResponse
     {
-        /** @var Usuario|null $u */
-        $u = request()->user();
-        if (! $u || (int) $pedido->mesero_idUsuario !== (int) $u->idUsuario) {
-            throw new HttpException(403, 'No autorizado para este pedido.');
+        $this->authorizeMesero($request, $pedido);
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json([
+                'message' => 'Este pedido ya está cerrado o cancelado.',
+            ], 422);
+        }
+
+        if ($pedido->estado !== 'LISTO') {
+            return response()->json([
+                'message' => 'Solo puedes cerrar cuenta cuando cocina marque el pedido como listo.',
+            ], 422);
+        }
+
+        if (! $pedido->detalles()->exists()) {
+            return response()->json([
+                'message' => 'El pedido no tiene ítems.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($pedido): void {
+            $pedido->estado = 'CERRADO';
+            $pedido->cerrado_en = now();
+            $pedido->save();
+
+            $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
+            if ($mesa) {
+                $mesa->estado = 'LIBRE';
+                $mesa->save();
+            }
+        });
+
+        $pedido->refresh()->load([
+            'mesa:idMesa,numero,nombre',
+            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
+        ]);
+
+        return response()->json([
+            'data' => $this->serializePedidoCompleto($pedido),
+            'message' => 'Cuenta cerrada. La mesa quedó libre.',
+        ]);
+    }
+
+    private function authorizeMesero(Request $request, Pedido $pedido): void
+    {
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        if ((int) $pedido->mesero_idUsuario !== (int) $user->getAuthIdentifier()) {
+            abort(403, 'No autorizado para este pedido.');
         }
     }
 
