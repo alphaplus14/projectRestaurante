@@ -14,6 +14,19 @@ class ProductoController extends Controller
      */
     public function indexCliente(Request $request): JsonResponse
     {
+        return $this->catalogoActivo($request);
+    }
+
+    /**
+     * Mismo catálogo para meseros al registrar pedidos en salón.
+     */
+    public function indexMesero(Request $request): JsonResponse
+    {
+        return $this->catalogoActivo($request);
+    }
+
+    private function catalogoActivo(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'tipo' => ['sometimes', 'string', 'in:PLATO,BEBIDA,COMBO'],
         ]);

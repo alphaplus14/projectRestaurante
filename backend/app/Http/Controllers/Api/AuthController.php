@@ -20,6 +20,16 @@ class AuthController extends Controller
         return $this->issueToken($request, requiredRole: 'CLIENTE');
     }
 
+    public function loginCocina(Request $request)
+    {
+        return $this->issueToken($request, requiredRole: 'COCINERO');
+    }
+
+    public function loginMesero(Request $request)
+    {
+        return $this->issueToken($request, requiredRole: 'MESERO');
+    }
+
     public function me(Request $request)
     {
         /** @var Usuario $usuario */
