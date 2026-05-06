@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminCocineroController;
+use App\Http\Controllers\Api\AdminMeseroController;
+use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -34,5 +37,24 @@ Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(func
 Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(function () {
     Route::get('pedidos', [CocinaPedidoController::class, 'index']);
     Route::patch('pedidos/{pedido:idPedido}/estado', [CocinaPedidoController::class, 'updateEstado']);
+});
+
+Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
+    Route::get('productos', [AdminProductoController::class, 'index']);
+    Route::post('productos', [AdminProductoController::class, 'store']);
+    Route::get('productos/{producto:idProducto}', [AdminProductoController::class, 'show']);
+    Route::put('productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
+    Route::patch('productos/{producto:idProducto}/activo', [AdminProductoController::class, 'setActivo']);
+    Route::delete('productos/{producto:idProducto}', [AdminProductoController::class, 'destroy']);
+
+    Route::get('meseros', [AdminMeseroController::class, 'index']);
+    Route::post('meseros', [AdminMeseroController::class, 'store']);
+    Route::put('meseros/{usuario:idUsuario}', [AdminMeseroController::class, 'update']);
+    Route::patch('meseros/{usuario:idUsuario}/activo', [AdminMeseroController::class, 'setActivo']);
+
+    Route::get('cocineros', [AdminCocineroController::class, 'index']);
+    Route::post('cocineros', [AdminCocineroController::class, 'store']);
+    Route::put('cocineros/{usuario:idUsuario}', [AdminCocineroController::class, 'update']);
+    Route::patch('cocineros/{usuario:idUsuario}/activo', [AdminCocineroController::class, 'setActivo']);
 });
 
