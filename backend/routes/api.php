@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\AdminMeseroController;
+use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\MeseroController;
@@ -40,6 +41,8 @@ Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(fu
 });
 
 Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
+    Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
     Route::get('productos', [AdminProductoController::class, 'index']);
     Route::post('productos', [AdminProductoController::class, 'store']);
     Route::get('productos/{producto:idProducto}', [AdminProductoController::class, 'show']);
