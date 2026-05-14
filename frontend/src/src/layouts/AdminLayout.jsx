@@ -43,7 +43,9 @@ function SidebarItem({ to, label, collapsed }) {
             <span
                 className={classNames(
                     'h-2.5 w-2.5 rounded-full',
-                    to.includes('/productos') ? 'bg-orange-600' : to.includes('/cocineros') ? 'bg-orange-600' : 'bg-amber-500',
+                    to.includes('/productos') || to.includes('/cocineros')
+                        ? 'bg-orange-600'
+                        : 'bg-amber-500',
                 )}
             />
             <span className={classNames('truncate', collapsed ? 'hidden' : 'block')}>{label}</span>
@@ -120,6 +122,7 @@ export function AdminLayout({ title, children }) {
                         ) : null}
 
                         <SidebarItem to="/admin/dashboard" label="Dashboard" collapsed={collapsed} />
+                        <SidebarItem to="/admin/mesas" label="Mesas" collapsed={collapsed} />
                         <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
                         <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
                         <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />

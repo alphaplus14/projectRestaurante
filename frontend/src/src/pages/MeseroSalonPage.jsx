@@ -14,6 +14,14 @@ function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
 }
 
+/** Normaliza para búsqueda insensible a mayúsculas y tildes */
+function normalizarBusqueda(s) {
+    return String(s ?? '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 const ESTADO_LABEL = {
     PENDIENTE: 'Enviado a cocina',
     EN_PREPARACION: 'En preparación',
@@ -34,6 +42,7 @@ export function MeseroSalonPage() {
     const [cerrando, setCerrando] = useState(false);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
+    const [busquedaMenu, setBusquedaMenu] = useState('');
 
     const selectedMesa = useMemo(() => mesas.find((m) => m.idMesa === selectedId), [mesas, selectedId]);
 
@@ -169,41 +178,67 @@ export function MeseroSalonPage() {
         window.location.href = '/login-mesero';
     }
 
+    useEffect(() => {
+        setBusquedaMenu('');
+    }, [selectedId]);
+
     const catalogoPorCat = useMemo(() => {
+        const q = normalizarBusqueda(busquedaMenu.trim());
+        const filtrados = !q
+            ? catalogo
+            : catalogo.filter((p) => {
+                  const nombre = normalizarBusqueda(p.nombreProducto);
+                  const desc = normalizarBusqueda(p.descripcion);
+                  const cat = normalizarBusqueda(p.categoria?.nombre);
+                  const tipo = normalizarBusqueda(p.tipo);
+                  return nombre.includes(q) || desc.includes(q) || cat.includes(q) || tipo.includes(q);
+              });
+
         const map = new Map();
-        for (const p of catalogo) {
+        for (const p of filtrados) {
             const cat = p.categoria?.nombre || 'Otros';
             if (!map.has(cat)) map.set(cat, []);
             map.get(cat).push(p);
         }
         return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-    }, [catalogo]);
+    }, [catalogo, busquedaMenu]);
 
     const totalPedido = useMemo(() => {
         if (!pedido?.detalles?.length) return 0;
         return pedido.detalles.reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
     }, [pedido]);
 
+    const totalCatalogo = catalogo.length;
+    const totalFiltrado = useMemo(
+        () => catalogoPorCat.reduce((acc, [, items]) => acc + items.length, 0),
+        [catalogoPorCat],
+    );
+
+    const inputClass =
+        'rounded-lg bg-stone-900 border border-stone-800 text-stone-50 px-2 py-1.5 text-sm tabular-nums placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500';
+
     return (
-        <div className="min-h-screen bg-stone-950 text-stone-100">
-            <header className="sticky top-0 z-10 border-b border-white/10 bg-stone-950/95 backdrop-blur">
-                <div className="mx-auto max-w-[1600px] px-4 py-4 flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-emerald-100">Salón — meseros</h1>
-                        <p className="text-sm text-stone-500">Mesas y pedidos · menú cada carga · mesas ~8 s</p>
+        <div className="min-h-screen bg-stone-950 text-stone-50 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <header className="sticky top-0 z-20 border-b border-stone-800 bg-stone-950/95 backdrop-blur">
+                <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-stone-50 truncate">Salón — mesero</h1>
+                        <p className="text-xs sm:text-sm text-stone-500 truncate">
+                            Toca una mesa · pedido y menú · actualización automática
+                        </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={() => fetchMesas()}
-                            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-200 hover:bg-white/10"
+                            className="rounded-lg border border-stone-800 bg-stone-900 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
-                            Actualizar mesas
+                            Actualizar
                         </button>
                         <button
                             type="button"
                             onClick={onSalir}
-                            className="rounded-xl border border-white/15 px-4 py-2 text-sm text-stone-400 hover:text-stone-200"
+                            className="rounded-lg border border-stone-800 px-3 sm:px-4 py-2 text-xs sm:text-sm text-stone-400 hover:text-stone-200 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
                             Salir
                         </button>
@@ -211,44 +246,63 @@ export function MeseroSalonPage() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-[1600px] px-4 py-6 grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 {banner ? (
-                    <div className="xl:col-span-12 rounded-xl border border-amber-500/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+                    <div className="lg:col-span-12 rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 sm:px-4 py-3 text-sm text-amber-100">
                         {banner}
                     </div>
                 ) : null}
 
-                <section className="xl:col-span-4 space-y-3">
-                    <h2 className="text-lg font-semibold text-stone-100">Mesas</h2>
+                <section
+                    className={classNames(
+                        'space-y-3 lg:col-span-4',
+                        selectedId ? 'hidden lg:block' : '',
+                    )}
+                >
+                    <h2 className="text-base sm:text-lg font-semibold text-stone-50">Mesas</h2>
                     {loadingMesas ? (
                         <p className="text-stone-500 text-sm">Cargando…</p>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
                             {mesas.map((m) => {
                                 const active = m.pedido_activo;
                                 const sel = selectedId === m.idMesa;
                                 const bloqueado = active?.bloqueado;
+                                const ocupada = m.estado === 'OCUPADA';
                                 return (
                                     <button
                                         key={m.idMesa}
                                         type="button"
                                         onClick={() => setSelectedId(m.idMesa)}
                                         className={classNames(
-                                            'rounded-2xl border p-3 text-left transition-colors',
+                                            'rounded-xl border p-3 sm:p-3.5 text-left transition-colors min-h-[88px] active:scale-[0.98]',
                                             sel
-                                                ? 'border-emerald-400/50 bg-emerald-950/40'
-                                                : 'border-white/10 bg-stone-900/80 hover:border-white/20',
+                                                ? 'border-amber-500 bg-amber-600/10 ring-1 ring-amber-500/40'
+                                                : 'border-stone-800 bg-stone-900 hover:border-stone-700',
                                         )}
                                     >
-                                        <div className="text-xs text-stone-500">Mesa</div>
-                                        <div className="text-xl font-bold text-stone-50">{m.nombre || `#${m.numero}`}</div>
-                                        <div className="text-xs mt-1 text-stone-400">{m.estado === 'OCUPADA' ? 'Ocupada' : 'Libre'}</div>
+                                        <div className="text-[10px] sm:text-xs text-stone-500 uppercase tracking-wide">Mesa</div>
+                                        <div className="text-lg sm:text-xl font-bold text-stone-50 leading-tight truncate">
+                                            {m.nombre || `#${m.numero}`}
+                                        </div>
+                                        <div
+                                            className={classNames(
+                                                'text-[10px] sm:text-xs mt-1 font-medium',
+                                                ocupada ? 'text-orange-400' : 'text-stone-400',
+                                            )}
+                                        >
+                                            {ocupada ? 'Ocupada' : 'Libre'}
+                                        </div>
                                         {bloqueado ? (
-                                            <div className="mt-2 text-xs font-medium text-amber-200/80">Otro mesero ({active.estado})</div>
+                                            <div className="mt-1.5 text-[10px] sm:text-xs text-amber-200/90 line-clamp-2">
+                                                Otro mesero ({active.estado})
+                                            </div>
                                         ) : active?.idPedido ? (
-                                            <div className="mt-2 text-xs font-medium text-emerald-300">Pedido #{active.idPedido}</div>
+                                            <div className="mt-1.5 text-[10px] sm:text-xs font-medium text-amber-400">
+                                                Pedido #{active.idPedido}
+                                            </div>
                                         ) : (
-                                            <div className="mt-2 text-xs text-stone-600">Sin pedido abierto</div>
+                                            <div className="mt-1.5 text-[10px] sm:text-xs text-stone-500">Sin pedido</div>
                                         )}
                                     </button>
                                 );
@@ -257,31 +311,45 @@ export function MeseroSalonPage() {
                     )}
                 </section>
 
-                <section className="xl:col-span-8 space-y-4">
+                <section
+                    className={classNames(
+                        'space-y-4 lg:col-span-8',
+                        !selectedId ? 'hidden lg:block' : '',
+                    )}
+                >
                     {!selectedId ? (
-                        <div className="rounded-2xl border border-white/10 bg-stone-900/50 p-8 text-center text-stone-500">
-                            Selecciona una mesa para ver o crear un pedido.
+                        <div className="rounded-xl border border-stone-800 bg-stone-900 p-6 sm:p-8 text-center text-stone-400 text-sm">
+                            Selecciona una mesa a la izquierda para tomar el pedido o ver la cuenta.
                         </div>
                     ) : (
                         <>
-                            <div className="rounded-2xl border border-white/10 bg-stone-900/60 p-4">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedId(null)}
+                                className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-stone-800 bg-stone-900 px-3 py-2 text-sm font-medium text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                            >
+                                <span aria-hidden>←</span> Todas las mesas
+                            </button>
+
+                            <div className="rounded-xl border border-stone-800 bg-stone-900 p-4 sm:p-5">
                                 <div className="flex flex-wrap items-start justify-between gap-4">
-                                    <div>
-                                        <div className="text-sm text-stone-500">Mesa seleccionada</div>
-                                        <div className="text-2xl font-semibold text-stone-50">
+                                    <div className="min-w-0">
+                                        <div className="text-xs sm:text-sm text-stone-500">Mesa</div>
+                                        <div className="text-xl sm:text-2xl font-semibold text-stone-50 truncate">
                                             {selectedMesa?.nombre || `Mesa ${selectedMesa?.numero}`}
                                         </div>
+                                        <div className="text-xs text-stone-500 mt-1">Cap. {selectedMesa?.capacidad ?? '—'}</div>
                                     </div>
                                     {!pedido && !loadingPedido ? (
                                         selectedMesa?.pedido_activo?.bloqueado ? (
-                                            <p className="text-sm text-amber-200/90 max-w-md text-right">
+                                            <p className="text-sm text-amber-200/90 max-w-md">
                                                 {selectedMesa.pedido_activo.mensaje || 'Pedido de otro mesero.'}
                                             </p>
                                         ) : (
                                             <button
                                                 type="button"
                                                 onClick={abrirCuenta}
-                                                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2.5 text-sm font-semibold text-stone-50 focus-visible:ring-2 focus-visible:ring-amber-500"
                                             >
                                                 Abrir cuenta
                                             </button>
@@ -293,34 +361,34 @@ export function MeseroSalonPage() {
                                     <p className="mt-4 text-stone-500 text-sm">Cargando pedido…</p>
                                 ) : pedido ? (
                                     <div className="mt-4 space-y-3">
-                                        <div className="flex flex-wrap gap-3 items-center">
+                                        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
                                             <span className="text-sm text-stone-400">Pedido #{pedido.idPedido}</span>
-                                            <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-stone-200">
+                                            <span className="rounded-full border border-stone-800 bg-stone-950 px-2.5 py-1 text-xs text-stone-200">
                                                 {ESTADO_LABEL[pedido.estado] || pedido.estado}
                                             </span>
-                                            <span className="text-sm text-stone-300 ml-auto font-medium tabular-nums">
+                                            <span className="text-sm text-stone-300 sm:ml-auto font-medium tabular-nums w-full sm:w-auto text-right sm:text-left">
                                                 Subtotal {formatMoney(totalPedido)}
                                             </span>
                                         </div>
                                         {pedido.notas ? (
-                                            <p className="text-sm text-amber-100/90 rounded-lg border border-amber-900/40 bg-amber-950/30 px-3 py-2">
+                                            <p className="text-sm text-stone-200 rounded-lg border border-stone-800 bg-stone-950 px-3 py-2">
                                                 Nota mesa: {pedido.notas}
                                             </p>
                                         ) : null}
-                                        <ul className="divide-y divide-white/10 rounded-xl border border-white/10 overflow-hidden">
+                                        <ul className="divide-y divide-stone-800 rounded-xl border border-stone-800 overflow-hidden">
                                             {pedido.detalles?.length ? (
                                                 pedido.detalles.map((l) => (
                                                     <li key={l.idPedidoDetalle} className="px-3 py-2.5 flex gap-3 text-sm">
-                                                        <span className="font-semibold text-emerald-200 tabular-nums w-8">{l.cantidad}×</span>
+                                                        <span className="font-semibold text-amber-500/90 tabular-nums w-8 shrink-0">
+                                                            {l.cantidad}×
+                                                        </span>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="font-medium text-stone-100 truncate">
+                                                            <div className="font-medium text-stone-50 truncate">
                                                                 {l.producto?.nombreProducto}
                                                             </div>
-                                                            {l.nota ? (
-                                                                <div className="text-xs text-stone-500">{l.nota}</div>
-                                                            ) : null}
+                                                            {l.nota ? <div className="text-xs text-stone-500">{l.nota}</div> : null}
                                                         </div>
-                                                        <span className="text-stone-400 tabular-nums whitespace-nowrap">
+                                                        <span className="text-stone-400 tabular-nums whitespace-nowrap shrink-0">
                                                             {formatMoney(Number(l.precio_unitario) * Number(l.cantidad))}
                                                         </span>
                                                     </li>
@@ -330,16 +398,15 @@ export function MeseroSalonPage() {
                                             )}
                                         </ul>
                                         {pedido.estado === 'LISTO' ? (
-                                            <div className="mt-3 flex flex-wrap items-center gap-3">
-                                                <p className="text-xs text-stone-500 flex-1 min-w-[200px]">
-                                                    Cuando el cliente haya pagado (o según política del local), cierra la cuenta para
-                                                    liberar la mesa.
+                                            <div className="mt-3 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                                                <p className="text-xs text-stone-500 flex-1 min-w-0">
+                                                    Cuando corresponda, cierra la cuenta para liberar la mesa.
                                                 </p>
                                                 <button
                                                     type="button"
                                                     disabled={cerrando}
                                                     onClick={cerrarCuenta}
-                                                    className="rounded-xl bg-stone-200 text-stone-900 px-4 py-2 text-sm font-semibold hover:bg-white disabled:opacity-50"
+                                                    className="rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 px-4 py-2.5 text-sm font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500"
                                                 >
                                                     {cerrando ? 'Cerrando…' : 'Cerrar cuenta'}
                                                 </button>
@@ -360,66 +427,110 @@ export function MeseroSalonPage() {
                             </div>
 
                             {pedido && !['LISTO', 'CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
-                                <div className="rounded-2xl border border-white/10 bg-stone-900/40 p-4">
-                                    <h3 className="text-lg font-semibold text-stone-100 mb-3">Agregar al pedido</h3>
-                                    <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-1">
-                                        {catalogoPorCat.map(([cat, items]) => (
-                                            <div key={cat}>
-                                                <div className="text-xs uppercase tracking-wide text-stone-500 mb-2">{cat}</div>
-                                                <ul className="space-y-2">
-                                                    {items.map((p) => (
-                                                        <li
-                                                            key={p.idProducto}
-                                                            className="flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-stone-950/40 p-3"
-                                                        >
-                                                            <div className="flex-1 min-w-[140px]">
-                                                                <div className="font-medium text-stone-100">{p.nombreProducto}</div>
-                                                                <div className="text-sm text-emerald-200/90 tabular-nums">{formatMoney(p.precio)}</div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <label className="sr-only" htmlFor={`q-${p.idProducto}`}>
-                                                                    Cantidad
-                                                                </label>
-                                                                <input
-                                                                    id={`q-${p.idProducto}`}
-                                                                    type="number"
-                                                                    min={1}
-                                                                    max={99}
-                                                                    className="w-16 rounded-lg bg-stone-900 border border-white/15 px-2 py-1.5 text-sm tabular-nums"
-                                                                    value={qtyByProduct[p.idProducto] ?? 1}
-                                                                    onChange={(e) =>
-                                                                        setQtyByProduct((prev) => ({
-                                                                            ...prev,
-                                                                            [p.idProducto]: e.target.value,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                                <input
-                                                                    type="text"
-                                                                    className="w-36 rounded-lg bg-stone-900 border border-white/15 px-2 py-1.5 text-sm placeholder:text-stone-600"
-                                                                    placeholder="Nota (opc.)"
-                                                                    value={notaByProduct[p.idProducto] ?? ''}
-                                                                    onChange={(e) =>
-                                                                        setNotaByProduct((prev) => ({
-                                                                            ...prev,
-                                                                            [p.idProducto]: e.target.value,
-                                                                        }))
-                                                                    }
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={addingId === p.idProducto}
-                                                                    onClick={() => agregarProducto(p.idProducto)}
-                                                                    className="rounded-lg bg-stone-700 hover:bg-stone-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                                                                >
-                                                                    {addingId === p.idProducto ? '…' : 'Añadir'}
-                                                                </button>
-                                                            </div>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
+                                <div className="rounded-xl border border-stone-800 bg-stone-900 p-4 sm:p-5">
+                                    <h3 className="text-base sm:text-lg font-semibold text-stone-50 mb-3">Agregar al pedido</h3>
+
+                                    <div className="relative mb-3">
+                                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" aria-hidden>
+                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="11" cy="11" r="7" />
+                                                <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                                            </svg>
+                                        </span>
+                                        <input
+                                            type="search"
+                                            enterKeyHint="search"
+                                            autoComplete="off"
+                                            value={busquedaMenu}
+                                            onChange={(e) => setBusquedaMenu(e.target.value)}
+                                            placeholder="Buscar plato, bebida, categoría…"
+                                            className="w-full rounded-lg border border-stone-800 bg-stone-950 py-2.5 pl-10 pr-10 text-sm text-stone-50 placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            aria-label="Buscar en el menú"
+                                        />
+                                        {busquedaMenu.trim() ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setBusquedaMenu('')}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium text-stone-400 hover:bg-stone-800 hover:text-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                aria-label="Limpiar búsqueda"
+                                            >
+                                                Limpiar
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                    <p className="text-xs text-stone-500 mb-3">
+                                        {busquedaMenu.trim()
+                                            ? `${totalFiltrado} resultado${totalFiltrado !== 1 ? 's' : ''} de ${totalCatalogo} productos`
+                                            : `${totalCatalogo} productos en el menú`}
+                                    </p>
+
+                                    <div className="space-y-6 max-h-[min(65vh,520px)] overflow-y-auto pr-1 -mr-1">
+                                        {totalFiltrado === 0 ? (
+                                            <p className="text-sm text-stone-500 py-6 text-center rounded-lg border border-dashed border-stone-800 bg-stone-950/50 px-4">
+                                                No hay productos que coincidan con «{busquedaMenu.trim()}». Prueba otra palabra o
+                                                limpia el filtro.
+                                            </p>
+                                        ) : (
+                                            catalogoPorCat.map(([cat, items]) => (
+                                                <div key={cat}>
+                                                    <div className="text-xs uppercase tracking-wide text-stone-500 mb-2">{cat}</div>
+                                                    <ul className="space-y-2">
+                                                        {items.map((p) => (
+                                                            <li
+                                                                key={p.idProducto}
+                                                                className="flex flex-col gap-3 rounded-xl border border-stone-800 bg-stone-950 p-3"
+                                                            >
+                                                                <div className="min-w-0">
+                                                                    <div className="font-medium text-stone-50">{p.nombreProducto}</div>
+                                                                    <div className="text-sm text-amber-500/90 tabular-nums mt-0.5">
+                                                                        {formatMoney(p.precio)}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-end">
+                                                                    <label className="sr-only" htmlFor={`q-${p.idProducto}`}>
+                                                                        Cantidad
+                                                                    </label>
+                                                                    <input
+                                                                        id={`q-${p.idProducto}`}
+                                                                        type="number"
+                                                                        min={1}
+                                                                        max={99}
+                                                                        className={classNames(inputClass, 'w-full sm:w-16')}
+                                                                        value={qtyByProduct[p.idProducto] ?? 1}
+                                                                        onChange={(e) =>
+                                                                            setQtyByProduct((prev) => ({
+                                                                                ...prev,
+                                                                                [p.idProducto]: e.target.value,
+                                                                            }))
+                                                                        }
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        className={classNames(inputClass, 'flex-1 min-w-0 w-full sm:w-40')}
+                                                                        placeholder="Nota (opc.)"
+                                                                        value={notaByProduct[p.idProducto] ?? ''}
+                                                                        onChange={(e) =>
+                                                                            setNotaByProduct((prev) => ({
+                                                                                ...prev,
+                                                                                [p.idProducto]: e.target.value,
+                                                                            }))
+                                                                        }
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={addingId === p.idProducto}
+                                                                        onClick={() => agregarProducto(p.idProducto)}
+                                                                        className="rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2 text-sm font-semibold text-stone-50 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto"
+                                                                    >
+                                                                        {addingId === p.idProducto ? '…' : 'Añadir'}
+                                                                    </button>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             ) : null}
@@ -428,8 +539,8 @@ export function MeseroSalonPage() {
                 </section>
             </div>
 
-            <p className="text-center text-sm text-stone-600 pb-8">
-                <Link to="/login-cocina" className="text-stone-500 hover:text-stone-400">
+            <p className="text-center text-sm text-stone-500 pb-6 px-4">
+                <Link to="/login-cocina" className="text-amber-600 hover:text-amber-500 focus-visible:ring-2 focus-visible:ring-amber-500 rounded">
                     Pantalla cocina
                 </Link>
             </p>

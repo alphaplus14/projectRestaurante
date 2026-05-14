@@ -63,6 +63,7 @@ export function AdminProductosPage() {
     });
 
     const [isOpen, setIsOpen] = useState(false);
+    const [listaPorCategoriaAbierta, setListaPorCategoriaAbierta] = useState(false);
     const [draft, setDraft] = useState(emptyDraft());
     const [imageFile, setImageFile] = useState(null);
     const [localImagePreview, setLocalImagePreview] = useState(null);
@@ -72,6 +73,37 @@ export function AdminProductosPage() {
         for (const c of categorias) m.set(String(c.idCategoria), c);
         return m;
     }, [categorias]);
+
+    /** Secciones ordenadas: categorías por `orden` + nombre; productos alfabéticos dentro de cada una. */
+    const seccionesPorCategoria = useMemo(() => {
+        const sortedNombre = (a, b) =>
+            String(a.nombreProducto).localeCompare(String(b.nombreProducto), 'es', { sensitivity: 'base' });
+
+        const categoriasOrdenadas = [...categorias].sort((a, b) => {
+            const o = (Number(a.orden) || 0) - (Number(b.orden) || 0);
+            if (o !== 0) return o;
+            return String(a.nombre).localeCompare(String(b.nombre), 'es', { sensitivity: 'base' });
+        });
+
+        const used = new Set();
+        const sections = [];
+
+        for (const c of categoriasOrdenadas) {
+            const list = productos
+                .filter((p) => Number(p.categoria_idCategoria) === Number(c.idCategoria))
+                .sort(sortedNombre);
+            if (!list.length) continue;
+            list.forEach((p) => used.add(p.idProducto));
+            sections.push({ key: `cat-${c.idCategoria}`, titulo: c.nombre, productos: list });
+        }
+
+        const sinSeccion = productos.filter((p) => !used.has(p.idProducto)).sort(sortedNombre);
+        if (sinSeccion.length) {
+            sections.push({ key: 'sin-categoria', titulo: 'Sin categoría asignada', productos: sinSeccion });
+        }
+
+        return sections;
+    }, [productos, categorias]);
 
     function resetImageSelection() {
         setLocalImagePreview((prev) => {
@@ -293,6 +325,32 @@ export function AdminProductosPage() {
                         </button>
                     </div>
                     <button
+                        type="button"
+                        onClick={() => setListaPorCategoriaAbierta((v) => !v)}
+                        aria-expanded={listaPorCategoriaAbierta}
+                        className={classNames(
+                            'inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
+                            listaPorCategoriaAbierta
+                                ? 'border-amber-500/40 bg-amber-600/15 text-amber-200'
+                                : 'border-stone-800 bg-stone-900 text-stone-200 hover:bg-stone-800/60',
+                        )}
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={classNames('h-4 w-4 shrink-0 transition-transform', listaPorCategoriaAbierta ? 'rotate-180' : '')}
+                            aria-hidden
+                        >
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                        Lista por categoría
+                    </button>
+                    <button
                         onClick={openCreate}
                         className="bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold rounded-lg px-6 py-3 transition-colors focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
@@ -304,6 +362,53 @@ export function AdminProductosPage() {
             {error ? (
                 <div className="mt-6 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
                     {error}
+                </div>
+            ) : null}
+
+            {listaPorCategoriaAbierta ? (
+                <div className="mt-6 rounded-xl border border-stone-800 bg-stone-900 p-5 shadow-lg shadow-black/10">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                            <h2 className="text-base font-semibold text-stone-50">Menú ordenado por categoría</h2>
+                            <p className="text-sm text-stone-400 mt-1">
+                                Mismo orden que en carta (campo orden de categoría). Dentro de cada categoría, platos en
+                                orden alfabético.
+                            </p>
+                        </div>
+                        <span className="text-xs text-stone-500 tabular-nums shrink-0">
+                            {productos.length} producto{productos.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                    {seccionesPorCategoria.length === 0 ? (
+                        <p className="mt-6 text-sm text-stone-500">No hay productos para listar.</p>
+                    ) : (
+                        <div className="mt-6 space-y-8">
+                            {seccionesPorCategoria.map((sec) => (
+                                <section key={sec.key} className="border-b border-stone-800 last:border-0 pb-8 last:pb-0">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-500/90 mb-3">
+                                        {sec.titulo}
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {sec.productos.map((p, i) => (
+                                            <li key={p.idProducto} className="flex gap-3 text-sm text-stone-50">
+                                                <span className="text-stone-500 tabular-nums w-6 shrink-0 text-right pt-0.5">
+                                                    {i + 1}.
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="font-medium">{p.nombreProducto}</span>
+                                                    <span className="text-stone-500"> · </span>
+                                                    <span className="text-stone-400">{formatCOP(p.precio)}</span>
+                                                    {!p.activo ? (
+                                                        <span className="ml-2 text-xs text-stone-500">(inactivo)</span>
+                                                    ) : null}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </section>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ) : null}
 
