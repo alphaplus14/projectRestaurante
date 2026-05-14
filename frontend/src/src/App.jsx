@@ -10,6 +10,7 @@ import { AdminProductosPage } from './pages/AdminProductosPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminMeserosPage } from './pages/AdminMeserosPage';
 import { AdminCocinerosPage } from './pages/AdminCocinerosPage';
+import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
 import { BlankPage } from './pages/BlankPage';
 import { RequireCocina } from './auth/RequireCocina';
@@ -83,6 +84,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminCocinerosPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/configuracion"
+                element={
+                    <RequireAdmin>
+                        <AdminConfiguracionPage />
                     </RequireAdmin>
                 }
             />

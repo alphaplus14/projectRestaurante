@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminMesaController;
-use App\Http\Controllers\Api\AdminProductoController;
+use App\Http\Controllers\Api\AdminRestauranteConfigController;
 use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -67,5 +67,8 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
     Route::post('cocineros', [AdminCocineroController::class, 'store']);
     Route::put('cocineros/{usuario:idUsuario}', [AdminCocineroController::class, 'update']);
     Route::patch('cocineros/{usuario:idUsuario}/activo', [AdminCocineroController::class, 'setActivo']);
+
+    Route::get('restaurante-config', [AdminRestauranteConfigController::class, 'show']);
+    Route::match(['put', 'post'], 'restaurante-config', [AdminRestauranteConfigController::class, 'update']);
 });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { apiFetch } from '../auth/apiClient';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -27,6 +28,12 @@ function usePersistedBoolean(key, initialValue) {
     return [value, setValue];
 }
 
+function marcaInicial(nombre) {
+    const t = String(nombre ?? '').trim();
+    if (!t) return 'Ñ';
+    return t.slice(0, 1).toUpperCase();
+}
+
 function SidebarItem({ to, label, collapsed }) {
     return (
         <NavLink
@@ -43,9 +50,11 @@ function SidebarItem({ to, label, collapsed }) {
             <span
                 className={classNames(
                     'h-2.5 w-2.5 rounded-full',
-                    to.includes('/productos') || to.includes('/cocineros')
-                        ? 'bg-orange-600'
-                        : 'bg-amber-500',
+                    to.includes('/configuracion')
+                        ? 'bg-stone-500'
+                        : to.includes('/productos') || to.includes('/cocineros')
+                          ? 'bg-orange-600'
+                          : 'bg-amber-500',
                 )}
             />
             <span className={classNames('truncate', collapsed ? 'hidden' : 'block')}>{label}</span>
@@ -55,6 +64,37 @@ function SidebarItem({ to, label, collapsed }) {
 
 export function AdminLayout({ title, children }) {
     const [collapsed, setCollapsed] = usePersistedBoolean('admin_sidebar_collapsed', false);
+    const [marcaNombre, setMarcaNombre] = useState('Ñapa');
+    const [marcaLogo, setMarcaLogo] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadMarca() {
+            try {
+                const res = await apiFetch('/api/admin/restaurante-config');
+                const d = res?.data;
+                if (cancelled || !d) return;
+                setMarcaNombre(d.nombre_comercial?.trim() || 'Ñapa');
+                setMarcaLogo(d.logoUrl || null);
+            } catch {
+                if (!cancelled) {
+                    setMarcaNombre('Ñapa');
+                    setMarcaLogo(null);
+                }
+            }
+        }
+
+        loadMarca();
+        const onActualizada = () => {
+            void loadMarca();
+        };
+        window.addEventListener('napa:config-actualizada', onActualizada);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('napa:config-actualizada', onActualizada);
+        };
+    }, []);
 
     const sidebarWidth = useMemo(() => (collapsed ? 'w-20' : 'w-72'), [collapsed]);
 
@@ -63,12 +103,28 @@ export function AdminLayout({ title, children }) {
             <div className="flex min-h-screen">
                 <aside className={classNames('shrink-0 border-r border-stone-800 bg-stone-900', sidebarWidth)}>
                     <div className="h-16 px-4 flex items-center justify-between border-b border-stone-800">
-                        <div className={classNames('flex items-center gap-3', collapsed ? 'justify-center w-full' : '')}>
-                            <div className="h-9 w-9 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center font-semibold text-amber-200">
-                                Ñ
-                            </div>
-                            <div className={classNames(collapsed ? 'hidden' : 'block')}>
-                                <div className="text-sm font-semibold">Ñapa</div>
+                        <div className={classNames('flex items-center gap-3 min-w-0', collapsed ? 'justify-center w-full' : '')}>
+                            {marcaLogo ? (
+                                <img
+                                    src={marcaLogo}
+                                    alt=""
+                                    className={classNames(
+                                        'rounded-xl object-cover border border-stone-800 bg-stone-950 shrink-0',
+                                        collapsed ? 'h-10 w-10' : 'h-9 w-9',
+                                    )}
+                                />
+                            ) : (
+                                <div
+                                    className={classNames(
+                                        'rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center font-semibold text-amber-200 shrink-0',
+                                        collapsed ? 'h-10 w-10 text-base' : 'h-9 w-9 text-sm',
+                                    )}
+                                >
+                                    {marcaInicial(marcaNombre)}
+                                </div>
+                            )}
+                            <div className={classNames('min-w-0', collapsed ? 'hidden' : 'block')}>
+                                <div className="text-sm font-semibold text-stone-50 truncate">{marcaNombre}</div>
                                 <div className="text-xs text-stone-400">Administrador</div>
                             </div>
                         </div>
@@ -126,6 +182,7 @@ export function AdminLayout({ title, children }) {
                         <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
                         <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
                         <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />
+                        <SidebarItem to="/admin/configuracion" label="Configuración" collapsed={collapsed} />
                     </div>
                 </aside>
 
