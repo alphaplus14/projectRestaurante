@@ -50,18 +50,23 @@ class ProductoController extends Controller
         $productos = $query->get();
 
         return response()->json([
-            'data' => $productos->map(fn (Producto $p) => [
-                'idProducto' => $p->idProducto,
-                'nombreProducto' => $p->nombreProducto,
-                'precio' => $p->precio,
-                'descripcion' => $p->descripcion,
-                'tipo' => $p->tipo,
-                'categoria' => $p->categoria ? [
-                    'idCategoria' => $p->categoria->idCategoria,
-                    'nombre' => $p->categoria->nombre,
-                    'orden' => $p->categoria->orden,
-                ] : null,
-            ]),
+            'data' => $productos->map(function (Producto $p) {
+                $imagenUrl = $p->imagen ? asset('storage/'.$p->imagen) : null;
+
+                return [
+                    'idProducto' => $p->idProducto,
+                    'nombreProducto' => $p->nombreProducto,
+                    'precio' => $p->precio,
+                    'descripcion' => $p->descripcion,
+                    'imagenUrl' => $imagenUrl,
+                    'tipo' => $p->tipo,
+                    'categoria' => $p->categoria ? [
+                        'idCategoria' => $p->categoria->idCategoria,
+                        'nombre' => $p->categoria->nombre,
+                        'orden' => $p->categoria->orden,
+                    ] : null,
+                ];
+            }),
         ]);
     }
 }

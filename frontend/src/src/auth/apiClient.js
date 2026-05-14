@@ -4,7 +4,8 @@ export async function apiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
     headers.set('Accept', 'application/json');
 
-    if (options.body && !headers.has('Content-Type')) {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (options.body && !isFormData && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
     }
 
@@ -20,10 +21,21 @@ export async function apiFetch(path, options = {}) {
     const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => null);
 
     if (!res.ok) {
-        const message =
+        let message =
             (data && typeof data === 'object' && (data.message || data.error)) ||
             (typeof data === 'string' && data) ||
             `Error ${res.status}`;
+
+        if (data && typeof data === 'object' && data.errors && typeof data.errors === 'object') {
+            const first = Object.values(data.errors)
+                .flat()
+                .find((x) => typeof x === 'string' && x.trim());
+            if (first) {
+                message =
+                    message && message !== 'The given data was invalid.' ? `${message} (${first})` : first;
+            }
+        }
+
         const err = new Error(message);
         err.status = res.status;
         err.data = data;

@@ -43,7 +43,7 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
     Route::get('productos', [AdminProductoController::class, 'index']);
     Route::post('productos', [AdminProductoController::class, 'store']);
     Route::get('productos/{producto:idProducto}', [AdminProductoController::class, 'show']);
-    Route::put('productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
+    Route::match(['put', 'post'], 'productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
     Route::patch('productos/{producto:idProducto}/activo', [AdminProductoController::class, 'setActivo']);
     Route::delete('productos/{producto:idProducto}', [AdminProductoController::class, 'destroy']);
 

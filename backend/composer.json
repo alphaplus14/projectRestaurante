@@ -49,6 +49,7 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "serve-uploads": "php -d upload_max_filesize=12M -d post_max_size=16M artisan serve",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

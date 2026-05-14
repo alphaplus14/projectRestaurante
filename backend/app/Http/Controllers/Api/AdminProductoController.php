@@ -7,6 +7,7 @@ use App\Models\Categoria;
 use App\Models\Producto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminProductoController extends Controller
@@ -45,6 +46,11 @@ class AdminProductoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validatePayload($request);
+        unset($data['imagen']);
+
+        if ($request->hasFile('imagen')) {
+            $data['imagen'] = $request->file('imagen')->store('productos', 'public');
+        }
 
         $producto = Producto::create($data);
         $producto->loadMissing(['categoria:idCategoria,nombre,orden,activa']);
@@ -58,6 +64,12 @@ class AdminProductoController extends Controller
     public function update(Request $request, Producto $producto): JsonResponse
     {
         $data = $this->validatePayload($request, $producto);
+        unset($data['imagen']);
+
+        if ($request->hasFile('imagen')) {
+            $this->deleteStoredImage($producto->imagen);
+            $data['imagen'] = $request->file('imagen')->store('productos', 'public');
+        }
 
         $producto->fill($data);
         $producto->save();
@@ -98,6 +110,7 @@ class AdminProductoController extends Controller
             ], 409);
         }
 
+        $this->deleteStoredImage($producto->imagen);
         $producto->delete();
 
         return response()->json([
@@ -105,11 +118,26 @@ class AdminProductoController extends Controller
         ]);
     }
 
+    private function deleteStoredImage(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
     private function validatePayload(Request $request, ?Producto $producto = null): array
     {
+        if ($request->input('receta_idReceta') === '') {
+            $request->merge(['receta_idReceta' => null]);
+        }
+
         $categoriaId = $request->input('categoria_idCategoria');
 
-        return $request->validate([
+        $data = $request->validate([
             'nombreProducto' => [
                 'required',
                 'string',
@@ -124,16 +152,26 @@ class AdminProductoController extends Controller
             'categoria_idCategoria' => ['required', 'integer', Rule::exists('categoria', 'idCategoria')],
             'receta_idReceta' => ['nullable', 'integer', Rule::exists('receta', 'idReceta')],
             'activo' => ['sometimes', 'boolean'],
+            'imagen' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ]);
+
+        return $data;
     }
 
     private function serializeProducto(Producto $p): array
     {
+        $imagenUrl = null;
+        if ($p->imagen) {
+            $imagenUrl = asset('storage/'.$p->imagen);
+        }
+
         return [
             'idProducto' => $p->idProducto,
             'nombreProducto' => $p->nombreProducto,
             'precio' => $p->precio,
             'descripcion' => $p->descripcion,
+            'imagen' => $p->imagen,
+            'imagenUrl' => $imagenUrl,
             'tipo' => $p->tipo,
             'activo' => (bool) $p->activo,
             'categoria_idCategoria' => $p->categoria_idCategoria,
@@ -147,4 +185,3 @@ class AdminProductoController extends Controller
         ];
     }
 }
-

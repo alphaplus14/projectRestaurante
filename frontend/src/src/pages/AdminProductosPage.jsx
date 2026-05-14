@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
 
+const VIEW_STORAGE_KEY = 'admin-productos-view-mode';
+
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
 }
@@ -22,7 +24,26 @@ function emptyDraft() {
         categoria_idCategoria: '',
         receta_idReceta: '',
         activo: true,
+        imagenUrl: null,
     };
+}
+
+function ProductThumb({ imagenUrl, nombre, size = 'md' }) {
+    const isSmall = size === 'sm';
+    return (
+        <div
+            className={classNames(
+                'shrink-0 overflow-hidden bg-stone-800 border border-stone-700/80 flex items-center justify-center text-stone-500',
+                isSmall ? 'h-10 w-10 rounded-lg text-[10px]' : 'h-40 w-full rounded-t-xl',
+            )}
+        >
+            {imagenUrl ? (
+                <img src={imagenUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+            ) : (
+                <span className="px-2 text-center leading-tight">{nombre?.slice(0, 2)?.toUpperCase() ?? '—'}</span>
+            )}
+        </div>
+    );
 }
 
 export function AdminProductosPage() {
@@ -32,14 +53,33 @@ export function AdminProductosPage() {
     const [productos, setProductos] = useState([]);
     const [categorias, setCategorias] = useState([]);
 
+    const [viewMode, setViewMode] = useState(() => {
+        try {
+            const v = localStorage.getItem(VIEW_STORAGE_KEY);
+            return v === 'cards' ? 'cards' : 'table';
+        } catch {
+            return 'table';
+        }
+    });
+
     const [isOpen, setIsOpen] = useState(false);
     const [draft, setDraft] = useState(emptyDraft());
+    const [imageFile, setImageFile] = useState(null);
+    const [localImagePreview, setLocalImagePreview] = useState(null);
 
     const categoriasById = useMemo(() => {
         const m = new Map();
         for (const c of categorias) m.set(String(c.idCategoria), c);
         return m;
     }, [categorias]);
+
+    function resetImageSelection() {
+        setLocalImagePreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+        setImageFile(null);
+    }
 
     async function load() {
         setError('');
@@ -60,12 +100,23 @@ export function AdminProductosPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    function setViewModePersist(next) {
+        setViewMode(next);
+        try {
+            localStorage.setItem(VIEW_STORAGE_KEY, next);
+        } catch {
+            /* ignore */
+        }
+    }
+
     function openCreate() {
+        resetImageSelection();
         setDraft(emptyDraft());
         setIsOpen(true);
     }
 
     function openEdit(p) {
+        resetImageSelection();
         setDraft({
             idProducto: p.idProducto,
             nombreProducto: p.nombreProducto ?? '',
@@ -75,14 +126,27 @@ export function AdminProductosPage() {
             categoria_idCategoria: p.categoria_idCategoria ?? '',
             receta_idReceta: p.receta_idReceta ?? '',
             activo: Boolean(p.activo),
+            imagenUrl: p.imagenUrl ?? null,
         });
         setIsOpen(true);
     }
 
     function closeModal() {
         setIsOpen(false);
+        resetImageSelection();
         setDraft(emptyDraft());
         setError('');
+    }
+
+    function onPickImage(e) {
+        const f = e.target.files?.[0];
+        e.target.value = '';
+        if (!f) return;
+        setLocalImagePreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(f);
+        });
+        setImageFile(f);
     }
 
     async function saveDraft(e) {
@@ -90,7 +154,7 @@ export function AdminProductosPage() {
         setError('');
         setSaving(true);
 
-        const payload = {
+        const basePayload = {
             nombreProducto: String(draft.nombreProducto || '').trim(),
             precio: Number(draft.precio),
             descripcion: draft.descripcion ? String(draft.descripcion) : null,
@@ -101,15 +165,41 @@ export function AdminProductosPage() {
         };
 
         try {
-            if (draft.idProducto) {
+            const useMultipart = imageFile instanceof File;
+
+            if (useMultipart) {
+                const fd = new FormData();
+                fd.append('nombreProducto', basePayload.nombreProducto);
+                fd.append('precio', String(basePayload.precio));
+                if (basePayload.descripcion != null) fd.append('descripcion', basePayload.descripcion);
+                fd.append('tipo', basePayload.tipo);
+                fd.append('categoria_idCategoria', String(basePayload.categoria_idCategoria));
+                if (basePayload.receta_idReceta != null) {
+                    fd.append('receta_idReceta', String(basePayload.receta_idReceta));
+                }
+                fd.append('activo', basePayload.activo ? '1' : '0');
+                fd.append('imagen', imageFile);
+
+                if (draft.idProducto) {
+                    await apiFetch(`/api/admin/productos/${draft.idProducto}`, {
+                        method: 'POST',
+                        body: fd,
+                    });
+                } else {
+                    await apiFetch('/api/admin/productos', {
+                        method: 'POST',
+                        body: fd,
+                    });
+                }
+            } else if (draft.idProducto) {
                 await apiFetch(`/api/admin/productos/${draft.idProducto}`, {
                     method: 'PUT',
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(basePayload),
                 });
             } else {
                 await apiFetch('/api/admin/productos', {
                     method: 'POST',
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(basePayload),
                 });
             }
 
@@ -150,6 +240,12 @@ export function AdminProductosPage() {
         }
     }
 
+    function categoriaNombre(p) {
+        return (
+            p.categoria?.nombre || categoriasById.get(String(p.categoria_idCategoria))?.nombre || '—'
+        );
+    }
+
     if (loading) {
         return (
             <AdminLayout title="Productos">
@@ -157,6 +253,8 @@ export function AdminProductosPage() {
             </AdminLayout>
         );
     }
+
+    const coverSrc = localImagePreview || draft.imagenUrl;
 
     return (
         <AdminLayout title="Productos">
@@ -167,12 +265,40 @@ export function AdminProductosPage() {
                         Administra el menú. Deshabilitar es preferido sobre eliminar.
                     </div>
                 </div>
-                <button
-                    onClick={openCreate}
-                    className="bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold rounded-lg px-6 py-3 transition-colors focus-visible:ring-2 focus-visible:ring-amber-500"
-                >
-                    Crear producto
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="inline-flex rounded-xl border border-stone-800 bg-stone-950 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setViewModePersist('table')}
+                            className={classNames(
+                                'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                                viewMode === 'table'
+                                    ? 'bg-stone-800 text-stone-50 shadow-sm'
+                                    : 'text-stone-400 hover:text-stone-200',
+                            )}
+                        >
+                            Tabla
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewModePersist('cards')}
+                            className={classNames(
+                                'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                                viewMode === 'cards'
+                                    ? 'bg-stone-800 text-stone-50 shadow-sm'
+                                    : 'text-stone-400 hover:text-stone-200',
+                            )}
+                        >
+                            Tarjetas
+                        </button>
+                    </div>
+                    <button
+                        onClick={openCreate}
+                        className="bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold rounded-lg px-6 py-3 transition-colors focus-visible:ring-2 focus-visible:ring-amber-500"
+                    >
+                        Crear producto
+                    </button>
+                </div>
             </div>
 
             {error ? (
@@ -181,100 +307,171 @@ export function AdminProductosPage() {
                 </div>
             ) : null}
 
-            <div className="mt-8 bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="text-stone-400">
-                            <tr className="border-b border-stone-800">
-                                <th className="text-left font-medium px-4 py-3">Producto</th>
-                                <th className="text-left font-medium px-4 py-3">Categoría</th>
-                                <th className="text-left font-medium px-4 py-3">Tipo</th>
-                                <th className="text-right font-medium px-4 py-3">Precio</th>
-                                <th className="text-left font-medium px-4 py-3">Estado</th>
-                                <th className="text-right font-medium px-4 py-3">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-stone-800">
-                            {productos.map((p) => (
-                                <tr key={p.idProducto} className="hover:bg-stone-900/60">
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">{p.nombreProducto}</div>
-                                        {p.descripcion ? (
-                                            <div className="mt-0.5 text-stone-500 line-clamp-1">{p.descripcion}</div>
-                                        ) : null}
-                                    </td>
-                                    <td className="px-4 py-3 text-stone-400">
-                                        {p.categoria?.nombre ||
-                                            categoriasById.get(String(p.categoria_idCategoria))?.nombre ||
-                                            '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-stone-400">{p.tipo}</td>
-                                    <td className="px-4 py-3 text-right">{formatCOP(p.precio)}</td>
-                                    <td className="px-4 py-3">
-                                        {p.activo ? (
-                                            <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
-                                                Activo
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
-                                                Inactivo
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => openEdit(p)}
-                                                className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => toggleActivo(p)}
-                                                className={classNames(
-                                                    'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
-                                                    p.activo
-                                                        ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                                                        : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
-                                                )}
-                                            >
-                                                {p.activo ? 'Deshabilitar' : 'Habilitar'}
-                                            </button>
-                                            <button
-                                                onClick={() => deleteProducto(p)}
-                                                className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                            >
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    </td>
+            {viewMode === 'table' ? (
+                <div className="mt-8 bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="text-stone-400">
+                                <tr className="border-b border-stone-800">
+                                    <th className="text-left font-medium px-4 py-3 w-14">Foto</th>
+                                    <th className="text-left font-medium px-4 py-3">Producto</th>
+                                    <th className="text-left font-medium px-4 py-3">Categoría</th>
+                                    <th className="text-left font-medium px-4 py-3">Tipo</th>
+                                    <th className="text-right font-medium px-4 py-3">Precio</th>
+                                    <th className="text-left font-medium px-4 py-3">Estado</th>
+                                    <th className="text-right font-medium px-4 py-3">Acciones</th>
                                 </tr>
-                            ))}
+                            </thead>
+                            <tbody className="divide-y divide-stone-800">
+                                {productos.map((p) => (
+                                    <tr key={p.idProducto} className="hover:bg-stone-900/60">
+                                        <td className="px-4 py-3 align-middle">
+                                            <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="sm" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium">{p.nombreProducto}</div>
+                                            {p.descripcion ? (
+                                                <div className="mt-0.5 text-stone-500 line-clamp-1">{p.descripcion}</div>
+                                            ) : null}
+                                        </td>
+                                        <td className="px-4 py-3 text-stone-400">{categoriaNombre(p)}</td>
+                                        <td className="px-4 py-3 text-stone-400">{p.tipo}</td>
+                                        <td className="px-4 py-3 text-right">{formatCOP(p.precio)}</td>
+                                        <td className="px-4 py-3">
+                                            {p.activo ? (
+                                                <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                                                    Activo
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+                                                    Inactivo
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => openEdit(p)}
+                                                    className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleActivo(p)}
+                                                    className={classNames(
+                                                        'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
+                                                        p.activo
+                                                            ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
+                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
+                                                    )}
+                                                >
+                                                    {p.activo ? 'Deshabilitar' : 'Habilitar'}
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteProducto(p)}
+                                                    className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                >
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
 
-                            {productos.length === 0 ? (
-                                <tr>
-                                    <td className="px-4 py-10 text-center text-stone-400" colSpan={6}>
-                                        No hay productos aún.
-                                    </td>
-                                </tr>
-                            ) : null}
-                        </tbody>
-                    </table>
+                                {productos.length === 0 ? (
+                                    <tr>
+                                        <td className="px-4 py-10 text-center text-stone-400" colSpan={7}>
+                                            No hay productos aún.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {productos.map((p) => (
+                        <div
+                            key={p.idProducto}
+                            className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden flex flex-col shadow-lg shadow-black/20"
+                        >
+                            <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="lg" />
+                            <div className="p-5 flex-1 flex flex-col gap-3">
+                                <div>
+                                    <div className="text-lg font-semibold text-stone-50 leading-snug">{p.nombreProducto}</div>
+                                    <div className="mt-1 text-sm text-stone-500">{categoriaNombre(p)}</div>
+                                </div>
+                                {p.descripcion ? (
+                                    <p className="text-sm text-stone-400 line-clamp-3 flex-1">{p.descripcion}</p>
+                                ) : (
+                                    <div className="flex-1" />
+                                )}
+                                <div className="flex items-center justify-between gap-3 pt-1">
+                                    <div className="text-amber-200 font-semibold">{formatCOP(p.precio)}</div>
+                                    <span className="text-xs font-medium text-stone-500 border border-stone-800 rounded-full px-2 py-0.5">
+                                        {p.tipo}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-800">
+                                    {p.activo ? (
+                                        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                                            Activo
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+                                            Inactivo
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => openEdit(p)}
+                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
+                                    >
+                                        Editar
+                                    </button>
+                                    <button
+                                        onClick={() => toggleActivo(p)}
+                                        className={classNames(
+                                            'flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
+                                            p.activo
+                                                ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
+                                                : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
+                                        )}
+                                    >
+                                        {p.activo ? 'Deshabilitar' : 'Habilitar'}
+                                    </button>
+                                    <button
+                                        onClick={() => deleteProducto(p)}
+                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {productos.length === 0 ? (
+                        <div className="col-span-full rounded-2xl border border-stone-800 bg-stone-900/60 px-6 py-16 text-center text-stone-400">
+                            No hay productos aún.
+                        </div>
+                    ) : null}
+                </div>
+            )}
 
             {isOpen ? (
                 <div className="fixed inset-0 z-50">
                     <div className="absolute inset-0 bg-black/60" onClick={closeModal} />
-                    <div className="absolute inset-0 flex items-center justify-center p-6">
-                        <div className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl p-6 relative">
+                    <div className="absolute inset-0 flex items-center justify-center p-6 overflow-y-auto">
+                        <div className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl p-6 relative my-8">
                             <div className="flex items-start justify-between gap-6">
                                 <div>
                                     <div className="text-lg font-semibold">
                                         {draft.idProducto ? 'Editar producto' : 'Crear producto'}
                                     </div>
                                     <div className="mt-1 text-sm text-stone-400">
-                                        Precio mínimo: $500 COP. Nombre único por categoría.
+                                        Precio mínimo: $500 COP. Nombre único por categoría. Imagen opcional (PHP suele limitar a 2 MB por archivo; para subir más, en backend ejecuta: composer run serve-uploads).
                                     </div>
                                 </div>
                                 <button
@@ -292,6 +489,36 @@ export function AdminProductosPage() {
                             ) : null}
 
                             <form className="mt-6 space-y-4" onSubmit={saveDraft}>
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400">Foto del plato (opcional)</label>
+                                    <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start">
+                                        <div className="w-full sm:w-40 shrink-0 rounded-xl overflow-hidden border border-stone-800 bg-stone-950 aspect-square flex items-center justify-center text-stone-500 text-xs">
+                                            {coverSrc ? (
+                                                <img src={coverSrc} alt="" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <span>Sin imagen</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 w-full space-y-2">
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                                onChange={onPickImage}
+                                                className="block w-full text-sm text-stone-300 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-800 file:px-4 file:py-2 file:text-stone-100 file:font-medium hover:file:bg-stone-700"
+                                            />
+                                            {imageFile ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => resetImageSelection()}
+                                                    className="text-sm text-amber-300 hover:text-amber-200 underline-offset-2 hover:underline"
+                                                >
+                                                    Quitar imagen nueva
+                                                </button>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-stone-400">Nombre</label>
                                     <input
@@ -399,4 +626,3 @@ export function AdminProductosPage() {
         </AdminLayout>
     );
 }
-

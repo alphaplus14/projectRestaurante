@@ -18,6 +18,7 @@ class Producto extends Model
         'nombreProducto',
         'precio',
         'descripcion',
+        'imagen',
         'tipo',
         'categoria_idCategoria',
         'receta_idReceta',
