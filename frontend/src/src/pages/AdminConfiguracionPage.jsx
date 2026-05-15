@@ -143,13 +143,8 @@ export function AdminConfiguracionPage() {
                 text: 'La configuración del restaurante se actualizó correctamente.',
             });
         } catch (err) {
-            const msg = err?.message || 'No se pudo guardar.';
+            const msg = err?.message || '';
             const esPassword = /contraseña|password|inválid/i.test(msg);
-
-            if (modalNombre || nombre.trim() !== nombreInicial.current) {
-                setModalError(msg);
-            }
-
             void adminAlertError(err, esPassword ? 'Contraseña incorrecta' : 'No se pudo guardar');
         } finally {
             setSaving(false);
