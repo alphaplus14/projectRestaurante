@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
+import { adminAlertError } from "../utils/adminAlerts";
 
 const BASE = "http://127.0.0.1:8000/api";
 
@@ -149,14 +150,6 @@ function Textarea({ label, ...props }) {
   );
 }
 
-function ErrorMsg({ msg }) {
-  return (
-    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
-      {msg}
-    </div>
-  );
-}
-
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
@@ -246,7 +239,7 @@ function emptyDraft() {
   };
 }
 
-function ModalGasto({ draft, setDraft, saving, error, onSave, onClose }) {
+function ModalGasto({ draft, setDraft, saving, onSave, onClose }) {
   const esNuevo = !draft.idGasto;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -316,12 +309,6 @@ function ModalGasto({ draft, setDraft, saving, error, onSave, onClose }) {
           </Select>
         </div>
 
-        {error && (
-          <div className="mt-4">
-            <ErrorMsg msg={error} />
-          </div>
-        )}
-
         <div className="mt-6 flex justify-end gap-3">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
@@ -379,9 +366,7 @@ function ModalConfirmar({ gasto, saving, onConfirm, onClose }) {
 function TabGastos() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [modalError, setModalError] = useState("");
 
   const [filtros, setFiltros] = useState({
     fecha_desde: firstOfMonth(),
@@ -396,7 +381,6 @@ function TabGastos() {
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const params = new URLSearchParams();
       if (filtros.fecha_desde) params.set("fecha_desde", filtros.fecha_desde);
@@ -405,7 +389,7 @@ function TabGastos() {
       const res = await apiFetch(`${BASE}/admin/finanzas/gastos?${params}`);
       setData(res);
     } catch (err) {
-      setError(err?.message || "No se pudo cargar los gastos.");
+      void adminAlertError(err, "Gastos");
     } finally {
       setLoading(false);
     }
@@ -417,7 +401,6 @@ function TabGastos() {
 
   function abrirCrear() {
     setDraft(emptyDraft());
-    setModalError("");
     setModalGasto(true);
   }
 
@@ -430,7 +413,6 @@ function TabGastos() {
       fecha: g.fecha?.slice(0, 10) ?? today(),
       metodo: g.metodo ?? "",
     });
-    setModalError("");
     setModalGasto(true);
   }
 
@@ -441,7 +423,6 @@ function TabGastos() {
 
   async function guardar() {
     setSaving(true);
-    setModalError("");
     try {
       const body = {
         categoria: draft.categoria,
@@ -464,7 +445,7 @@ function TabGastos() {
       setModalGasto(false);
       cargar();
     } catch (err) {
-      setModalError(err?.message || "Error al guardar.");
+      void adminAlertError(err, "Guardar gasto");
     } finally {
       setSaving(false);
     }
@@ -479,8 +460,8 @@ function TabGastos() {
       setModalElim(false);
       cargar();
     } catch (err) {
-      setError(err?.message || "Error al eliminar.");
       setModalElim(false);
+      void adminAlertError(err, "Eliminar gasto");
     } finally {
       setSaving(false);
     }
@@ -533,8 +514,6 @@ function TabGastos() {
         </div>
         <Btn onClick={abrirCrear}>+ Registrar gasto</Btn>
       </div>
-
-      {error && <ErrorMsg msg={error} />}
 
       {/* KPIs resumen */}
       {data && (
@@ -641,7 +620,6 @@ function TabGastos() {
           draft={draft}
           setDraft={setDraft}
           saving={saving}
-          error={modalError}
           onSave={guardar}
           onClose={() => setModalGasto(false)}
         />
@@ -663,7 +641,6 @@ function TabGastos() {
 function TabPyG() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
-  const [error, setError] = useState("");
   const [fechas, setFechas] = useState({
     desde: firstOfMonth(),
     hasta: today(),
@@ -671,14 +648,13 @@ function TabPyG() {
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await apiFetch(
         `${BASE}/admin/finanzas/pyg?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
       );
       setData(res);
     } catch (err) {
-      setError(err?.message || "No se pudo cargar el P&G.");
+      void adminAlertError(err, "Pérdidas y ganancias");
     } finally {
       setLoading(false);
     }
@@ -757,7 +733,6 @@ function TabPyG() {
         </Btn>
       </div>
 
-      {error && <ErrorMsg msg={error} />}
       {loading && <Spinner />}
 
       {data && !loading && (

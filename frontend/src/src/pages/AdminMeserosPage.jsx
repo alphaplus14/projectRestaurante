@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { adminAlertError } from '../utils/adminAlerts';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -22,20 +23,18 @@ function emptyDraft() {
 export function AdminMeserosPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
     const [meseros, setMeseros] = useState([]);
 
     const [isOpen, setIsOpen] = useState(false);
     const [draft, setDraft] = useState(emptyDraft());
 
     async function load() {
-        setError('');
         setLoading(true);
         try {
             const data = await apiFetch('/api/admin/meseros');
             setMeseros(Array.isArray(data?.data) ? data.data : []);
         } catch (err) {
-            setError(err?.message || 'No se pudo cargar meseros.');
+            void adminAlertError(err, 'No se pudieron cargar los meseros');
         } finally {
             setLoading(false);
         }
@@ -68,12 +67,10 @@ export function AdminMeserosPage() {
     function closeModal() {
         setIsOpen(false);
         setDraft(emptyDraft());
-        setError('');
     }
 
     async function saveDraft(e) {
         e.preventDefault();
-        setError('');
         setSaving(true);
 
         const payload = {
@@ -108,14 +105,13 @@ export function AdminMeserosPage() {
             await load();
             closeModal();
         } catch (err) {
-            setError(err?.message || 'No se pudo guardar.');
+            void adminAlertError(err, 'No se pudo guardar el mesero');
         } finally {
             setSaving(false);
         }
     }
 
     async function toggleActivo(m) {
-        setError('');
         try {
             await apiFetch(`/api/admin/meseros/${m.idUsuario}/activo`, {
                 method: 'PATCH',
@@ -123,7 +119,7 @@ export function AdminMeserosPage() {
             });
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo actualizar el estado.');
+            void adminAlertError(err, 'No se pudo cambiar el estado');
         }
     }
 
@@ -149,12 +145,6 @@ export function AdminMeserosPage() {
                     Crear mesero
                 </button>
             </div>
-
-            {error ? (
-                <div className="mt-6 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                    {error}
-                </div>
-            ) : null}
 
             <div className="mt-8 bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
@@ -249,12 +239,6 @@ export function AdminMeserosPage() {
                                 </button>
                             </div>
 
-                            {error ? (
-                                <div className="mt-4 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                                    {error}
-                                </div>
-                            ) : null}
-
                             <form className="mt-6 space-y-4" onSubmit={saveDraft}>
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
@@ -316,12 +300,18 @@ export function AdminMeserosPage() {
                                         </label>
                                         <input
                                             type="password"
+                                            minLength={draft.idUsuario ? undefined : 6}
                                             value={draft.password}
                                             onChange={(e) => setDraft((d) => ({ ...d, password: e.target.value }))}
                                             className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             autoComplete="new-password"
                                             required={!draft.idUsuario}
                                         />
+                                        {!draft.idUsuario ? (
+                                            <p className="mt-1 text-xs text-stone-500">Mínimo 6 caracteres (requisito del sistema).</p>
+                                        ) : (
+                                            <p className="mt-1 text-xs text-stone-500">Si la cambias, mínimo 6 caracteres.</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-stone-400">Estado</label>

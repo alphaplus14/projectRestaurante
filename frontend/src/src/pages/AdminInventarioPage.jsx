@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
+import { adminAlertError } from "../utils/adminAlerts";
 
 const BASE = "http://127.0.0.1:8000/api";
 
@@ -103,14 +104,6 @@ function Select({ label, children, ...props }) {
   );
 }
 
-function ErrorMsg({ msg }) {
-  return (
-    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
-      {msg}
-    </div>
-  );
-}
-
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
@@ -179,7 +172,7 @@ function emptyDraft() {
   };
 }
 
-function ModalIngrediente({ draft, setDraft, saving, error, onSave, onClose }) {
+function ModalIngrediente({ draft, setDraft, saving, onSave, onClose }) {
   const esNuevo = !draft.idIngrediente;
 
   return (
@@ -241,12 +234,6 @@ function ModalIngrediente({ draft, setDraft, saving, error, onSave, onClose }) {
           />
         </div>
 
-        {error && (
-          <div className="mt-4">
-            <ErrorMsg msg={error} />
-          </div>
-        )}
-
         <div className="mt-6 flex justify-end gap-3">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
@@ -271,7 +258,6 @@ function ModalMovimiento({
   mov,
   setMov,
   saving,
-  error,
   onSave,
   onClose,
 }) {
@@ -368,12 +354,6 @@ function ModalMovimiento({
           />
         </div>
 
-        {error && (
-          <div className="mt-4">
-            <ErrorMsg msg={error} />
-          </div>
-        )}
-
         <div className="mt-6 flex justify-end gap-3">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
@@ -392,14 +372,15 @@ function ModalMovimiento({
 function ModalHistorial({ ingrediente, onClose }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     apiFetch(
       `${BASE}/admin/inventario/ingredientes/${ingrediente.idIngrediente}/movimientos`,
     )
       .then(setData)
-      .catch(() => setError("No se pudo cargar el historial."))
+      .catch((err) => {
+        void adminAlertError(err, "Historial de movimientos");
+      })
       .finally(() => setLoading(false));
   }, [ingrediente.idIngrediente]);
 
@@ -433,7 +414,6 @@ function ModalHistorial({ ingrediente, onClose }) {
         </div>
 
         {loading && <Spinner />}
-        {error && <ErrorMsg msg={error} />}
 
         {data && (
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
@@ -494,7 +474,6 @@ function ModalHistorial({ ingrediente, onClose }) {
 function StockGeneral({ data, onRecargar }) {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
-  const [modalError, setModalError] = useState("");
 
   // Modal crear/editar
   const [modalIngr, setModalIngr] = useState(false);
@@ -514,7 +493,6 @@ function StockGeneral({ data, onRecargar }) {
 
   function abrirCrear() {
     setDraft(emptyDraft());
-    setModalError("");
     setModalIngr(true);
   }
 
@@ -526,14 +504,12 @@ function StockGeneral({ data, onRecargar }) {
       stock: ing.stock,
       stock_minimo: ing.stock_minimo,
     });
-    setModalError("");
     setModalIngr(true);
   }
 
   function abrirMovimiento(ing) {
     setIngredSelec(ing);
     setMovDraft(emptyMovimiento());
-    setModalError("");
     setModalMov(true);
   }
 
@@ -544,7 +520,6 @@ function StockGeneral({ data, onRecargar }) {
 
   async function guardarIngrediente() {
     setSaving(true);
-    setModalError("");
     try {
       if (draft.idIngrediente) {
         await apiFetch(
@@ -572,7 +547,7 @@ function StockGeneral({ data, onRecargar }) {
       setModalIngr(false);
       onRecargar();
     } catch (err) {
-      setModalError(err?.message || "Error al guardar.");
+      void adminAlertError(err, "Ingrediente");
     } finally {
       setSaving(false);
     }
@@ -580,7 +555,6 @@ function StockGeneral({ data, onRecargar }) {
 
   async function guardarMovimiento() {
     setSaving(true);
-    setModalError("");
     try {
       await apiFetch(
         `${BASE}/admin/inventario/ingredientes/${ingredSelec.idIngrediente}/movimiento`,
@@ -597,7 +571,7 @@ function StockGeneral({ data, onRecargar }) {
       setModalMov(false);
       onRecargar();
     } catch (err) {
-      setModalError(err?.message || "Error al registrar movimiento.");
+      void adminAlertError(err, "Movimiento de stock");
     } finally {
       setSaving(false);
     }
@@ -760,7 +734,6 @@ function StockGeneral({ data, onRecargar }) {
           draft={draft}
           setDraft={setDraft}
           saving={saving}
-          error={modalError}
           onSave={guardarIngrediente}
           onClose={() => setModalIngr(false)}
         />
@@ -771,7 +744,6 @@ function StockGeneral({ data, onRecargar }) {
           mov={movDraft}
           setMov={setMovDraft}
           saving={saving}
-          error={modalError}
           onSave={guardarMovimiento}
           onClose={() => setModalMov(false)}
         />
@@ -864,13 +836,11 @@ function PanelAlertas({ alertas }) {
 export function AdminInventarioPage() {
   const [tab, setTab] = useState("stock");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [alertas, setAlertas] = useState(null);
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const [inv, alr] = await Promise.all([
         apiFetch(`${BASE}/admin/inventario/ingredientes`),
@@ -879,7 +849,7 @@ export function AdminInventarioPage() {
       setData(inv);
       setAlertas(alr);
     } catch (err) {
-      setError(err?.message || "No se pudo cargar el inventario.");
+      void adminAlertError(err, "Inventario");
     } finally {
       setLoading(false);
     }
@@ -915,8 +885,6 @@ export function AdminInventarioPage() {
             </TabButton>
           ))}
         </div>
-
-        {error && <ErrorMsg msg={error} />}
 
         {loading ? (
           <Spinner />

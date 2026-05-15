@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
+import { adminAlertError } from "../utils/adminAlerts";
 
 // ─── utilidades ───────────────────────────────────────────────────────────────
 
@@ -36,14 +37,6 @@ function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
-    </div>
-  );
-}
-
-function ErrorMsg({ msg }) {
-  return (
-    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
-      {msg}
     </div>
   );
 }
@@ -88,7 +81,6 @@ function FieldSelect({ label, children, ...props }) {
 export function AdminUsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [usuarios, setUsuarios] = useState([]);
   const [filtroRol, setFiltroRol] = useState("TODOS");
 
@@ -98,14 +90,13 @@ export function AdminUsuariosPage() {
   // ── carga ──────────────────────────────────────────────────────────────────
 
   async function load() {
-    setError("");
     setLoading(true);
     try {
       const qs = filtroRol !== "TODOS" ? `?rol=${filtroRol}` : "";
       const data = await apiFetch(`/api/admin/usuarios${qs}`);
       setUsuarios(Array.isArray(data?.data) ? data.data : []);
     } catch (err) {
-      setError(err?.message || "No se pudo cargar los usuarios.");
+      void adminAlertError(err, "No se pudieron cargar los usuarios");
     } finally {
       setLoading(false);
     }
@@ -141,14 +132,12 @@ export function AdminUsuariosPage() {
   function closeModal() {
     setIsOpen(false);
     setDraft(emptyDraft());
-    setError("");
   }
 
   // ── guardar ────────────────────────────────────────────────────────────────
 
   async function saveDraft(e) {
     e.preventDefault();
-    setError("");
     setSaving(true);
 
     const payload = {
@@ -183,7 +172,7 @@ export function AdminUsuariosPage() {
       await load();
       closeModal();
     } catch (err) {
-      setError(err?.message || "No se pudo guardar.");
+      void adminAlertError(err, "No se pudo guardar el usuario");
     } finally {
       setSaving(false);
     }
@@ -192,7 +181,6 @@ export function AdminUsuariosPage() {
   // ── toggle activo ──────────────────────────────────────────────────────────
 
   async function toggleActivo(u) {
-    setError("");
     try {
       await apiFetch(`/api/admin/usuarios/${u.idUsuario}/activo`, {
         method: "PATCH",
@@ -200,7 +188,7 @@ export function AdminUsuariosPage() {
       });
       await load();
     } catch (err) {
-      setError(err?.message || "No se pudo actualizar el estado.");
+      void adminAlertError(err, "No se pudo cambiar el estado");
     }
   }
 
@@ -234,9 +222,6 @@ export function AdminUsuariosPage() {
             Crear usuario
           </button>
         </div>
-
-        {/* ── error global ── */}
-        {error ? <ErrorMsg msg={error} /> : null}
 
         {/* ── chips de filtro por rol ── */}
         <div className="flex flex-wrap gap-2">
@@ -416,13 +401,6 @@ export function AdminUsuariosPage() {
               </button>
             </div>
 
-            {/* error modal */}
-            {error ? (
-              <div className="mb-4">
-                <ErrorMsg msg={error} />
-              </div>
-            ) : null}
-
             <form className="space-y-4" onSubmit={saveDraft}>
               {/* nombre / apellido */}
               <div className="grid sm:grid-cols-2 gap-4">
@@ -478,16 +456,28 @@ export function AdminUsuariosPage() {
 
               {/* contraseña / rol */}
               <div className="grid sm:grid-cols-2 gap-4">
-                <FieldInput
-                  label={`Contraseña${draft.idUsuario ? " (opcional)" : ""}`}
-                  type="password"
-                  value={draft.password}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, password: e.target.value }))
-                  }
-                  autoComplete="new-password"
-                  required={!draft.idUsuario}
-                />
+                <div>
+                  <FieldInput
+                    label={`Contraseña${draft.idUsuario ? " (opcional)" : ""}`}
+                    type="password"
+                    minLength={draft.idUsuario ? undefined : 6}
+                    value={draft.password}
+                    onChange={(e) =>
+                      setDraft((d) => ({ ...d, password: e.target.value }))
+                    }
+                    autoComplete="new-password"
+                    required={!draft.idUsuario}
+                  />
+                  {!draft.idUsuario ? (
+                    <p className="mt-1 text-xs text-stone-500">
+                      Mínimo 6 caracteres (requisito del sistema).
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-stone-500">
+                      Si la cambias, mínimo 6 caracteres.
+                    </p>
+                  )}
+                </div>
                 <FieldSelect
                   label="Rol"
                   value={draft.rol}

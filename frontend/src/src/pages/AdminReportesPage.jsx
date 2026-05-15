@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
+import { adminAlertError } from "../utils/adminAlerts";
 
 const BASE = "http://127.0.0.1:8000/api";
 
@@ -127,15 +128,6 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-// ErrorMsg unificado: borde + fondo rojo, igual que Inventario y Finanzas
-function ErrorMsg({ msg }) {
-  return (
-    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
-      {msg}
-    </div>
-  );
-}
-
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
@@ -174,7 +166,6 @@ function Td({ children, className }) {
 function VentasHoy() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [filtros, setFiltros] = useState({
     hora_desde: "",
     hora_hasta: "",
@@ -183,7 +174,6 @@ function VentasHoy() {
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const params = new URLSearchParams();
       if (filtros.hora_desde) params.set("hora_desde", filtros.hora_desde);
@@ -191,8 +181,8 @@ function VentasHoy() {
       if (filtros.metodo) params.set("metodo", filtros.metodo);
       const res = await apiFetch(`${BASE}/admin/reportes/ventas-hoy?${params}`);
       setData(res);
-    } catch {
-      setError("No se pudo cargar el reporte.");
+    } catch (err) {
+      void adminAlertError(err, "Ventas del día");
     } finally {
       setLoading(false);
     }
@@ -240,7 +230,6 @@ function VentasHoy() {
         </ActionButton>
       </div>
 
-      {error && <ErrorMsg msg={error} />}
       {loading && !data && <Spinner />}
 
       {data && (
@@ -306,19 +295,17 @@ function VentasHoy() {
 function VentasPorRango() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [fechas, setFechas] = useState({ desde: today(), hasta: today() });
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await apiFetch(
         `${BASE}/admin/reportes/ventas?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
       );
       setData(res);
-    } catch {
-      setError("No se pudo cargar el reporte.");
+    } catch (err) {
+      void adminAlertError(err, "Ventas por rango");
     } finally {
       setLoading(false);
     }
@@ -352,7 +339,6 @@ function VentasPorRango() {
         </ActionButton>
       </div>
 
-      {error && <ErrorMsg msg={error} />}
       {loading && !data && <Spinner />}
 
       {data && (
@@ -438,12 +424,10 @@ function VentasPorRango() {
 function RankingProductos() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [fechas, setFechas] = useState({ desde: "", hasta: "" });
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const params = new URLSearchParams();
       if (fechas.desde) params.set("fecha_desde", fechas.desde);
@@ -452,8 +436,8 @@ function RankingProductos() {
         `${BASE}/admin/reportes/productos-mas-vendidos?${params}`,
       );
       setData(res);
-    } catch {
-      setError("No se pudo cargar el ranking.");
+    } catch (err) {
+      void adminAlertError(err, "Ranking de productos");
     } finally {
       setLoading(false);
     }
@@ -494,7 +478,6 @@ function RankingProductos() {
         </ActionButton>
       </div>
 
-      {error && <ErrorMsg msg={error} />}
       {loading && !data && <Spinner />}
 
       {data && (

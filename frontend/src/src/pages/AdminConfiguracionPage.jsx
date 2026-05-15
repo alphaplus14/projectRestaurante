@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { adminSwalMixin, adminAlertError } from '../utils/adminAlerts';
 
 function formatFecha(iso) {
     if (!iso) return '—';
@@ -13,27 +12,9 @@ function formatFecha(iso) {
     }
 }
 
-/** SweetAlert2 con estética acorde al panel (dark + CTA naranja) */
-function swalTheme(partial) {
-    return Swal.mixin({
-        background: '#1c1917',
-        color: '#fafaf9',
-        confirmButtonColor: '#c2410c',
-        cancelButtonColor: '#44403c',
-        buttonsStyling: true,
-        customClass: {
-            popup: 'rounded-xl border border-stone-800',
-            title: 'text-stone-50',
-            htmlContainer: 'text-stone-300 text-left',
-        },
-        ...partial,
-    });
-}
-
 export function AdminConfiguracionPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
 
     const [nombre, setNombre] = useState('');
     const [nit, setNit] = useState('');
@@ -53,7 +34,6 @@ export function AdminConfiguracionPage() {
     const load = useCallback(async (opts = {}) => {
         const silent = Boolean(opts.silent);
         if (!silent) {
-            setError('');
             setLoading(true);
         }
         try {
@@ -69,11 +49,10 @@ export function AdminConfiguracionPage() {
                 nombreInicial.current = String(d.nombre_comercial ?? '').trim();
             }
         } catch (err) {
-            const msg = err?.message || 'No se pudo cargar la configuración.';
             if (silent) {
-                await swalTheme({ icon: 'warning', title: 'No se pudo recargar', text: msg }).fire();
+                void adminAlertError(err, 'No se pudo recargar');
             } else {
-                setError(msg);
+                void adminAlertError(err, 'Configuración');
             }
         } finally {
             setLogoFile(null);
@@ -117,7 +96,6 @@ export function AdminConfiguracionPage() {
 
     async function enviarGuardado(passwordActual) {
         setSaving(true);
-        setError('');
         setModalError('');
         try {
             const hasFile = logoFile instanceof File;
@@ -159,11 +137,11 @@ export function AdminConfiguracionPage() {
             await load({ silent: true });
             notificarMarcaActualizada();
 
-            await swalTheme({
+            await adminSwalMixin().fire({
                 icon: 'success',
                 title: 'Cambios guardados',
                 text: 'La configuración del restaurante se actualizó correctamente.',
-            }).fire();
+            });
         } catch (err) {
             const msg = err?.message || 'No se pudo guardar.';
             const esPassword = /contraseña|password|inválid/i.test(msg);
@@ -172,11 +150,7 @@ export function AdminConfiguracionPage() {
                 setModalError(msg);
             }
 
-            await swalTheme({
-                icon: esPassword ? 'error' : 'error',
-                title: esPassword ? 'Contraseña incorrecta' : 'No se pudo guardar',
-                text: msg,
-            }).fire();
+            void adminAlertError(err, esPassword ? 'Contraseña incorrecta' : 'No se pudo guardar');
         } finally {
             setSaving(false);
         }
@@ -184,15 +158,14 @@ export function AdminConfiguracionPage() {
 
     function handleSubmit(e) {
         e.preventDefault();
-        setError('');
 
         const nombreTrim = nombre.trim();
         if (!nombreTrim) {
-            void swalTheme({
+            void adminSwalMixin().fire({
                 icon: 'warning',
                 title: 'Falta el nombre',
                 text: 'El nombre comercial es obligatorio.',
-            }).fire();
+            });
             return;
         }
 
@@ -210,11 +183,11 @@ export function AdminConfiguracionPage() {
         setModalError('');
         const p = passwordConfirm.trim();
         if (!p) {
-            void swalTheme({
+            void adminSwalMixin().fire({
                 icon: 'info',
                 title: 'Contraseña requerida',
                 text: 'Escribe la contraseña de tu usuario administrador para confirmar el cambio de nombre.',
-            }).fire();
+            });
             setModalError('Escribe tu contraseña para continuar.');
             return;
         }
@@ -245,10 +218,6 @@ export function AdminConfiguracionPage() {
                         <p className="mt-2 text-xs text-stone-500">Última actualización en servidor: {formatFecha(actualizadoEn)}</p>
                     ) : null}
                 </div>
-
-                {error ? (
-                    <div className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">{error}</div>
-                ) : null}
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="bg-stone-900 border border-stone-800 rounded-xl p-6 space-y-5">

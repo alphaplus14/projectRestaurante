@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { adminAlertError } from '../utils/adminAlerts';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -36,7 +37,6 @@ const ESTADO_PEDIDO = {
 
 export function AdminMesasPage() {
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [mesas, setMesas] = useState([]);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState(emptyForm());
@@ -50,13 +50,12 @@ export function AdminMesasPage() {
     const [histLoading, setHistLoading] = useState(false);
 
     async function load() {
-        setError('');
         setLoading(true);
         try {
             const data = await apiFetch('/api/admin/mesas');
             setMesas(Array.isArray(data?.data) ? data.data : []);
         } catch (err) {
-            setError(err?.message || 'No se pudieron cargar las mesas.');
+            void adminAlertError(err, 'No se pudieron cargar las mesas');
         } finally {
             setLoading(false);
         }
@@ -69,7 +68,6 @@ export function AdminMesasPage() {
 
     async function crearMesa(e) {
         e.preventDefault();
-        setError('');
         setSaving(true);
         try {
             await apiFetch('/api/admin/mesas', {
@@ -83,7 +81,7 @@ export function AdminMesasPage() {
             setForm(emptyForm());
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo crear la mesa.');
+            void adminAlertError(err, 'No se pudo crear la mesa');
         } finally {
             setSaving(false);
         }
@@ -102,13 +100,11 @@ export function AdminMesasPage() {
     function closeEdit() {
         setEditOpen(false);
         setEdit(emptyEdit());
-        setError('');
     }
 
     async function guardarEdicion(ev) {
         ev.preventDefault();
         if (!edit.idMesa) return;
-        setError('');
         setSaving(true);
         try {
             await apiFetch(`/api/admin/mesas/${edit.idMesa}`, {
@@ -122,14 +118,13 @@ export function AdminMesasPage() {
             closeEdit();
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo guardar.');
+            void adminAlertError(err, 'No se pudo guardar la mesa');
         } finally {
             setSaving(false);
         }
     }
 
     async function toggleActiva(m) {
-        setError('');
         try {
             await apiFetch(`/api/admin/mesas/${m.idMesa}/activo`, {
                 method: 'PATCH',
@@ -137,7 +132,7 @@ export function AdminMesasPage() {
             });
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo actualizar.');
+            void adminAlertError(err, 'No se pudo actualizar el estado');
         }
     }
 
@@ -149,12 +144,11 @@ export function AdminMesasPage() {
         ) {
             return;
         }
-        setError('');
         try {
             await apiFetch(`/api/admin/mesas/${m.idMesa}`, { method: 'DELETE' });
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo eliminar.');
+            void adminAlertError(err, 'No se pudo eliminar la mesa');
         }
     }
 
@@ -163,12 +157,11 @@ export function AdminMesasPage() {
         setHistOpen(true);
         setHistRows([]);
         setHistLoading(true);
-        setError('');
         try {
             const data = await apiFetch(`/api/admin/mesas/${m.idMesa}/historial`);
             setHistRows(Array.isArray(data?.data) ? data.data : []);
         } catch (err) {
-            setError(err?.message || 'No se pudo cargar el historial.');
+            void adminAlertError(err, 'No se pudo cargar el historial');
         } finally {
             setHistLoading(false);
         }
@@ -198,12 +191,6 @@ export function AdminMesasPage() {
                         abrir o cerrar cuentas desde el mesero.
                     </p>
                 </div>
-
-                {error ? (
-                    <div className="mb-6 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                        {error}
-                    </div>
-                ) : null}
 
                 <div className="bg-stone-900 border border-stone-800 rounded-xl p-6 mb-8">
                     <h2 className="text-lg font-semibold text-stone-50 mb-4">Nueva mesa</h2>
