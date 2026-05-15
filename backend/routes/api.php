@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
+use App\Http\Controllers\Api\IngredienteController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReporteController;
 
@@ -68,11 +69,17 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
     Route::post('cocineros', [AdminCocineroController::class, 'store']);
     Route::put('cocineros/{usuario:idUsuario}', [AdminCocineroController::class, 'update']);
     Route::patch('cocineros/{usuario:idUsuario}/activo', [AdminCocineroController::class, 'setActivo']);
-    
+
     //? Reportes del administrador parte de Cris (HU13, HU14, HU15)
     Route::get('reportes/ventas-hoy', [ReporteController::class, 'ventasHoy']);
     Route::get('reportes/ventas', [ReporteController::class, 'ventasPorFecha']);
     Route::get('reportes/productos-mas-vendidos', [ReporteController::class, 'productosMasVendidos']);
+
+    //? Inventario — parte de Cris (HU16, HU17)
+    Route::get('inventario/alertas', [IngredienteController::class, 'alertas']);
+    Route::get('inventario/ingredientes', [IngredienteController::class, 'index']);
+    Route::post('inventario/ingredientes', [IngredienteController::class, 'store']);
+    Route::put('inventario/ingredientes/{ingrediente:idIngrediente}', [IngredienteController::class, 'update']);
+    Route::post('inventario/ingredientes/{ingrediente:idIngrediente}/movimiento', [IngredienteController::class, 'registrarMovimiento']);
+    Route::get('inventario/ingredientes/{ingrediente:idIngrediente}/movimientos', [IngredienteController::class, 'movimientos']);
 });
-
-

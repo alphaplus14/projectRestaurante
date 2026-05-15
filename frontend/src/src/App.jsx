@@ -17,6 +17,7 @@ import { RequireMesero } from './auth/RequireMesero';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { getToken } from './auth/authStorage';
 import { AdminReportesPage } from "./pages/AdminReportesPage";
+import { AdminInventarioPage } from "./pages/AdminInventarioPage";
 
 function RequireAuth({ children }) {
     const token = getToken();
@@ -26,79 +27,94 @@ function RequireAuth({ children }) {
 
 export function App() {
     return (
-        <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login-cocina" element={<LoginCocinaPage />} />
-            <Route path="/login-mesero" element={<LoginMeseroPage />} />
-            <Route path="/login-admin" element={<LoginAdminPage />} />
-            <Route path="/admin/reportes" element={<RequireAdmin><AdminReportesPage /></RequireAdmin>} />
-            <Route
-                path="/mesero"
-                element={
-                    <RequireMesero>
-                        <MeseroSalonPage />
-                    </RequireMesero>
-                }
-            />
-            <Route
-                path="/cocina"
-                element={
-                    <RequireCocina>
-                        <CocinaPedidosPage />
-                    </RequireCocina>
-                }
-            />
-            <Route
-                path="/admin/productos"
-                element={
-                    <RequireAdmin>
-                        <AdminProductosPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route
-                path="/admin/dashboard"
-                element={
-                    <RequireAdmin>
-                        <AdminDashboardPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route
-                path="/admin/mesas"
-                element={
-                    <RequireAdmin>
-                        <AdminMesasPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route
-                path="/admin/meseros"
-                element={
-                    <RequireAdmin>
-                        <AdminMeserosPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route
-                path="/admin/cocineros"
-                element={
-                    <RequireAdmin>
-                        <AdminCocinerosPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route path="/login" element={<LoginClientePage />} />
-            <Route
-                path="/blank"
-                element={
-                    <RequireAuth>
-                        <BlankPage />
-                    </RequireAuth>
-                }
-            />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login-cocina" element={<LoginCocinaPage />} />
+        <Route path="/login-mesero" element={<LoginMeseroPage />} />
+        <Route path="/login-admin" element={<LoginAdminPage />} />
+        <Route
+          path="/admin/reportes"
+          element={
+            <RequireAdmin>
+              <AdminReportesPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/inventario"
+          element={
+            <RequireAdmin>
+              <AdminInventarioPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/mesero"
+          element={
+            <RequireMesero>
+              <MeseroSalonPage />
+            </RequireMesero>
+          }
+        />
+        <Route
+          path="/cocina"
+          element={
+            <RequireCocina>
+              <CocinaPedidosPage />
+            </RequireCocina>
+          }
+        />
+        <Route
+          path="/admin/productos"
+          element={
+            <RequireAdmin>
+              <AdminProductosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RequireAdmin>
+              <AdminDashboardPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/mesas"
+          element={
+            <RequireAdmin>
+              <AdminMesasPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/meseros"
+          element={
+            <RequireAdmin>
+              <AdminMeserosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/cocineros"
+          element={
+            <RequireAdmin>
+              <AdminCocinerosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route path="/login" element={<LoginClientePage />} />
+        <Route
+          path="/blank"
+          element={
+            <RequireAuth>
+              <BlankPage />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     );
 }
 

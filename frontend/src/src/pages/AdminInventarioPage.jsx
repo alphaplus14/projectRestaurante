@@ -1,0 +1,928 @@
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "../auth/apiClient";
+import { AdminLayout } from "../layouts/AdminLayout";
+
+const BASE = "http://127.0.0.1:8000/api";
+
+// ── helpers ────────────────────────────────────────────
+function classNames(...xs) {
+  return xs.filter(Boolean).join(" ");
+}
+
+const UNIDADES = ["g", "kg", "ml", "L", "unidad", "porción", "lb", "oz"];
+
+const TABS = [
+  { id: "stock", label: "Stock general" },
+  { id: "alertas", label: "Alertas" },
+];
+
+// ── componentes base ────────────────────────────────────
+
+function TabButton({ active, onClick, children, badge }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={classNames(
+        "px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 flex items-center gap-2",
+        active
+          ? "bg-orange-700 text-stone-50"
+          : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-50",
+      )}
+    >
+      {children}
+      {badge != null && badge > 0 && (
+        <span className="bg-red-600 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Btn({
+  onClick,
+  disabled,
+  variant = "primary",
+  size = "md",
+  children,
+}) {
+  const base =
+    "inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40 disabled:cursor-not-allowed";
+  const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2 text-sm" };
+  const variants = {
+    primary: "bg-amber-600 hover:bg-amber-500 text-stone-950",
+    secondary:
+      "bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700",
+    danger: "bg-red-700 hover:bg-red-600 text-stone-50",
+    ghost: "text-stone-400 hover:text-stone-50 hover:bg-stone-800/60",
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={classNames(base, sizes[size], variants[variant])}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Label({ children }) {
+  return (
+    <label className="block text-xs font-medium text-stone-400 mb-1">
+      {children}
+    </label>
+  );
+}
+
+function Input({ label, ...props }) {
+  return (
+    <div>
+      {label && <Label>{label}</Label>}
+      <input
+        {...props}
+        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+      />
+    </div>
+  );
+}
+
+function Select({ label, children, ...props }) {
+  return (
+    <div>
+      {label && <Label>{label}</Label>}
+      <select
+        {...props}
+        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function ErrorMsg({ msg }) {
+  return (
+    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+      {msg}
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+    </div>
+  );
+}
+
+function Th({ children }) {
+  return (
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">
+      {children}
+    </th>
+  );
+}
+
+function Td({ children, className }) {
+  return (
+    <td className={classNames("px-4 py-3 text-sm", className)}>{children}</td>
+  );
+}
+
+// Barra de stock visual
+function StockBar({ stock, stockMinimo }) {
+  const pct =
+    stockMinimo > 0 ? Math.min((stock / stockMinimo) * 100, 400) : 100;
+  const color =
+    stock <= stockMinimo
+      ? "bg-red-500"
+      : stock <= stockMinimo * 2
+        ? "bg-amber-500"
+        : "bg-emerald-500";
+  return (
+    <div className="h-1.5 w-full rounded-full bg-stone-800 overflow-hidden mt-1">
+      <div
+        className={classNames(
+          "h-full rounded-full transition-all duration-500",
+          color,
+        )}
+        style={{ width: `${Math.min(pct, 100)}%` }}
+      />
+    </div>
+  );
+}
+
+function AlertaBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-900/60 border border-red-700/60 px-2 py-0.5 text-xs font-semibold text-red-300">
+      <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+        <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+      </svg>
+      Stock bajo
+    </span>
+  );
+}
+
+// ── Modal crear/editar ingrediente ─────────────────────
+
+function emptyDraft() {
+  return {
+    idIngrediente: null,
+    nombreIngrediente: "",
+    unidad: "g",
+    stock: "",
+    stock_minimo: "",
+  };
+}
+
+function ModalIngrediente({ draft, setDraft, saving, error, onSave, onClose }) {
+  const esNuevo = !draft.idIngrediente;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-50 mb-5">
+          {esNuevo ? "Registrar ingrediente" : "Editar ingrediente"}
+        </h2>
+
+        <div className="space-y-4">
+          <Input
+            label="Nombre del ingrediente"
+            value={draft.nombreIngrediente}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, nombreIngrediente: e.target.value }))
+            }
+            placeholder="Ej. Arroz, Pollo, Aceite…"
+          />
+          <Select
+            label="Unidad de medida"
+            value={draft.unidad}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, unidad: e.target.value }))
+            }
+          >
+            {UNIDADES.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </Select>
+          {esNuevo && (
+            <Input
+              label="Stock inicial"
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft.stock}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, stock: e.target.value }))
+              }
+              placeholder="0"
+            />
+          )}
+          <Input
+            label="Stock mínimo (alerta)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={draft.stock_minimo}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, stock_minimo: e.target.value }))
+            }
+            placeholder="Ej. 500"
+          />
+        </div>
+
+        {error && (
+          <div className="mt-4">
+            <ErrorMsg msg={error} />
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Btn>
+          <Btn onClick={onSave} disabled={saving}>
+            {saving ? "Guardando…" : esNuevo ? "Registrar" : "Guardar cambios"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal movimiento de stock ───────────────────────────
+
+function emptyMovimiento() {
+  return { tipo: "ENTRADA", cantidad: "", motivo: "", referencia: "" };
+}
+
+function ModalMovimiento({
+  ingrediente,
+  mov,
+  setMov,
+  saving,
+  error,
+  onSave,
+  onClose,
+}) {
+  const tipoLabels = {
+    ENTRADA: {
+      label: "Entrada",
+      hint: "Se suma al stock actual",
+      color: "text-emerald-400",
+    },
+    SALIDA: {
+      label: "Salida",
+      hint: "Se resta del stock actual",
+      color: "text-red-400",
+    },
+    AJUSTE: {
+      label: "Ajuste",
+      hint: "El nuevo stock será exactamente esta cantidad",
+      color: "text-amber-400",
+    },
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-50 mb-1">
+          Registrar movimiento
+        </h2>
+        <p className="text-sm text-stone-400 mb-5">
+          {ingrediente.nombreIngrediente} —{" "}
+          <span className="text-stone-300 font-medium">
+            Stock actual: {ingrediente.stock} {ingrediente.unidad}
+          </span>
+        </p>
+
+        <div className="space-y-4">
+          {/* Selector tipo con tarjetas */}
+          <div>
+            <Label>Tipo de movimiento</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(tipoLabels).map(([tipo, info]) => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => setMov((m) => ({ ...m, tipo }))}
+                  className={classNames(
+                    "rounded-lg border p-2.5 text-center text-xs font-semibold transition-colors",
+                    mov.tipo === tipo
+                      ? "border-amber-500 bg-amber-500/10 text-amber-300"
+                      : "border-stone-700 bg-stone-800 text-stone-400 hover:border-stone-600",
+                  )}
+                >
+                  {info.label}
+                </button>
+              ))}
+            </div>
+            <p
+              className={classNames(
+                "text-xs mt-1.5",
+                tipoLabels[mov.tipo].color,
+              )}
+            >
+              {tipoLabels[mov.tipo].hint}
+            </p>
+          </div>
+
+          <Input
+            label={mov.tipo === "AJUSTE" ? "Nuevo stock" : "Cantidad"}
+            type="number"
+            min="0.0001"
+            step="0.01"
+            value={mov.cantidad}
+            onChange={(e) =>
+              setMov((m) => ({ ...m, cantidad: e.target.value }))
+            }
+            placeholder={`en ${ingrediente.unidad}`}
+          />
+          <Input
+            label="Motivo"
+            value={mov.motivo}
+            onChange={(e) => setMov((m) => ({ ...m, motivo: e.target.value }))}
+            placeholder="Ej. Compra de insumos, merma, conteo físico…"
+          />
+          <Input
+            label="Referencia (opcional)"
+            value={mov.referencia}
+            onChange={(e) =>
+              setMov((m) => ({ ...m, referencia: e.target.value }))
+            }
+            placeholder="Ej. Factura #001, Pedido #12…"
+          />
+        </div>
+
+        {error && (
+          <div className="mt-4">
+            <ErrorMsg msg={error} />
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Btn>
+          <Btn onClick={onSave} disabled={saving}>
+            {saving ? "Registrando…" : "Registrar movimiento"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal historial de movimientos ─────────────────────
+
+function ModalHistorial({ ingrediente, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiFetch(
+      `${BASE}/admin/inventario/ingredientes/${ingrediente.idIngrediente}/movimientos`,
+    )
+      .then(setData)
+      .catch(() => setError("No se pudo cargar el historial."))
+      .finally(() => setLoading(false));
+  }, [ingrediente.idIngrediente]);
+
+  const tipoBadge = (tipo) => {
+    if (tipo === "ENTRADA")
+      return "bg-emerald-900/60 text-emerald-300 border-emerald-700/50";
+    if (tipo === "SALIDA")
+      return "bg-red-900/60 text-red-300 border-red-700/50";
+    return "bg-amber-900/60 text-amber-300 border-amber-700/50";
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-stone-50">
+              Historial de movimientos
+            </h2>
+            <p className="text-sm text-stone-400">
+              {ingrediente.nombreIngrediente}
+            </p>
+          </div>
+          <Btn variant="ghost" size="sm" onClick={onClose}>
+            ✕
+          </Btn>
+        </div>
+
+        {loading && <Spinner />}
+        {error && <ErrorMsg msg={error} />}
+
+        {data && (
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            {data.data.length === 0 ? (
+              <p className="text-sm text-stone-500 py-8 text-center">
+                Sin movimientos registrados.
+              </p>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    {["Fecha", "Tipo", "Cantidad", "Motivo", "Usuario"].map(
+                      (h) => (
+                        <Th key={h}>{h}</Th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.data.map((m) => (
+                    <tr
+                      key={m.idMovimiento}
+                      className="border-t border-stone-800 hover:bg-stone-800/30"
+                    >
+                      <Td className="text-stone-500 whitespace-nowrap">
+                        {m.fecha?.slice(0, 16).replace("T", " ")}
+                      </Td>
+                      <Td>
+                        <span
+                          className={classNames(
+                            "text-xs font-semibold px-2 py-0.5 rounded-full border",
+                            tipoBadge(m.tipo),
+                          )}
+                        >
+                          {m.tipo}
+                        </span>
+                      </Td>
+                      <Td className="text-stone-50 font-medium tabular-nums">
+                        {m.tipo === "SALIDA" ? "-" : "+"}
+                        {m.cantidad} {ingrediente.unidad}
+                      </Td>
+                      <Td className="text-stone-300">{m.motivo}</Td>
+                      <Td className="text-stone-500">{m.usuario}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Tab: Stock general (HU16) ───────────────────────────
+
+function StockGeneral({ data, onRecargar }) {
+  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState("");
+
+  // Modal crear/editar
+  const [modalIngr, setModalIngr] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft());
+
+  // Modal movimiento
+  const [modalMov, setModalMov] = useState(false);
+  const [movDraft, setMovDraft] = useState(emptyMovimiento());
+  const [ingredSelec, setIngredSelec] = useState(null);
+
+  // Modal historial
+  const [modalHist, setModalHist] = useState(false);
+
+  const filtrados = (data?.data ?? []).filter((i) =>
+    i.nombreIngrediente.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  function abrirCrear() {
+    setDraft(emptyDraft());
+    setModalError("");
+    setModalIngr(true);
+  }
+
+  function abrirEditar(ing) {
+    setDraft({
+      idIngrediente: ing.idIngrediente,
+      nombreIngrediente: ing.nombreIngrediente,
+      unidad: ing.unidad,
+      stock: ing.stock,
+      stock_minimo: ing.stock_minimo,
+    });
+    setModalError("");
+    setModalIngr(true);
+  }
+
+  function abrirMovimiento(ing) {
+    setIngredSelec(ing);
+    setMovDraft(emptyMovimiento());
+    setModalError("");
+    setModalMov(true);
+  }
+
+  function abrirHistorial(ing) {
+    setIngredSelec(ing);
+    setModalHist(true);
+  }
+
+  async function guardarIngrediente() {
+    setSaving(true);
+    setModalError("");
+    try {
+      if (draft.idIngrediente) {
+        await apiFetch(
+          `${BASE}/admin/inventario/ingredientes/${draft.idIngrediente}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              nombreIngrediente: draft.nombreIngrediente,
+              unidad: draft.unidad,
+              stock_minimo: parseFloat(draft.stock_minimo) || 0,
+            }),
+          },
+        );
+      } else {
+        await apiFetch(`${BASE}/admin/inventario/ingredientes`, {
+          method: "POST",
+          body: JSON.stringify({
+            nombreIngrediente: draft.nombreIngrediente,
+            unidad: draft.unidad,
+            stock: parseFloat(draft.stock) || 0,
+            stock_minimo: parseFloat(draft.stock_minimo) || 0,
+          }),
+        });
+      }
+      setModalIngr(false);
+      onRecargar();
+    } catch (err) {
+      setModalError(err?.message || "Error al guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function guardarMovimiento() {
+    setSaving(true);
+    setModalError("");
+    try {
+      await apiFetch(
+        `${BASE}/admin/inventario/ingredientes/${ingredSelec.idIngrediente}/movimiento`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            tipo: movDraft.tipo,
+            cantidad: parseFloat(movDraft.cantidad),
+            motivo: movDraft.motivo,
+            referencia: movDraft.referencia || null,
+          }),
+        },
+      );
+      setModalMov(false);
+      onRecargar();
+    } catch (err) {
+      setModalError(err?.message || "Error al registrar movimiento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            Total ingredientes
+          </p>
+          <p className="text-2xl font-semibold text-stone-50 mt-2">
+            {data?.total ?? "—"}
+          </p>
+        </div>
+        <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            Con stock normal
+          </p>
+          <p className="text-2xl font-semibold text-emerald-400 mt-2">
+            {(data?.total ?? 0) - (data?.total_bajo_stock ?? 0)}
+          </p>
+        </div>
+        <div
+          className={classNames(
+            "border rounded-xl p-5",
+            (data?.total_bajo_stock ?? 0) > 0
+              ? "bg-red-900/20 border-red-800/60"
+              : "bg-stone-900 border-stone-800",
+          )}
+        >
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            Alertas de stock
+          </p>
+          <p
+            className={classNames(
+              "text-2xl font-semibold mt-2",
+              (data?.total_bajo_stock ?? 0) > 0
+                ? "text-red-400"
+                : "text-stone-50",
+            )}
+          >
+            {data?.total_bajo_stock ?? "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
+        <input
+          type="search"
+          placeholder="Buscar ingrediente…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 w-64"
+        />
+        <Btn onClick={abrirCrear}>+ Registrar ingrediente</Btn>
+      </div>
+
+      {/* Tabla */}
+      <div className="rounded-xl border border-stone-800 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-stone-900">
+            <tr>
+              {[
+                "Ingrediente",
+                "Unidad",
+                "Stock actual",
+                "Stock mínimo",
+                "Estado",
+                "Acciones",
+              ].map((h) => (
+                <Th key={h}>{h}</Th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtrados.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-sm text-stone-500"
+                >
+                  {search
+                    ? "Sin coincidencias."
+                    : "Sin ingredientes registrados."}
+                </td>
+              </tr>
+            )}
+            {filtrados.map((ing) => (
+              <tr
+                key={ing.idIngrediente}
+                className="border-t border-stone-800 hover:bg-stone-800/30 transition-colors"
+              >
+                <Td>
+                  <span className="font-medium text-stone-50">
+                    {ing.nombreIngrediente}
+                  </span>
+                </Td>
+                <Td className="text-stone-400">{ing.unidad}</Td>
+                <Td>
+                  <span
+                    className={classNames(
+                      "font-semibold tabular-nums",
+                      ing.alerta_stock ? "text-red-400" : "text-stone-50",
+                    )}
+                  >
+                    {ing.stock}
+                  </span>
+                  <StockBar stock={ing.stock} stockMinimo={ing.stock_minimo} />
+                </Td>
+                <Td className="text-stone-400 tabular-nums">
+                  {ing.stock_minimo}
+                </Td>
+                <Td>
+                  {ing.alerta_stock ? (
+                    <AlertaBadge />
+                  ) : (
+                    <span className="text-xs font-semibold text-emerald-400">
+                      OK
+                    </span>
+                  )}
+                </Td>
+                <Td>
+                  <div className="flex items-center gap-2">
+                    <Btn
+                      size="sm"
+                      variant="primary"
+                      onClick={() => abrirMovimiento(ing)}
+                    >
+                      Mover stock
+                    </Btn>
+                    <Btn
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => abrirEditar(ing)}
+                    >
+                      Editar
+                    </Btn>
+                    <Btn
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => abrirHistorial(ing)}
+                    >
+                      Historial
+                    </Btn>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modales */}
+      {modalIngr && (
+        <ModalIngrediente
+          draft={draft}
+          setDraft={setDraft}
+          saving={saving}
+          error={modalError}
+          onSave={guardarIngrediente}
+          onClose={() => setModalIngr(false)}
+        />
+      )}
+      {modalMov && ingredSelec && (
+        <ModalMovimiento
+          ingrediente={ingredSelec}
+          mov={movDraft}
+          setMov={setMovDraft}
+          saving={saving}
+          error={modalError}
+          onSave={guardarMovimiento}
+          onClose={() => setModalMov(false)}
+        />
+      )}
+      {modalHist && ingredSelec && (
+        <ModalHistorial
+          ingrediente={ingredSelec}
+          onClose={() => setModalHist(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// ── Tab: Alertas (HU17) ────────────────────────────────
+
+function PanelAlertas({ alertas }) {
+  if (!alertas) return <Spinner />;
+
+  return (
+    <div className="space-y-4">
+      {alertas.total_alertas === 0 ? (
+        <div className="rounded-xl border border-emerald-800/50 bg-emerald-900/20 px-6 py-10 text-center">
+          <p className="text-2xl mb-2">✅</p>
+          <p className="text-sm font-semibold text-emerald-300">
+            Todo el inventario está en niveles normales
+          </p>
+          <p className="text-xs text-stone-500 mt-1">
+            Ningún ingrediente está por debajo de su stock mínimo.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="rounded-xl border border-red-800/60 bg-red-900/20 px-4 py-3 flex items-center gap-3">
+            <span className="text-red-400 text-lg">⚠️</span>
+            <p className="text-sm text-red-300 font-semibold">
+              {alertas.total_alertas} ingrediente
+              {alertas.total_alertas !== 1 ? "s" : ""} con stock bajo o agotado
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {alertas.data.map((ing) => (
+              <div
+                key={ing.idIngrediente}
+                className="rounded-xl border border-red-800/50 bg-stone-900 p-4"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-50">
+                      {ing.nombreIngrediente}
+                    </p>
+                    <p className="text-xs text-stone-500">{ing.unidad}</p>
+                  </div>
+                  <AlertaBadge />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-500">Stock actual</span>
+                    <span className="font-semibold text-red-400">
+                      {ing.stock} {ing.unidad}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-500">Mínimo</span>
+                    <span className="text-stone-400">
+                      {ing.stock_minimo} {ing.unidad}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-500">Faltan</span>
+                    <span className="font-semibold text-amber-400">
+                      {Math.max(0, ing.stock_minimo - ing.stock).toFixed(2)}{" "}
+                      {ing.unidad}
+                    </span>
+                  </div>
+                </div>
+                <StockBar stock={ing.stock} stockMinimo={ing.stock_minimo} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Página principal ────────────────────────────────────
+
+export function AdminInventarioPage() {
+  const [tab, setTab] = useState("stock");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [data, setData] = useState(null);
+  const [alertas, setAlertas] = useState(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [inv, alr] = await Promise.all([
+        apiFetch(`${BASE}/admin/inventario/ingredientes`),
+        apiFetch(`${BASE}/admin/inventario/alertas`),
+      ]);
+      setData(inv);
+      setAlertas(alr);
+    } catch (err) {
+      setError(err?.message || "No se pudo cargar el inventario.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  return (
+    <AdminLayout title="Inventario">
+      <div className="space-y-6 max-w-6xl">
+        <div>
+          <h1 className="text-xl font-semibold text-stone-50">
+            Inventario de ingredientes
+          </h1>
+          <p className="text-sm text-stone-400 mt-1"></p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
+          {TABS.map((t) => (
+            <TabButton
+              key={t.id}
+              active={tab === t.id}
+              onClick={() => setTab(t.id)}
+              badge={t.id === "alertas" ? alertas?.total_alertas : null}
+            >
+              {t.label}
+            </TabButton>
+          ))}
+        </div>
+
+        {error && <ErrorMsg msg={error} />}
+
+        {loading ? (
+          <Spinner />
+        ) : tab === "stock" ? (
+          <StockGeneral data={data} onRecargar={cargar} />
+        ) : (
+          <PanelAlertas alertas={alertas} />
+        )}
+      </div>
+    </AdminLayout>
+  );
+}
