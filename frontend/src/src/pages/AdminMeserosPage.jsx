@@ -130,7 +130,7 @@ export function AdminMeserosPage() {
     if (loading) {
         return (
             <AdminLayout title="Meseros">
-                <div className="flex items-center justify-center text-stone-400 text-lg py-20">Cargando meseros…</div>
+                <div className="flex items-center justify-center text-stone-600 dark:text-stone-400 text-lg py-20">Cargando meseros…</div>
             </AdminLayout>
         );
     }
@@ -140,7 +140,7 @@ export function AdminMeserosPage() {
             <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div>
                     <div className="text-3xl font-semibold tracking-tight">Meseros</div>
-                    <div className="mt-2 text-stone-400">Crea, edita o deshabilita meseros (sin eliminarlos).</div>
+                    <div className="mt-2 text-stone-600 dark:text-stone-400">Crea, edita o deshabilita meseros (sin eliminarlos).</div>
                 </div>
                 <button
                     onClick={openCreate}
@@ -156,11 +156,11 @@ export function AdminMeserosPage() {
                 </div>
             ) : null}
 
-            <div className="mt-8 bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
+            <div className="mt-8 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="text-stone-400">
-                            <tr className="border-b border-stone-800">
+                        <thead className="text-stone-600 dark:text-stone-400">
+                            <tr className="border-b border-stone-200 dark:border-stone-800">
                                 <th className="text-left font-medium px-4 py-3">Nombre</th>
                                 <th className="text-left font-medium px-4 py-3">Correo</th>
                                 <th className="text-left font-medium px-4 py-3">Teléfono</th>
@@ -168,22 +168,22 @@ export function AdminMeserosPage() {
                                 <th className="text-right font-medium px-4 py-3">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-stone-800">
+                        <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                             {meseros.map((m) => (
-                                <tr key={m.idUsuario} className="hover:bg-stone-900/60">
+                                <tr key={m.idUsuario} className="hover:bg-stone-100/70 dark:bg-stone-900/60">
                                     <td className="px-4 py-3">
                                         <div className="font-medium">{m.nombre} {m.apellido}</div>
-                                        <div className="mt-0.5 text-stone-500">Cédula: {m.cedula}</div>
+                                        <div className="mt-0.5 text-stone-600 dark:text-stone-500">Cédula: {m.cedula}</div>
                                     </td>
-                                    <td className="px-4 py-3 text-stone-400">{m.correo}</td>
-                                    <td className="px-4 py-3 text-stone-400">{m.telefono}</td>
+                                    <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{m.correo}</td>
+                                    <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{m.telefono}</td>
                                     <td className="px-4 py-3">
                                         {m.activo ? (
                                             <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
                                                 Activo
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+                                            <span className="inline-flex items-center rounded-full border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 px-2 py-0.5 text-xs text-stone-700 dark:text-stone-300">
                                                 Inactivo
                                             </span>
                                         )}
@@ -192,7 +192,7 @@ export function AdminMeserosPage() {
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 onClick={() => openEdit(m)}
-                                                className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                             >
                                                 Editar
                                             </button>
@@ -214,7 +214,7 @@ export function AdminMeserosPage() {
 
                             {meseros.length === 0 ? (
                                 <tr>
-                                    <td className="px-4 py-10 text-center text-stone-400" colSpan={5}>
+                                    <td className="px-4 py-10 text-center text-stone-600 dark:text-stone-400" colSpan={5}>
                                         No hay meseros aún.
                                     </td>
                                 </tr>
@@ -228,13 +228,13 @@ export function AdminMeserosPage() {
                 <div className="fixed inset-0 z-50">
                     <div className="absolute inset-0 bg-black/60" onClick={closeModal} />
                     <div className="absolute inset-0 flex items-center justify-center p-6">
-                        <div className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl p-6 relative">
+                        <div className="w-full max-w-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6 relative">
                             <div className="flex items-start justify-between gap-6">
                                 <div>
                                     <div className="text-lg font-semibold">
                                         {draft.idUsuario ? 'Editar mesero' : 'Crear mesero'}
                                     </div>
-                                    <div className="mt-1 text-sm text-stone-400">
+                                    <div className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                                         {draft.idUsuario
                                             ? 'Si dejas la contraseña vacía, no se cambia.'
                                             : 'La contraseña es obligatoria al crear.'}
@@ -242,7 +242,7 @@ export function AdminMeserosPage() {
                                 </div>
                                 <button
                                     onClick={closeModal}
-                                    className="rounded-lg px-3 py-2 border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                    className="rounded-lg px-3 py-2 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                     type="button"
                                 >
                                     Cerrar
@@ -258,20 +258,20 @@ export function AdminMeserosPage() {
                             <form className="mt-6 space-y-4" onSubmit={saveDraft}>
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Nombre</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Nombre</label>
                                         <input
                                             value={draft.nombre}
                                             onChange={(e) => setDraft((d) => ({ ...d, nombre: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Apellido</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Apellido</label>
                                         <input
                                             value={draft.apellido}
                                             onChange={(e) => setDraft((d) => ({ ...d, apellido: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             required
                                         />
                                     </div>
@@ -279,31 +279,31 @@ export function AdminMeserosPage() {
 
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Cédula</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Cédula</label>
                                         <input
                                             value={draft.cedula}
                                             onChange={(e) => setDraft((d) => ({ ...d, cedula: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Teléfono</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Teléfono</label>
                                         <input
                                             value={draft.telefono}
                                             onChange={(e) => setDraft((d) => ({ ...d, telefono: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Correo</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Correo</label>
                                     <input
                                         value={draft.correo}
                                         onChange={(e) => setDraft((d) => ({ ...d, correo: e.target.value }))}
-                                        className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                        className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                         autoComplete="email"
                                         required
                                     />
@@ -311,24 +311,24 @@ export function AdminMeserosPage() {
 
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">
                                             Contraseña {draft.idUsuario ? '(opcional)' : ''}
                                         </label>
                                         <input
                                             type="password"
                                             value={draft.password}
                                             onChange={(e) => setDraft((d) => ({ ...d, password: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             autoComplete="new-password"
                                             required={!draft.idUsuario}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Estado</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Estado</label>
                                         <select
                                             value={draft.activo ? '1' : '0'}
                                             onChange={(e) => setDraft((d) => ({ ...d, activo: e.target.value === '1' }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                         >
                                             <option value="1">Activo</option>
                                             <option value="0">Inactivo</option>
@@ -340,7 +340,7 @@ export function AdminMeserosPage() {
                                     <button
                                         type="button"
                                         onClick={closeModal}
-                                        className="rounded-lg px-6 py-3 border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                        className="rounded-lg px-6 py-3 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                     >
                                         Cancelar
                                     </button>

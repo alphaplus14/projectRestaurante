@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -42,7 +43,7 @@ function SidebarItem({ to, label, collapsed }) {
                 classNames(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
-                    isActive ? 'bg-stone-800 text-stone-50' : 'text-stone-400 hover:bg-stone-800/60 hover:text-stone-50',
+                    isActive ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:text-stone-50',
                 )
             }
             title={collapsed ? label : undefined}
@@ -99,24 +100,24 @@ export function AdminLayout({ title, children }) {
     const sidebarWidth = useMemo(() => (collapsed ? 'w-20' : 'w-72'), [collapsed]);
 
     return (
-        <div className="min-h-screen bg-stone-950 text-stone-50">
+        <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
             <div className="flex min-h-screen">
-                <aside className={classNames('shrink-0 border-r border-stone-800 bg-stone-900', sidebarWidth)}>
-                    <div className="h-16 px-4 flex items-center justify-between border-b border-stone-800">
+                <aside className={classNames('shrink-0 border-r border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900', sidebarWidth)}>
+                    <div className="h-16 px-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800">
                         <div className={classNames('flex items-center gap-3 min-w-0', collapsed ? 'justify-center w-full' : '')}>
                             {marcaLogo ? (
                                 <img
                                     src={marcaLogo}
                                     alt=""
                                     className={classNames(
-                                        'rounded-xl object-cover border border-stone-800 bg-stone-950 shrink-0',
+                                        'rounded-xl object-cover border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 shrink-0',
                                         collapsed ? 'h-10 w-10' : 'h-9 w-9',
                                     )}
                                 />
                             ) : (
                                 <div
                                     className={classNames(
-                                        'rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center font-semibold text-amber-200 shrink-0',
+                                        'rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center font-semibold text-amber-900 dark:text-amber-200 shrink-0',
                                         collapsed ? 'h-10 w-10 text-base' : 'h-9 w-9 text-sm',
                                     )}
                                 >
@@ -124,15 +125,15 @@ export function AdminLayout({ title, children }) {
                                 </div>
                             )}
                             <div className={classNames('min-w-0', collapsed ? 'hidden' : 'block')}>
-                                <div className="text-sm font-semibold text-stone-50 truncate">{marcaNombre}</div>
-                                <div className="text-xs text-stone-400">Administrador</div>
+                                <div className="text-sm font-semibold text-stone-900 dark:text-stone-50 truncate">{marcaNombre}</div>
+                                <div className="text-xs text-stone-600 dark:text-stone-400">Administrador</div>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setCollapsed((v) => !v)}
                             className={classNames(
-                                'rounded-lg p-2 border border-stone-800 text-stone-200 hover:bg-stone-800/60',
+                                'rounded-lg p-2 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60',
                                 'focus-visible:ring-2 focus-visible:ring-amber-500',
                                 collapsed ? 'hidden' : 'block',
                             )}
@@ -158,7 +159,7 @@ export function AdminLayout({ title, children }) {
                         {collapsed ? (
                             <button
                                 onClick={() => setCollapsed(false)}
-                                className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                 type="button"
                                 aria-label="Expandir sidebar"
                                 title="Expandir"
@@ -187,9 +188,12 @@ export function AdminLayout({ title, children }) {
                 </aside>
 
                 <main className="flex-1">
-                    <div className="h-16 border-b border-stone-800 flex items-center justify-between px-6">
+                    <div className="h-16 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between px-6 gap-4">
                         <div className="text-lg font-semibold">{title}</div>
-                        <div className="text-sm text-stone-400">Panel admin</div>
+                        <div className="flex items-center gap-3">
+                            <ThemeToggle />
+                            <div className="text-sm text-stone-600 dark:text-stone-400 hidden sm:block">Panel admin</div>
+                        </div>
                     </div>
 
                     <div className="px-6 py-10">{children}</div>

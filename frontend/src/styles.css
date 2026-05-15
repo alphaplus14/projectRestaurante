@@ -1,2 +1,38 @@
+@custom-variant dark (&:where(.dark, .dark *));
 @import 'tailwindcss';
 
+html {
+    color-scheme: light;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+/* SweetAlert2: respeta modo claro / oscuro global */
+.swal2-popup.napa-swal {
+    border-radius: 0.75rem !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    background-color: #fafaf9 !important;
+    border-color: #e7e5e4 !important;
+    color: #1c1917 !important;
+}
+
+.dark .swal2-popup.napa-swal {
+    background-color: #1c1917 !important;
+    border-color: #292524 !important;
+    color: #fafaf9 !important;
+}
+
+.swal2-popup.napa-swal .swal2-title {
+    color: inherit !important;
+}
+
+.swal2-popup.napa-swal .swal2-html-container {
+    color: #57534e !important;
+}
+
+.dark .swal2-popup.napa-swal .swal2-html-container {
+    color: #d6d3d1 !important;
+}

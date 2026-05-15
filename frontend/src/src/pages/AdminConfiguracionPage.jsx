@@ -13,18 +13,16 @@ function formatFecha(iso) {
     }
 }
 
-/** SweetAlert2 con estética acorde al panel (dark + CTA naranja) */
+/** SweetAlert2 con estética acorde al panel (tema claro/oscuro + CTA naranja) */
 function swalTheme(partial) {
     return Swal.mixin({
-        background: '#1c1917',
-        color: '#fafaf9',
         confirmButtonColor: '#c2410c',
-        cancelButtonColor: '#44403c',
+        cancelButtonColor: '#78716c',
         buttonsStyling: true,
         customClass: {
-            popup: 'rounded-xl border border-stone-800',
-            title: 'text-stone-50',
-            htmlContainer: 'text-stone-300 text-left',
+            popup: 'napa-swal rounded-xl border border-stone-200 dark:border-stone-800',
+            title: 'text-stone-900 dark:text-stone-50',
+            htmlContainer: 'text-stone-600 dark:text-stone-300 text-left',
         },
         ...partial,
     });
@@ -224,7 +222,7 @@ export function AdminConfiguracionPage() {
     if (loading) {
         return (
             <AdminLayout title="Configuración">
-                <div className="flex items-center justify-center text-stone-400 py-20">Cargando…</div>
+                <div className="flex items-center justify-center text-stone-600 dark:text-stone-400 py-20">Cargando…</div>
             </AdminLayout>
         );
     }
@@ -235,14 +233,14 @@ export function AdminConfiguracionPage() {
         <AdminLayout title="Configuración">
             <div className="max-w-2xl space-y-8">
                 <div>
-                    <h1 className="text-2xl font-semibold text-stone-50 tracking-tight">Configuración del restaurante</h1>
-                    <p className="mt-2 text-stone-400 text-sm leading-relaxed">
+                    <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight">Configuración del restaurante</h1>
+                    <p className="mt-2 text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
                         Datos que identifican tu local (HU25). El nombre y el logo se muestran en la barra lateral del
                         panel. Si cambias el nombre comercial, el sistema pedirá tu contraseña para evitar cambios no
                         deseados.
                     </p>
                     {actualizadoEn ? (
-                        <p className="mt-2 text-xs text-stone-500">Última actualización en servidor: {formatFecha(actualizadoEn)}</p>
+                        <p className="mt-2 text-xs text-stone-600 dark:text-stone-500">Última actualización en servidor: {formatFecha(actualizadoEn)}</p>
                     ) : null}
                 </div>
 
@@ -251,11 +249,11 @@ export function AdminConfiguracionPage() {
                 ) : null}
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="bg-stone-900 border border-stone-800 rounded-xl p-6 space-y-5">
-                        <h2 className="text-base font-semibold text-stone-50 border-b border-stone-800 pb-3">Identidad</h2>
+                    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6 space-y-5">
+                        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 border-b border-stone-200 dark:border-stone-800 pb-3">Identidad</h2>
 
                         <div>
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5" htmlFor="cfg-nombre">
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5" htmlFor="cfg-nombre">
                                 Nombre comercial
                             </label>
                             <input
@@ -265,20 +263,20 @@ export function AdminConfiguracionPage() {
                                 maxLength={160}
                                 value={nombre}
                                 onChange={(e) => setNombre(e.target.value)}
-                                className="w-full bg-stone-950 border border-stone-800 text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                 placeholder="Ej. Ñapa Cocina"
                             />
-                            <p className="mt-1.5 text-xs text-stone-500">Visible en el panel administrador (barra lateral).</p>
+                            <p className="mt-1.5 text-xs text-stone-600 dark:text-stone-500">Visible en el panel administrador (barra lateral).</p>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5">Logo</label>
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5">Logo</label>
                             <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                <div className="h-20 w-20 rounded-xl border border-stone-800 bg-stone-950 overflow-hidden flex items-center justify-center shrink-0">
+                                <div className="h-20 w-20 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 overflow-hidden flex items-center justify-center shrink-0">
                                     {previewSrc ? (
                                         <img src={previewSrc} alt="" className="h-full w-full object-cover" />
                                     ) : (
-                                        <span className="text-stone-500 text-xs text-center px-1">Sin logo</span>
+                                        <span className="text-stone-600 dark:text-stone-500 text-xs text-center px-1">Sin logo</span>
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-2">
@@ -286,22 +284,22 @@ export function AdminConfiguracionPage() {
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp,image/gif"
                                         onChange={onPickLogo}
-                                        className="block w-full text-sm text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-stone-950 hover:file:bg-amber-500"
+                                        className="block w-full text-sm text-stone-600 dark:text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-stone-950 hover:file:bg-amber-500"
                                     />
-                                    <p className="text-xs text-stone-500">JPG, PNG, WebP o GIF · máx. 5 MB. Reemplaza el logo anterior.</p>
+                                    <p className="text-xs text-stone-600 dark:text-stone-500">JPG, PNG, WebP o GIF · máx. 5 MB. Reemplaza el logo anterior.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-stone-900 border border-stone-800 rounded-xl p-6 space-y-5">
-                        <h2 className="text-base font-semibold text-stone-50 border-b border-stone-800 pb-3">Datos del negocio</h2>
-                        <p className="text-xs text-stone-500 -mt-2">
+                    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6 space-y-5">
+                        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 border-b border-stone-200 dark:border-stone-800 pb-3">Datos del negocio</h2>
+                        <p className="text-xs text-stone-600 dark:text-stone-500 -mt-2">
                             NIT, teléfono y dirección se usan en cuentas e impresiones según lo definido en el proyecto.
                         </p>
 
                         <div>
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5" htmlFor="cfg-nit">
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5" htmlFor="cfg-nit">
                                 NIT o documento
                             </label>
                             <input
@@ -310,13 +308,13 @@ export function AdminConfiguracionPage() {
                                 maxLength={40}
                                 value={nit}
                                 onChange={(e) => setNit(e.target.value)}
-                                className="w-full bg-stone-950 border border-stone-800 text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                 placeholder="Opcional"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5" htmlFor="cfg-tel">
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5" htmlFor="cfg-tel">
                                 Teléfono
                             </label>
                             <input
@@ -325,13 +323,13 @@ export function AdminConfiguracionPage() {
                                 maxLength={40}
                                 value={telefono}
                                 onChange={(e) => setTelefono(e.target.value)}
-                                className="w-full bg-stone-950 border border-stone-800 text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                 placeholder="Opcional"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5" htmlFor="cfg-dir">
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5" htmlFor="cfg-dir">
                                 Dirección / ubicación
                             </label>
                             <textarea
@@ -340,7 +338,7 @@ export function AdminConfiguracionPage() {
                                 maxLength={255}
                                 value={direccion}
                                 onChange={(e) => setDireccion(e.target.value)}
-                                className="w-full bg-stone-950 border border-stone-800 text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 resize-y min-h-[88px]"
+                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 resize-y min-h-[88px]"
                                 placeholder="Calle, ciudad, referencias…"
                             />
                         </div>
@@ -351,7 +349,7 @@ export function AdminConfiguracionPage() {
                             type="button"
                             onClick={() => void load()}
                             disabled={saving}
-                            className="rounded-lg border border-stone-800 px-5 py-2.5 text-sm font-medium text-stone-200 hover:bg-stone-900 disabled:opacity-50"
+                            className="rounded-lg border border-stone-200 dark:border-stone-800 px-5 py-2.5 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-white dark:bg-stone-900 disabled:opacity-50"
                         >
                             Descartar cambios
                         </button>
@@ -369,21 +367,21 @@ export function AdminConfiguracionPage() {
             {modalNombre ? (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60">
                     <div
-                        className="w-full sm:max-w-md bg-stone-900 border border-stone-800 sm:rounded-xl rounded-t-2xl p-6 shadow-xl relative z-[101]"
+                        className="w-full sm:max-w-md bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 sm:rounded-xl rounded-t-2xl p-6 shadow-xl relative z-[101]"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="modal-nombre-title"
                     >
-                        <h2 id="modal-nombre-title" className="text-lg font-semibold text-stone-50">
+                        <h2 id="modal-nombre-title" className="text-lg font-semibold text-stone-900 dark:text-stone-50">
                             Confirmar cambio de nombre
                         </h2>
-                        <p className="mt-3 text-sm text-stone-400 leading-relaxed">
-                            Vas a cambiar el nombre comercial de <span className="text-stone-300">«{nombreInicial.current}»</span> a{' '}
-                            <span className="text-stone-300">«{nombre.trim()}»</span>. Esto se verá en todo el panel de administración.
+                        <p className="mt-3 text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Vas a cambiar el nombre comercial de <span className="text-stone-700 dark:text-stone-300">«{nombreInicial.current}»</span> a{' '}
+                            <span className="text-stone-700 dark:text-stone-300">«{nombre.trim()}»</span>. Esto se verá en todo el panel de administración.
                             Por seguridad, escribe la contraseña de tu usuario administrador.
                         </p>
                         <div className="mt-4">
-                            <label className="block text-xs font-medium text-stone-400 mb-1.5" htmlFor="cfg-pass">
+                            <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1.5" htmlFor="cfg-pass">
                                 Contraseña de administrador
                             </label>
                             <input
@@ -395,7 +393,7 @@ export function AdminConfiguracionPage() {
                                     setPasswordConfirm(e.target.value);
                                     setModalError('');
                                 }}
-                                className="w-full bg-stone-950 border border-stone-800 text-stone-50 rounded-lg px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                             />
                         </div>
                         {modalError ? (
@@ -410,7 +408,7 @@ export function AdminConfiguracionPage() {
                                     setPasswordConfirm('');
                                     setModalError('');
                                 }}
-                                className="rounded-lg border border-stone-800 px-4 py-2.5 text-sm font-medium text-stone-200 hover:bg-stone-800/60"
+                                className="rounded-lg border border-stone-200 dark:border-stone-800 px-4 py-2.5 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60"
                             >
                                 Cancelar
                             </button>

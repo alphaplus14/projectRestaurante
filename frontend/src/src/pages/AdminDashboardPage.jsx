@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { useTheme } from '../theme/ThemeProvider';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -35,8 +36,8 @@ function formatCompactCOP(value) {
     return String(Math.round(n));
 }
 
-/** Colores para Recharts (API de la librería; paleta ámbar/naranja del proyecto) */
-const CHART = {
+/** Colores para Recharts según tema (paleta ámbar/naranja del proyecto) */
+const CHART_DARK = {
     amber: '#d97706',
     amberLight: '#f59e0b',
     orange: '#c2410c',
@@ -46,7 +47,15 @@ const CHART = {
     axis: '#a8a29e',
 };
 
-const PIE_COLORS = [CHART.amber, CHART.orange, CHART.amberLight, CHART.orangeHover, CHART.muted];
+const CHART_LIGHT = {
+    amber: '#d97706',
+    amberLight: '#f59e0b',
+    orange: '#c2410c',
+    orangeHover: '#ea580c',
+    muted: '#78716c',
+    grid: '#e7e5e4',
+    axis: '#57534e',
+};
 
 const ORDEN_ESTADO = ['PENDIENTE', 'EN_PREPARACION', 'LISTO', 'ENTREGADO', 'CERRADO', 'CANCELADO'];
 
@@ -79,11 +88,11 @@ function ordenarPorEstado(rows) {
 function ChartTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="rounded-lg border border-stone-800 bg-stone-900 px-3 py-2 text-sm shadow-xl">
-            <div className="text-stone-400 text-xs mb-1">{label}</div>
+        <div className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm shadow-xl">
+            <div className="text-stone-600 dark:text-stone-400 text-xs mb-1">{label}</div>
             {payload.map((p) => (
-                <div key={p.dataKey || p.name} className="text-stone-50">
-                    <span className="text-stone-400">{p.name}: </span>
+                <div key={p.dataKey || p.name} className="text-stone-900 dark:text-stone-50">
+                    <span className="text-stone-600 dark:text-stone-400">{p.name}: </span>
                     {typeof p.value === 'number' && p.dataKey === 'ingresos' ? formatCOP(p.value) : p.value}
                 </div>
             ))}
@@ -93,20 +102,20 @@ function ChartTooltip({ active, payload, label }) {
 
 function KpiCard({ title, value, hint, accent }) {
     return (
-        <div className="bg-stone-900 border border-stone-800 rounded-xl p-5 min-h-[112px] flex flex-col justify-between">
-            <div className="text-xs font-medium uppercase tracking-wide text-stone-500">{title}</div>
-            <div className={classNames('text-2xl font-semibold tabular-nums', accent || 'text-stone-50')}>{value}</div>
-            {hint ? <div className="text-xs text-stone-500 mt-1">{hint}</div> : null}
+        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5 min-h-[112px] flex flex-col justify-between">
+            <div className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">{title}</div>
+            <div className={classNames('text-2xl font-semibold tabular-nums', accent || 'text-stone-900 dark:text-stone-50')}>{value}</div>
+            {hint ? <div className="text-xs text-stone-600 dark:text-stone-500 mt-1">{hint}</div> : null}
         </div>
     );
 }
 
 function Panel({ title, subtitle, children, className }) {
     return (
-        <div className={classNames('bg-stone-900 border border-stone-800 rounded-xl p-5', className)}>
+        <div className={classNames('bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5', className)}>
             <div className="mb-4">
-                <h2 className="text-base font-semibold text-stone-50">{title}</h2>
-                {subtitle ? <p className="text-sm text-stone-400 mt-0.5">{subtitle}</p> : null}
+                <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50">{title}</h2>
+                {subtitle ? <p className="text-sm text-stone-600 dark:text-stone-400 mt-0.5">{subtitle}</p> : null}
             </div>
             {children}
         </div>
@@ -114,6 +123,25 @@ function Panel({ title, subtitle, children, className }) {
 }
 
 export function AdminDashboardPage() {
+    const { theme } = useTheme();
+    const chart = theme === 'dark' ? CHART_DARK : CHART_LIGHT;
+    const pieTooltipStyle =
+        theme === 'dark'
+            ? {
+                  backgroundColor: '#1c1917',
+                  border: '1px solid #292524',
+                  borderRadius: '8px',
+                  color: '#fafaf9',
+              }
+            : {
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e7e5e4',
+                  borderRadius: '8px',
+                  color: '#1c1917',
+              };
+
+    const pieColors = [chart.amber, chart.orange, chart.amberLight, chart.orangeHover, chart.muted];
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
@@ -162,17 +190,17 @@ export function AdminDashboardPage() {
     const topProductsChartHeight = Math.max(280, Math.min(420, 48 + barProductos.length * 40));
 
     const utilidad = resumen?.utilidad_neta_mes_cop ?? 0;
-    const utilidadClass = utilidad >= 0 ? 'text-stone-50' : 'text-orange-600';
+    const utilidadClass = utilidad >= 0 ? 'text-stone-900 dark:text-stone-50' : 'text-orange-600';
 
     return (
         <AdminLayout title="Dashboard">
             <div className="space-y-6 max-w-7xl">
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-semibold text-stone-50">Resumen del negocio</h1>
-                        <p className="text-sm text-stone-400 mt-1">
+                        <h1 className="text-xl font-semibold text-stone-900 dark:text-stone-50">Resumen del negocio</h1>
+                        <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
                             Datos en vivo según ventas registradas, pedidos y gastos. Mes:{' '}
-                            <span className="text-stone-300 capitalize">{periodo?.mes_etiqueta ?? '—'}</span>.
+                            <span className="text-stone-700 dark:text-stone-300 capitalize">{periodo?.mes_etiqueta ?? '—'}</span>.
                         </p>
                     </div>
                     <button
@@ -186,13 +214,13 @@ export function AdminDashboardPage() {
                 </div>
 
                 {error ? (
-                    <div className="rounded-xl border border-stone-800 bg-stone-900 px-4 py-3 text-sm text-red-500">
+                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 text-sm text-red-500">
                         {error}
                     </div>
                 ) : null}
 
                 {loading && !payload ? (
-                    <div className="rounded-xl border border-stone-800 bg-stone-900 p-10 text-center text-stone-400">
+                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-10 text-center text-stone-600 dark:text-stone-400">
                         Cargando métricas…
                     </div>
                 ) : null}
@@ -267,32 +295,32 @@ export function AdminDashboardPage() {
                                 <div className="h-[300px] w-full min-w-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <ComposedChart data={serie} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                                            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" vertical={false} />
-                                            <XAxis dataKey="etiqueta" tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: CHART.grid }} />
+                                            <CartesianGrid stroke={chart.grid} strokeDasharray="3 3" vertical={false} />
+                                            <XAxis dataKey="etiqueta" tick={{ fill: chart.axis, fontSize: 11 }} axisLine={{ stroke: chart.grid }} />
                                             <YAxis
                                                 yAxisId="left"
-                                                tick={{ fill: CHART.axis, fontSize: 11 }}
-                                                axisLine={{ stroke: CHART.grid }}
+                                                tick={{ fill: chart.axis, fontSize: 11 }}
+                                                axisLine={{ stroke: chart.grid }}
                                                 allowDecimals={false}
                                             />
                                             <YAxis
                                                 yAxisId="right"
                                                 orientation="right"
-                                                tick={{ fill: CHART.axis, fontSize: 11 }}
-                                                axisLine={{ stroke: CHART.grid }}
+                                                tick={{ fill: chart.axis, fontSize: 11 }}
+                                                axisLine={{ stroke: chart.grid }}
                                                 tickFormatter={(v) => formatCompactCOP(v)}
                                             />
                                             <Tooltip content={<ChartTooltip />} />
-                                            <Legend wrapperStyle={{ color: CHART.axis, fontSize: 12 }} />
-                                            <Bar yAxisId="left" dataKey="pedidos" name="Pedidos" fill={CHART.amber} radius={[4, 4, 0, 0]} />
+                                            <Legend wrapperStyle={{ color: chart.axis, fontSize: 12 }} />
+                                            <Bar yAxisId="left" dataKey="pedidos" name="Pedidos" fill={chart.amber} radius={[4, 4, 0, 0]} />
                                             <Line
                                                 yAxisId="right"
                                                 type="monotone"
                                                 dataKey="ingresos"
                                                 name="Ingresos"
-                                                stroke={CHART.orange}
+                                                stroke={chart.orange}
                                                 strokeWidth={2}
-                                                dot={{ fill: CHART.orange, r: 3 }}
+                                                dot={{ fill: chart.orange, r: 3 }}
                                             />
                                         </ComposedChart>
                                     </ResponsiveContainer>
@@ -301,7 +329,7 @@ export function AdminDashboardPage() {
 
                             <Panel title="Pagos del mes" subtitle="Distribución por método (ventas del mes actual).">
                                 {pieData.length === 0 ? (
-                                    <p className="text-sm text-stone-500 py-12 text-center">No hay pagos registrados en este mes.</p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-500 py-12 text-center">No hay pagos registrados en este mes.</p>
                                 ) : (
                                     <div className="h-[300px] w-full min-w-0 flex items-center justify-center">
                                         <ResponsiveContainer width="100%" height="100%">
@@ -317,19 +345,11 @@ export function AdminDashboardPage() {
                                                     paddingAngle={2}
                                                 >
                                                     {pieData.map((_, i) => (
-                                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                                        <Cell key={i} fill={pieColors[i % pieColors.length]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip
-                                                    formatter={(v) => formatCOP(v)}
-                                                    contentStyle={{
-                                                        backgroundColor: '#1c1917',
-                                                        border: '1px solid #292524',
-                                                        borderRadius: '8px',
-                                                        color: '#fafaf9',
-                                                    }}
-                                                />
-                                                <Legend wrapperStyle={{ color: CHART.axis, fontSize: 12 }} />
+                                                <Tooltip formatter={(v) => formatCOP(v)} contentStyle={pieTooltipStyle} />
+                                                <Legend wrapperStyle={{ color: chart.axis, fontSize: 12 }} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -340,16 +360,16 @@ export function AdminDashboardPage() {
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             <Panel title="Top productos del mes" subtitle="Unidades vendidas en ventas del mes (ranking).">
                                 {barProductos.length === 0 ? (
-                                    <p className="text-sm text-stone-500 py-12 text-center">Sin ventas con detalle en el mes.</p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-500 py-12 text-center">Sin ventas con detalle en el mes.</p>
                                 ) : (
                                     <div className="w-full min-w-0 min-h-[280px]" style={{ height: topProductsChartHeight }}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={barProductos} layout="vertical" margin={{ left: 8, right: 24, top: 8, bottom: 8 }}>
-                                                <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" horizontal={false} />
-                                                <XAxis type="number" tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: CHART.grid }} allowDecimals={false} />
-                                                <YAxis type="category" dataKey="nombre" width={120} tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: CHART.grid }} />
+                                                <CartesianGrid stroke={chart.grid} strokeDasharray="3 3" horizontal={false} />
+                                                <XAxis type="number" tick={{ fill: chart.axis, fontSize: 11 }} axisLine={{ stroke: chart.grid }} allowDecimals={false} />
+                                                <YAxis type="category" dataKey="nombre" width={120} tick={{ fill: chart.axis, fontSize: 11 }} axisLine={{ stroke: chart.grid }} />
                                                 <Tooltip content={<ChartTooltip />} />
-                                                <Bar dataKey="unidades" name="Unidades" fill={CHART.amberLight} radius={[0, 4, 4, 0]} />
+                                                <Bar dataKey="unidades" name="Unidades" fill={chart.amberLight} radius={[0, 4, 4, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -358,16 +378,16 @@ export function AdminDashboardPage() {
 
                             <Panel title="Pedidos por estado" subtitle="Inventario actual de comandas en el sistema.">
                                 {estados.length === 0 ? (
-                                    <p className="text-sm text-stone-500 py-12 text-center">No hay pedidos registrados.</p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-500 py-12 text-center">No hay pedidos registrados.</p>
                                 ) : (
                                     <div className="h-[300px] w-full min-w-0">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={estados} margin={{ top: 8, right: 8, left: 0, bottom: 48 }}>
-                                                <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" vertical={false} />
-                                                <XAxis dataKey="etiqueta" tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: CHART.grid }} interval={0} angle={-18} textAnchor="end" height={56} />
-                                                <YAxis tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: CHART.grid }} allowDecimals={false} />
+                                                <CartesianGrid stroke={chart.grid} strokeDasharray="3 3" vertical={false} />
+                                                <XAxis dataKey="etiqueta" tick={{ fill: chart.axis, fontSize: 11 }} axisLine={{ stroke: chart.grid }} interval={0} angle={-18} textAnchor="end" height={56} />
+                                                <YAxis tick={{ fill: chart.axis, fontSize: 11 }} axisLine={{ stroke: chart.grid }} allowDecimals={false} />
                                                 <Tooltip content={<ChartTooltip />} />
-                                                <Bar dataKey="total" name="Pedidos" fill={CHART.orange} radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="total" name="Pedidos" fill={chart.orange} radius={[4, 4, 0, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>

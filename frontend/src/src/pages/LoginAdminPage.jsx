@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -39,11 +40,14 @@ export function LoginAdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-stone-950 text-stone-50">
+        <div className="relative min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
+            <div className="absolute top-6 right-6 z-10">
+                <ThemeToggle />
+            </div>
             <div className="mx-auto max-w-6xl px-6 py-10 min-h-screen flex items-center">
                 <div className="w-full grid lg:grid-cols-2 gap-10 items-center">
                     <div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-stone-800 bg-stone-900 px-3 py-1 text-sm text-stone-400">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-1 text-sm text-stone-600 dark:text-stone-400">
                             <span className="h-2 w-2 rounded-full bg-amber-500" />
                             Panel administrador
                         </div>
@@ -51,11 +55,11 @@ export function LoginAdminPage() {
                         <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight">
                             Gestiona el <span className="text-amber-500">menú</span>
                         </h1>
-                        <p className="mt-4 text-stone-400 leading-relaxed max-w-prose">
+                        <p className="mt-4 text-stone-600 dark:text-stone-400 leading-relaxed max-w-prose">
                             Crea, edita, deshabilita o elimina productos. Recuerda: un producto con pedidos no se elimina; se
                             desactiva.
                         </p>
-                        <div className="mt-4 flex flex-wrap gap-4 text-sm text-stone-500">
+                        <div className="mt-4 flex flex-wrap gap-4 text-sm text-stone-600 dark:text-stone-500">
                             <Link className="text-amber-500 hover:text-amber-400" to="/login">
                                 Acceso clientes
                             </Link>
@@ -69,23 +73,23 @@ export function LoginAdminPage() {
                     </div>
 
                     <div className="lg:justify-self-end w-full max-w-md">
-                        <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6">
+                        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="text-lg font-semibold">Iniciar sesión</div>
-                                    <div className="text-sm text-stone-400">Rol administrador</div>
+                                    <div className="text-lg font-semibold text-stone-900 dark:text-stone-50">Iniciar sesión</div>
+                                    <div className="text-sm text-stone-600 dark:text-stone-400">Rol administrador</div>
                                 </div>
-                                <div className="h-10 w-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-200 font-bold">
+                                <div className="h-10 w-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-900 dark:text-amber-200 font-bold">
                                     A
                                 </div>
                             </div>
 
                             <form className="mt-6 space-y-4" onSubmit={onSubmit}>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Correo</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Correo</label>
                                     <input
                                         className={classNames(
-                                            'mt-2 w-full rounded-lg bg-stone-900 border border-stone-800 px-4 py-2 text-stone-50 placeholder:text-stone-500',
+                                            'mt-2 w-full rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 px-4 py-2 text-stone-900 dark:text-stone-50 placeholder:text-stone-500',
                                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                                         )}
                                         autoComplete="email"
@@ -94,11 +98,11 @@ export function LoginAdminPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Contraseña</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Contraseña</label>
                                     <input
                                         type="password"
                                         className={classNames(
-                                            'mt-2 w-full rounded-lg bg-stone-900 border border-stone-800 px-4 py-2 text-stone-50 placeholder:text-stone-500',
+                                            'mt-2 w-full rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 px-4 py-2 text-stone-900 dark:text-stone-50 placeholder:text-stone-500',
                                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                                         )}
                                         autoComplete="current-password"
@@ -126,8 +130,8 @@ export function LoginAdminPage() {
                                     {loading ? 'Ingresando…' : 'Entrar al panel'}
                                 </button>
 
-                                <div className="text-xs text-stone-500">
-                                    Solo usuarios con rol <span className="text-stone-400">ADMINISTRADOR</span>.
+                                <div className="text-xs text-stone-600 dark:text-stone-500">
+                                    Solo usuarios con rol <span className="text-stone-600 dark:text-stone-400">ADMINISTRADOR</span>.
                                 </div>
                             </form>
                         </div>

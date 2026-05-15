@@ -33,7 +33,7 @@ function ProductThumb({ imagenUrl, nombre, size = 'md' }) {
     return (
         <div
             className={classNames(
-                'shrink-0 overflow-hidden bg-stone-800 border border-stone-700/80 flex items-center justify-center text-stone-500',
+                'shrink-0 overflow-hidden bg-stone-200 dark:bg-stone-800 border border-stone-700/80 flex items-center justify-center text-stone-600 dark:text-stone-500',
                 isSmall ? 'h-10 w-10 rounded-lg text-[10px]' : 'h-40 w-full rounded-t-xl',
             )}
         >
@@ -281,7 +281,7 @@ export function AdminProductosPage() {
     if (loading) {
         return (
             <AdminLayout title="Productos">
-                <div className="flex items-center justify-center text-stone-400 text-lg py-20">Cargando productos…</div>
+                <div className="flex items-center justify-center text-stone-600 dark:text-stone-400 text-lg py-20">Cargando productos…</div>
             </AdminLayout>
         );
     }
@@ -293,20 +293,20 @@ export function AdminProductosPage() {
             <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div>
                     <div className="text-3xl font-semibold tracking-tight">Productos</div>
-                    <div className="mt-2 text-stone-400">
+                    <div className="mt-2 text-stone-600 dark:text-stone-400">
                         Administra el menú. Deshabilitar es preferido sobre eliminar.
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex rounded-xl border border-stone-800 bg-stone-950 p-1">
+                    <div className="inline-flex rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 p-1">
                         <button
                             type="button"
                             onClick={() => setViewModePersist('table')}
                             className={classNames(
                                 'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
                                 viewMode === 'table'
-                                    ? 'bg-stone-800 text-stone-50 shadow-sm'
-                                    : 'text-stone-400 hover:text-stone-200',
+                                    ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50 shadow-sm'
+                                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:text-stone-200',
                             )}
                         >
                             Tabla
@@ -317,8 +317,8 @@ export function AdminProductosPage() {
                             className={classNames(
                                 'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
                                 viewMode === 'cards'
-                                    ? 'bg-stone-800 text-stone-50 shadow-sm'
-                                    : 'text-stone-400 hover:text-stone-200',
+                                    ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50 shadow-sm'
+                                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:text-stone-200',
                             )}
                         >
                             Tarjetas
@@ -333,7 +333,7 @@ export function AdminProductosPage() {
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                             listaPorCategoriaAbierta
                                 ? 'border-amber-500/40 bg-amber-600/15 text-amber-200'
-                                : 'border-stone-800 bg-stone-900 text-stone-200 hover:bg-stone-800/60',
+                                : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60',
                         )}
                     >
                         <svg
@@ -366,40 +366,40 @@ export function AdminProductosPage() {
             ) : null}
 
             {listaPorCategoriaAbierta ? (
-                <div className="mt-6 rounded-xl border border-stone-800 bg-stone-900 p-5 shadow-lg shadow-black/10">
+                <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-lg shadow-black/10">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
-                            <h2 className="text-base font-semibold text-stone-50">Menú ordenado por categoría</h2>
-                            <p className="text-sm text-stone-400 mt-1">
+                            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50">Menú ordenado por categoría</h2>
+                            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
                                 Mismo orden que en carta (campo orden de categoría). Dentro de cada categoría, platos en
                                 orden alfabético.
                             </p>
                         </div>
-                        <span className="text-xs text-stone-500 tabular-nums shrink-0">
+                        <span className="text-xs text-stone-600 dark:text-stone-500 tabular-nums shrink-0">
                             {productos.length} producto{productos.length !== 1 ? 's' : ''}
                         </span>
                     </div>
                     {seccionesPorCategoria.length === 0 ? (
-                        <p className="mt-6 text-sm text-stone-500">No hay productos para listar.</p>
+                        <p className="mt-6 text-sm text-stone-600 dark:text-stone-500">No hay productos para listar.</p>
                     ) : (
                         <div className="mt-6 space-y-8">
                             {seccionesPorCategoria.map((sec) => (
-                                <section key={sec.key} className="border-b border-stone-800 last:border-0 pb-8 last:pb-0">
+                                <section key={sec.key} className="border-b border-stone-200 dark:border-stone-800 last:border-0 pb-8 last:pb-0">
                                     <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-500/90 mb-3">
                                         {sec.titulo}
                                     </h3>
                                     <ul className="space-y-2">
                                         {sec.productos.map((p, i) => (
-                                            <li key={p.idProducto} className="flex gap-3 text-sm text-stone-50">
-                                                <span className="text-stone-500 tabular-nums w-6 shrink-0 text-right pt-0.5">
+                                            <li key={p.idProducto} className="flex gap-3 text-sm text-stone-900 dark:text-stone-50">
+                                                <span className="text-stone-600 dark:text-stone-500 tabular-nums w-6 shrink-0 text-right pt-0.5">
                                                     {i + 1}.
                                                 </span>
                                                 <div className="min-w-0 flex-1">
                                                     <span className="font-medium">{p.nombreProducto}</span>
-                                                    <span className="text-stone-500"> · </span>
-                                                    <span className="text-stone-400">{formatCOP(p.precio)}</span>
+                                                    <span className="text-stone-600 dark:text-stone-500"> · </span>
+                                                    <span className="text-stone-600 dark:text-stone-400">{formatCOP(p.precio)}</span>
                                                     {!p.activo ? (
-                                                        <span className="ml-2 text-xs text-stone-500">(inactivo)</span>
+                                                        <span className="ml-2 text-xs text-stone-600 dark:text-stone-500">(inactivo)</span>
                                                     ) : null}
                                                 </div>
                                             </li>
@@ -413,11 +413,11 @@ export function AdminProductosPage() {
             ) : null}
 
             {viewMode === 'table' ? (
-                <div className="mt-8 bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
+                <div className="mt-8 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead className="text-stone-400">
-                                <tr className="border-b border-stone-800">
+                            <thead className="text-stone-600 dark:text-stone-400">
+                                <tr className="border-b border-stone-200 dark:border-stone-800">
                                     <th className="text-left font-medium px-4 py-3 w-14">Foto</th>
                                     <th className="text-left font-medium px-4 py-3">Producto</th>
                                     <th className="text-left font-medium px-4 py-3">Categoría</th>
@@ -427,20 +427,20 @@ export function AdminProductosPage() {
                                     <th className="text-right font-medium px-4 py-3">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-stone-800">
+                            <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                                 {productos.map((p) => (
-                                    <tr key={p.idProducto} className="hover:bg-stone-900/60">
+                                    <tr key={p.idProducto} className="hover:bg-stone-100/70 dark:bg-stone-900/60">
                                         <td className="px-4 py-3 align-middle">
                                             <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="sm" />
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-medium">{p.nombreProducto}</div>
                                             {p.descripcion ? (
-                                                <div className="mt-0.5 text-stone-500 line-clamp-1">{p.descripcion}</div>
+                                                <div className="mt-0.5 text-stone-600 dark:text-stone-500 line-clamp-1">{p.descripcion}</div>
                                             ) : null}
                                         </td>
-                                        <td className="px-4 py-3 text-stone-400">{categoriaNombre(p)}</td>
-                                        <td className="px-4 py-3 text-stone-400">{p.tipo}</td>
+                                        <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{categoriaNombre(p)}</td>
+                                        <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{p.tipo}</td>
                                         <td className="px-4 py-3 text-right">{formatCOP(p.precio)}</td>
                                         <td className="px-4 py-3">
                                             {p.activo ? (
@@ -448,7 +448,7 @@ export function AdminProductosPage() {
                                                     Activo
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+                                                <span className="inline-flex items-center rounded-full border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 px-2 py-0.5 text-xs text-stone-700 dark:text-stone-300">
                                                     Inactivo
                                                 </span>
                                             )}
@@ -457,7 +457,7 @@ export function AdminProductosPage() {
                                             <div className="flex justify-end gap-2 flex-wrap">
                                                 <button
                                                     onClick={() => openEdit(p)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                                 >
                                                     Editar
                                                 </button>
@@ -474,7 +474,7 @@ export function AdminProductosPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => deleteProducto(p)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                                 >
                                                     Eliminar
                                                 </button>
@@ -485,7 +485,7 @@ export function AdminProductosPage() {
 
                                 {productos.length === 0 ? (
                                     <tr>
-                                        <td className="px-4 py-10 text-center text-stone-400" colSpan={7}>
+                                        <td className="px-4 py-10 text-center text-stone-600 dark:text-stone-400" colSpan={7}>
                                             No hay productos aún.
                                         </td>
                                     </tr>
@@ -499,32 +499,32 @@ export function AdminProductosPage() {
                     {productos.map((p) => (
                         <div
                             key={p.idProducto}
-                            className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden flex flex-col shadow-lg shadow-black/20"
+                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden flex flex-col shadow-lg shadow-black/20"
                         >
                             <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="lg" />
                             <div className="p-5 flex-1 flex flex-col gap-3">
                                 <div>
-                                    <div className="text-lg font-semibold text-stone-50 leading-snug">{p.nombreProducto}</div>
-                                    <div className="mt-1 text-sm text-stone-500">{categoriaNombre(p)}</div>
+                                    <div className="text-lg font-semibold text-stone-900 dark:text-stone-50 leading-snug">{p.nombreProducto}</div>
+                                    <div className="mt-1 text-sm text-stone-600 dark:text-stone-500">{categoriaNombre(p)}</div>
                                 </div>
                                 {p.descripcion ? (
-                                    <p className="text-sm text-stone-400 line-clamp-3 flex-1">{p.descripcion}</p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-400 line-clamp-3 flex-1">{p.descripcion}</p>
                                 ) : (
                                     <div className="flex-1" />
                                 )}
                                 <div className="flex items-center justify-between gap-3 pt-1">
                                     <div className="text-amber-200 font-semibold">{formatCOP(p.precio)}</div>
-                                    <span className="text-xs font-medium text-stone-500 border border-stone-800 rounded-full px-2 py-0.5">
+                                    <span className="text-xs font-medium text-stone-600 dark:text-stone-500 border border-stone-200 dark:border-stone-800 rounded-full px-2 py-0.5">
                                         {p.tipo}
                                     </span>
                                 </div>
-                                <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-800">
+                                <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
                                     {p.activo ? (
                                         <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
                                             Activo
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+                                        <span className="inline-flex items-center rounded-full border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 px-2 py-0.5 text-xs text-stone-700 dark:text-stone-300">
                                             Inactivo
                                         </span>
                                     )}
@@ -532,7 +532,7 @@ export function AdminProductosPage() {
                                 <div className="flex flex-wrap gap-2">
                                     <button
                                         onClick={() => openEdit(p)}
-                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
+                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
                                     >
                                         Editar
                                     </button>
@@ -549,7 +549,7 @@ export function AdminProductosPage() {
                                     </button>
                                     <button
                                         onClick={() => deleteProducto(p)}
-                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
+                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
                                     >
                                         Eliminar
                                     </button>
@@ -558,7 +558,7 @@ export function AdminProductosPage() {
                         </div>
                     ))}
                     {productos.length === 0 ? (
-                        <div className="col-span-full rounded-2xl border border-stone-800 bg-stone-900/60 px-6 py-16 text-center text-stone-400">
+                        <div className="col-span-full rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-900/60 px-6 py-16 text-center text-stone-600 dark:text-stone-400">
                             No hay productos aún.
                         </div>
                     ) : null}
@@ -569,19 +569,19 @@ export function AdminProductosPage() {
                 <div className="fixed inset-0 z-50">
                     <div className="absolute inset-0 bg-black/60" onClick={closeModal} />
                     <div className="absolute inset-0 flex items-center justify-center p-6 overflow-y-auto">
-                        <div className="w-full max-w-xl bg-stone-900 border border-stone-800 rounded-2xl p-6 relative my-8">
+                        <div className="w-full max-w-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6 relative my-8">
                             <div className="flex items-start justify-between gap-6">
                                 <div>
                                     <div className="text-lg font-semibold">
                                         {draft.idProducto ? 'Editar producto' : 'Crear producto'}
                                     </div>
-                                    <div className="mt-1 text-sm text-stone-400">
+                                    <div className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                                         Precio mínimo: $500 COP. Nombre único por categoría. Imagen opcional (PHP suele limitar a 2 MB por archivo; para subir más, en backend ejecuta: composer run serve-uploads).
                                     </div>
                                 </div>
                                 <button
                                     onClick={closeModal}
-                                    className="rounded-lg px-3 py-2 border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                    className="rounded-lg px-3 py-2 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                 >
                                     Cerrar
                                 </button>
@@ -595,9 +595,9 @@ export function AdminProductosPage() {
 
                             <form className="mt-6 space-y-4" onSubmit={saveDraft}>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Foto del plato (opcional)</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Foto del plato (opcional)</label>
                                     <div className="mt-2 flex flex-col sm:flex-row gap-4 items-start">
-                                        <div className="w-full sm:w-40 shrink-0 rounded-xl overflow-hidden border border-stone-800 bg-stone-950 aspect-square flex items-center justify-center text-stone-500 text-xs">
+                                        <div className="w-full sm:w-40 shrink-0 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 aspect-square flex items-center justify-center text-stone-600 dark:text-stone-500 text-xs">
                                             {coverSrc ? (
                                                 <img src={coverSrc} alt="" className="h-full w-full object-cover" />
                                             ) : (
@@ -609,7 +609,7 @@ export function AdminProductosPage() {
                                                 type="file"
                                                 accept="image/jpeg,image/png,image/webp,image/gif"
                                                 onChange={onPickImage}
-                                                className="block w-full text-sm text-stone-300 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-800 file:px-4 file:py-2 file:text-stone-100 file:font-medium hover:file:bg-stone-700"
+                                                className="block w-full text-sm text-stone-700 dark:text-stone-300 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-200 dark:file:bg-stone-800 file:px-4 file:py-2 file:text-stone-900 dark:file:text-stone-100 file:font-medium hover:file:bg-stone-300 dark:hover:file:bg-stone-700"
                                             />
                                             {imageFile ? (
                                                 <button
@@ -625,11 +625,11 @@ export function AdminProductosPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Nombre</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Nombre</label>
                                     <input
                                         value={draft.nombreProducto}
                                         onChange={(e) => setDraft((d) => ({ ...d, nombreProducto: e.target.value }))}
-                                        className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                        className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                         placeholder="Ej: Arroz con Pollo"
                                         required
                                     />
@@ -637,22 +637,22 @@ export function AdminProductosPage() {
 
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Precio (COP)</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Precio (COP)</label>
                                         <input
                                             value={draft.precio}
                                             onChange={(e) => setDraft((d) => ({ ...d, precio: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             placeholder="Ej: 18000"
                                             inputMode="numeric"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Tipo</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Tipo</label>
                                         <select
                                             value={draft.tipo}
                                             onChange={(e) => setDraft((d) => ({ ...d, tipo: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                         >
                                             <option value="PLATO">PLATO</option>
                                             <option value="BEBIDA">BEBIDA</option>
@@ -663,11 +663,11 @@ export function AdminProductosPage() {
 
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Categoría</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Categoría</label>
                                         <select
                                             value={draft.categoria_idCategoria}
                                             onChange={(e) => setDraft((d) => ({ ...d, categoria_idCategoria: e.target.value }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                             required
                                         >
                                             <option value="" disabled>
@@ -682,11 +682,11 @@ export function AdminProductosPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-stone-400">Estado</label>
+                                        <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Estado</label>
                                         <select
                                             value={draft.activo ? '1' : '0'}
                                             onChange={(e) => setDraft((d) => ({ ...d, activo: e.target.value === '1' }))}
-                                            className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                                         >
                                             <option value="1">Activo</option>
                                             <option value="0">Inactivo</option>
@@ -695,11 +695,11 @@ export function AdminProductosPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400">Descripción (opcional)</label>
+                                    <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Descripción (opcional)</label>
                                     <textarea
                                         value={draft.descripcion}
                                         onChange={(e) => setDraft((d) => ({ ...d, descripcion: e.target.value }))}
-                                        className="mt-2 w-full bg-stone-900 border border-stone-800 text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 min-h-24"
+                                        className="mt-2 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 placeholder:text-stone-500 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 min-h-24"
                                         placeholder="Ej: Plato típico, porción personal."
                                     />
                                 </div>
@@ -708,7 +708,7 @@ export function AdminProductosPage() {
                                     <button
                                         type="button"
                                         onClick={closeModal}
-                                        className="rounded-lg px-6 py-3 border border-stone-800 text-stone-200 hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                        className="rounded-lg px-6 py-3 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                                     >
                                         Cancelar
                                     </button>
