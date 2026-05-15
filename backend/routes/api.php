@@ -1,14 +1,19 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminCocineroController;
-use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminMesaController;
+use App\Http\Controllers\Api\AdminMeseroController;
+use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CocinaPedidoController;
+use App\Http\Controllers\Api\GastoController;
+use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
+use App\Http\Controllers\Api\ReporteController;
+use App\Http\Controllers\Api\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -70,5 +75,30 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
 
     Route::get('restaurante-config', [AdminRestauranteConfigController::class, 'show']);
     Route::match(['put', 'post'], 'restaurante-config', [AdminRestauranteConfigController::class, 'update']);
-});
 
+    // Reportes (rama cris — HU13–15)
+    Route::get('reportes/ventas-hoy', [ReporteController::class, 'ventasHoy']);
+    Route::get('reportes/ventas', [ReporteController::class, 'ventasPorFecha']);
+    Route::get('reportes/productos-mas-vendidos', [ReporteController::class, 'productosMasVendidos']);
+
+    // Inventario (rama cris — HU16–17)
+    Route::get('inventario/alertas', [IngredienteController::class, 'alertas']);
+    Route::get('inventario/ingredientes', [IngredienteController::class, 'index']);
+    Route::post('inventario/ingredientes', [IngredienteController::class, 'store']);
+    Route::put('inventario/ingredientes/{ingrediente:idIngrediente}', [IngredienteController::class, 'update']);
+    Route::post('inventario/ingredientes/{ingrediente:idIngrediente}/movimiento', [IngredienteController::class, 'registrarMovimiento']);
+    Route::get('inventario/ingredientes/{ingrediente:idIngrediente}/movimientos', [IngredienteController::class, 'movimientos']);
+
+    // Finanzas (rama cris — HU18–19)
+    Route::get('finanzas/gastos', [GastoController::class, 'index']);
+    Route::post('finanzas/gastos', [GastoController::class, 'store']);
+    Route::put('finanzas/gastos/{gasto:idGasto}', [GastoController::class, 'update']);
+    Route::delete('finanzas/gastos/{gasto:idGasto}', [GastoController::class, 'destroy']);
+    Route::get('finanzas/pyg', [GastoController::class, 'pyg']);
+
+    // Usuarios unificados (rama cris — HU20)
+    Route::get('usuarios', [UsuarioController::class, 'index']);
+    Route::post('usuarios', [UsuarioController::class, 'store']);
+    Route::put('usuarios/{usuario:idUsuario}', [UsuarioController::class, 'update']);
+    Route::patch('usuarios/{usuario:idUsuario}/activo', [UsuarioController::class, 'setActivo']);
+});

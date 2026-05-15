@@ -35,6 +35,15 @@ function marcaInicial(nombre) {
     return t.slice(0, 1).toUpperCase();
 }
 
+function sidebarDotClass(to) {
+    if (to.includes('/configuracion')) return 'bg-stone-500';
+    if (to.includes('/productos') || to.includes('/cocineros')) return 'bg-orange-600';
+    if (to.includes('/usuarios') || to.includes('/reportes') || to.includes('/inventario') || to.includes('/finanzas')) {
+        return 'bg-amber-500';
+    }
+    return 'bg-amber-500';
+}
+
 function SidebarItem({ to, label, collapsed }) {
     return (
         <NavLink
@@ -48,16 +57,7 @@ function SidebarItem({ to, label, collapsed }) {
             }
             title={collapsed ? label : undefined}
         >
-            <span
-                className={classNames(
-                    'h-2.5 w-2.5 rounded-full',
-                    to.includes('/configuracion')
-                        ? 'bg-stone-500'
-                        : to.includes('/productos') || to.includes('/cocineros')
-                          ? 'bg-orange-600'
-                          : 'bg-amber-500',
-                )}
-            />
+            <span className={classNames('h-2.5 w-2.5 rounded-full shrink-0', sidebarDotClass(to))} />
             <span className={classNames('truncate', collapsed ? 'hidden' : 'block')}>{label}</span>
         </NavLink>
     );
@@ -183,6 +183,10 @@ export function AdminLayout({ title, children }) {
                         <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
                         <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
                         <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />
+                        <SidebarItem to="/admin/reportes" label="Reportes" collapsed={collapsed} />
+                        <SidebarItem to="/admin/inventario" label="Inventario" collapsed={collapsed} />
+                        <SidebarItem to="/admin/finanzas" label="Finanzas" collapsed={collapsed} />
+                        <SidebarItem to="/admin/usuarios" label="Usuarios" collapsed={collapsed} />
                         <SidebarItem to="/admin/configuracion" label="Configuración" collapsed={collapsed} />
                     </div>
                 </aside>
@@ -202,4 +206,3 @@ export function AdminLayout({ title, children }) {
         </div>
     );
 }
-

@@ -1,4 +1,5 @@
 import { getToken } from './authStorage';
+import { formatApiErrorForUser } from '../utils/friendlyApiError';
 
 export async function apiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
@@ -21,24 +22,13 @@ export async function apiFetch(path, options = {}) {
     const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => null);
 
     if (!res.ok) {
-        let message =
-            (data && typeof data === 'object' && (data.message || data.error)) ||
-            (typeof data === 'string' && data) ||
-            `Error ${res.status}`;
-
-        if (data && typeof data === 'object' && data.errors && typeof data.errors === 'object') {
-            const first = Object.values(data.errors)
-                .flat()
-                .find((x) => typeof x === 'string' && x.trim());
-            if (first) {
-                message =
-                    message && message !== 'The given data was invalid.' ? `${message} (${first})` : first;
-            }
-        }
+        const dataObj = isJson && data && typeof data === 'object' ? data : null;
+        const rawText = typeof data === 'string' ? data : null;
+        const message = formatApiErrorForUser(res.status, dataObj, rawText);
 
         const err = new Error(message);
         err.status = res.status;
-        err.data = data;
+        err.data = dataObj ?? (typeof data === 'object' ? data : null);
         throw err;
     }
 
