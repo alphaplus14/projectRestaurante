@@ -17,6 +17,7 @@ import {
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { useTheme } from '../theme/ThemeProvider';
+import { adminAlertError } from '../utils/adminAlerts';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -143,18 +144,16 @@ export function AdminDashboardPage() {
     const pieColors = [chart.amber, chart.orange, chart.amberLight, chart.orangeHover, chart.muted];
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
 
     const load = useCallback(async () => {
-        setError('');
         setLoading(true);
         try {
             const res = await apiFetch('/api/admin/dashboard');
             setPayload(res?.data ?? null);
         } catch (e) {
-            setError(e?.message || 'No se pudo cargar el dashboard.');
             setPayload(null);
+            void adminAlertError(e, 'No se pudo cargar el panel');
         } finally {
             setLoading(false);
         }
@@ -212,12 +211,6 @@ export function AdminDashboardPage() {
                         {loading ? 'Actualizando…' : 'Actualizar'}
                     </button>
                 </div>
-
-                {error ? (
-                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 text-sm text-red-500">
-                        {error}
-                    </div>
-                ) : null}
 
                 {loading && !payload ? (
                     <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-10 text-center text-stone-600 dark:text-stone-400">

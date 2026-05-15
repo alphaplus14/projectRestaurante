@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { adminAlertError } from '../utils/adminAlerts';
 
 const VIEW_STORAGE_KEY = 'admin-productos-view-mode';
 
@@ -49,7 +50,6 @@ function ProductThumb({ imagenUrl, nombre, size = 'md' }) {
 export function AdminProductosPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
     const [productos, setProductos] = useState([]);
     const [categorias, setCategorias] = useState([]);
 
@@ -114,14 +114,13 @@ export function AdminProductosPage() {
     }
 
     async function load() {
-        setError('');
         setLoading(true);
         try {
             const data = await apiFetch('/api/admin/productos');
             setProductos(Array.isArray(data?.data) ? data.data : []);
             setCategorias(Array.isArray(data?.categorias) ? data.categorias : []);
         } catch (err) {
-            setError(err?.message || 'No se pudo cargar productos.');
+            void adminAlertError(err, 'No se pudieron cargar los productos');
         } finally {
             setLoading(false);
         }
@@ -167,7 +166,6 @@ export function AdminProductosPage() {
         setIsOpen(false);
         resetImageSelection();
         setDraft(emptyDraft());
-        setError('');
     }
 
     function onPickImage(e) {
@@ -183,7 +181,6 @@ export function AdminProductosPage() {
 
     async function saveDraft(e) {
         e.preventDefault();
-        setError('');
         setSaving(true);
 
         const basePayload = {
@@ -238,14 +235,13 @@ export function AdminProductosPage() {
             await load();
             closeModal();
         } catch (err) {
-            setError(err?.message || 'No se pudo guardar.');
+            void adminAlertError(err, 'No se pudo guardar el producto');
         } finally {
             setSaving(false);
         }
     }
 
     async function toggleActivo(p) {
-        setError('');
         try {
             await apiFetch(`/api/admin/productos/${p.idProducto}/activo`, {
                 method: 'PATCH',
@@ -253,12 +249,11 @@ export function AdminProductosPage() {
             });
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo actualizar el estado.');
+            void adminAlertError(err, 'No se pudo cambiar el estado');
         }
     }
 
     async function deleteProducto(p) {
-        setError('');
         const ok = window.confirm(
             `¿Eliminar "${p.nombreProducto}"?\n\nSi el producto tiene pedidos asociados, el sistema no permitirá eliminarlo.`,
         );
@@ -268,7 +263,7 @@ export function AdminProductosPage() {
             await apiFetch(`/api/admin/productos/${p.idProducto}`, { method: 'DELETE' });
             await load();
         } catch (err) {
-            setError(err?.message || 'No se pudo eliminar.');
+            void adminAlertError(err, 'No se pudo eliminar el producto');
         }
     }
 
@@ -358,12 +353,6 @@ export function AdminProductosPage() {
                     </button>
                 </div>
             </div>
-
-            {error ? (
-                <div className="mt-6 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                    {error}
-                </div>
-            ) : null}
 
             {listaPorCategoriaAbierta ? (
                 <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-lg shadow-black/10">
@@ -586,12 +575,6 @@ export function AdminProductosPage() {
                                     Cerrar
                                 </button>
                             </div>
-
-                            {error ? (
-                                <div className="mt-4 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                                    {error}
-                                </div>
-                            ) : null}
 
                             <form className="mt-6 space-y-4" onSubmit={saveDraft}>
                                 <div>
