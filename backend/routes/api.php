@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\GastoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ReporteController;
+use App\Http\Controllers\Api\UsuarioController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -90,4 +91,10 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
     Route::put('finanzas/gastos/{gasto:idGasto}', [GastoController::class, 'update']);
     Route::delete('finanzas/gastos/{gasto:idGasto}', [GastoController::class, 'destroy']);
     Route::get('finanzas/pyg', [GastoController::class, 'pyg']);
+
+    //? Gestión de usuarios (meseros y cocineros) — parte de Cris (HU20)
+    Route::get('usuarios', [UsuarioController::class, 'index']);
+    Route::post('usuarios', [UsuarioController::class, 'store']);
+    Route::put('usuarios/{usuario:idUsuario}', [UsuarioController::class, 'update']);
+    Route::patch('usuarios/{usuario:idUsuario}/activo', [UsuarioController::class, 'setActivo']);
 });

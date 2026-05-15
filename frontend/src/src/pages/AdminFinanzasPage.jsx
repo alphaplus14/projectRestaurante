@@ -956,7 +956,7 @@ export function AdminFinanzasPage() {
       <div className="space-y-6 max-w-6xl">
         <div>
           <h1 className="text-xl font-semibold text-stone-50">Finanzas</h1>
-          <p className="text-sm text-stone-400 mt-1">HU18 · HU19</p>
+          <p className="text-sm text-stone-400 mt-1"></p>
         </div>
 
         <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
