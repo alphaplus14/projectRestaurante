@@ -896,7 +896,10 @@ export function AdminInventarioPage() {
           <h1 className="text-xl font-semibold text-stone-50">
             Inventario de ingredientes
           </h1>
-          <p className="text-sm text-stone-400 mt-1"></p>
+          <p className="text-sm text-stone-400 mt-1">
+            Gestiona el stock de ingredientes, registra movimientos y revisa
+            alertas.
+          </p>
         </div>
 
         {/* Tabs */}

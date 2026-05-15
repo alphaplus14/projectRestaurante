@@ -27,7 +27,7 @@ const TABS = [
   { id: "ranking", label: "Productos más vendidos" },
 ];
 
-// ── componentes reutilizables ──────────────────────────
+// ── componentes base ───────────────────────────────────
 
 function KpiCard({ label, value, hint }) {
   return (
@@ -85,17 +85,24 @@ function ActionButton({ onClick, disabled, children }) {
   );
 }
 
+// Label unificado con Inventario y Finanzas (text-xs, text-stone-400, sin uppercase)
+function Label({ children }) {
+  return (
+    <label className="block text-xs font-medium text-stone-400 mb-1">
+      {children}
+    </label>
+  );
+}
+
 function InputField({ label, type, value, onChange }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
-      </label>
+    <div>
+      {label && <Label>{label}</Label>}
       <input
         type={type}
         value={value}
         onChange={onChange}
-        className="bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
       />
     </div>
   );
@@ -103,14 +110,12 @@ function InputField({ label, type, value, onChange }) {
 
 function SelectField({ label, value, onChange, options }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
-      </label>
+    <div>
+      {label && <Label>{label}</Label>}
       <select
         value={value}
         onChange={onChange}
-        className="bg-stone-900 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -122,8 +127,21 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
+// ErrorMsg unificado: borde + fondo rojo, igual que Inventario y Finanzas
 function ErrorMsg({ msg }) {
-  return <p className="text-sm text-red-500 mt-2">{msg}</p>;
+  return (
+    <div className="rounded-lg border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+      {msg}
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+    </div>
+  );
 }
 
 function TableWrapper({ children }) {
@@ -134,9 +152,10 @@ function TableWrapper({ children }) {
   );
 }
 
+// Th sin bg diferenciado, alineado con Inventario y Finanzas
 function Th({ children }) {
   return (
-    <th className="text-left text-xs font-semibold uppercase tracking-wide text-stone-500 px-4 py-3 bg-stone-950">
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">
       {children}
     </th>
   );
@@ -222,6 +241,7 @@ function VentasHoy() {
       </div>
 
       {error && <ErrorMsg msg={error} />}
+      {loading && !data && <Spinner />}
 
       {data && (
         <>
@@ -237,7 +257,7 @@ function VentasHoy() {
 
           <TableWrapper>
             <thead>
-              <tr>
+              <tr className="border-b border-stone-800">
                 {["# Venta", "Mesa", "Total", "Método(s)", "Hora"].map((h) => (
                   <Th key={h}>{h}</Th>
                 ))}
@@ -333,6 +353,7 @@ function VentasPorRango() {
       </div>
 
       {error && <ErrorMsg msg={error} />}
+      {loading && !data && <Spinner />}
 
       {data && (
         <>
@@ -371,7 +392,7 @@ function VentasPorRango() {
 
           <TableWrapper>
             <thead>
-              <tr>
+              <tr className="border-b border-stone-800">
                 {["# Venta", "Fecha", "Mesa", "Total", "Métodos"].map((h) => (
                   <Th key={h}>{h}</Th>
                 ))}
@@ -474,6 +495,7 @@ function RankingProductos() {
       </div>
 
       {error && <ErrorMsg msg={error} />}
+      {loading && !data && <Spinner />}
 
       {data && (
         <div className="space-y-3">
@@ -534,7 +556,10 @@ export function AdminReportesPage() {
           <h1 className="text-xl font-semibold text-stone-50">
             Reportes de ventas
           </h1>
-          <p className="text-sm text-stone-400 mt-1"></p>
+          <p className="text-sm text-stone-400 mt-1">
+            Consulta las ventas del día, por rango de fechas o el ranking de
+            productos.
+          </p>
         </div>
 
         <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
