@@ -12,6 +12,10 @@ import { AdminMeserosPage } from './pages/AdminMeserosPage';
 import { AdminCocinerosPage } from './pages/AdminCocinerosPage';
 import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
+import { AdminReportesPage } from './pages/AdminReportesPage';
+import { AdminInventarioPage } from './pages/AdminInventarioPage';
+import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
+import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
 import { BlankPage } from './pages/BlankPage';
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
@@ -48,14 +52,6 @@ export function App() {
                 }
             />
             <Route
-                path="/admin/productos"
-                element={
-                    <RequireAdmin>
-                        <AdminProductosPage />
-                    </RequireAdmin>
-                }
-            />
-            <Route
                 path="/admin/dashboard"
                 element={
                     <RequireAdmin>
@@ -72,6 +68,14 @@ export function App() {
                 }
             />
             <Route
+                path="/admin/productos"
+                element={
+                    <RequireAdmin>
+                        <AdminProductosPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
                 path="/admin/meseros"
                 element={
                     <RequireAdmin>
@@ -84,6 +88,38 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminCocinerosPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/reportes"
+                element={
+                    <RequireAdmin>
+                        <AdminReportesPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/inventario"
+                element={
+                    <RequireAdmin>
+                        <AdminInventarioPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/finanzas"
+                element={
+                    <RequireAdmin>
+                        <AdminFinanzasPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/usuarios"
+                element={
+                    <RequireAdmin>
+                        <AdminUsuariosPage />
                     </RequireAdmin>
                 }
             />
@@ -108,4 +144,3 @@ export function App() {
         </Routes>
     );
 }
-
