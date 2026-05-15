@@ -16,6 +16,7 @@ import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { getToken } from './auth/authStorage';
+import { AdminReportesPage } from "./pages/AdminReportesPage";
 
 function RequireAuth({ children }) {
     const token = getToken();
@@ -30,6 +31,7 @@ export function App() {
             <Route path="/login-cocina" element={<LoginCocinaPage />} />
             <Route path="/login-mesero" element={<LoginMeseroPage />} />
             <Route path="/login-admin" element={<LoginAdminPage />} />
+            <Route path="/admin/reportes" element={<RequireAdmin><AdminReportesPage /></RequireAdmin>} />
             <Route
                 path="/mesero"
                 element={

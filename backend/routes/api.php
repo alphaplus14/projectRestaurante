@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ReporteController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -67,5 +68,11 @@ Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->grou
     Route::post('cocineros', [AdminCocineroController::class, 'store']);
     Route::put('cocineros/{usuario:idUsuario}', [AdminCocineroController::class, 'update']);
     Route::patch('cocineros/{usuario:idUsuario}/activo', [AdminCocineroController::class, 'setActivo']);
+    
+    //? Reportes del administrador parte de Cris (HU13, HU14, HU15)
+    Route::get('reportes/ventas-hoy', [ReporteController::class, 'ventasHoy']);
+    Route::get('reportes/ventas', [ReporteController::class, 'ventasPorFecha']);
+    Route::get('reportes/productos-mas-vendidos', [ReporteController::class, 'productosMasVendidos']);
 });
+
 

@@ -84,15 +84,8 @@ export function AdminLayout({ title, children }) {
                             aria-label="Contraer sidebar"
                             title="Contraer"
                         >
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="h-5 w-5"
-                            >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                                 <path d="M15 18l-6-6 6-6" />
                             </svg>
                         </button>
@@ -107,25 +100,20 @@ export function AdminLayout({ title, children }) {
                                 aria-label="Expandir sidebar"
                                 title="Expandir"
                             >
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-5 w-5"
-                                >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                    strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                                     <path d="M9 18l6-6-6-6" />
                                 </svg>
                             </button>
                         ) : null}
 
-                        <SidebarItem to="/admin/dashboard" label="Dashboard" collapsed={collapsed} />
-                        <SidebarItem to="/admin/mesas" label="Mesas" collapsed={collapsed} />
-                        <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
-                        <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
-                        <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />
+                        <SidebarItem to="/admin/dashboard"  label="Dashboard"  collapsed={collapsed} />
+                        <SidebarItem to="/admin/mesas"      label="Mesas"      collapsed={collapsed} />
+                        <SidebarItem to="/admin/productos"  label="Productos"  collapsed={collapsed} />
+                        <SidebarItem to="/admin/meseros"    label="Meseros"    collapsed={collapsed} />
+                        <SidebarItem to="/admin/cocineros"  label="Cocineros"  collapsed={collapsed} />
+                        <SidebarItem to="/admin/reportes"   label="Reportes"   collapsed={collapsed} />
+                        
                     </div>
                 </aside>
 
@@ -141,4 +129,3 @@ export function AdminLayout({ title, children }) {
         </div>
     );
 }
-
