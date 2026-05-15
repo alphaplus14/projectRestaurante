@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
+import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
@@ -64,6 +65,7 @@ function SidebarItem({ to, label, collapsed }) {
 }
 
 export function AdminLayout({ title, children }) {
+    const navigate = useNavigate();
     const [collapsed, setCollapsed] = usePersistedBoolean('admin_sidebar_collapsed', false);
     const [marcaNombre, setMarcaNombre] = useState('Ñapa');
     const [marcaLogo, setMarcaLogo] = useState(null);
@@ -194,9 +196,23 @@ export function AdminLayout({ title, children }) {
                 <main className="flex-1">
                     <div className="h-16 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between px-6 gap-4">
                         <div className="text-lg font-semibold">{title}</div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <ThemeToggle />
-                            <div className="text-sm text-stone-600 dark:text-stone-400 hidden sm:block">Panel admin</div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    clearToken();
+                                    navigate('/login-admin', { replace: true });
+                                }}
+                                className={classNames(
+                                    'rounded-lg border border-stone-200 dark:border-stone-800',
+                                    'px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200',
+                                    'hover:bg-stone-100 dark:hover:bg-stone-800/60',
+                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 whitespace-nowrap',
+                                )}
+                            >
+                                Cerrar sesión
+                            </button>
                         </div>
                     </div>
 

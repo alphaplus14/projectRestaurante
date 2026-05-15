@@ -12,9 +12,9 @@ function classNames(...xs) {
 const ROLES = ["ADMINISTRADOR", "MESERO", "COCINERO"];
 
 const ROL_BADGE = {
-  ADMINISTRADOR: "bg-violet-600/15 border-violet-500/30 text-violet-200",
-  MESERO: "bg-amber-600/15  border-amber-500/30  text-amber-200",
-  COCINERO: "bg-orange-600/15 border-orange-500/30 text-orange-200",
+  ADMINISTRADOR: "bg-violet-600/15 border-violet-500/30 text-violet-900 dark:text-violet-200",
+  MESERO: "bg-amber-600/15 border-amber-500/30 text-amber-900 dark:text-amber-200",
+  COCINERO: "bg-orange-600/15 border-orange-500/30 text-orange-900 dark:text-orange-200",
 };
 
 function emptyDraft() {
@@ -320,7 +320,7 @@ export function AdminUsuariosPage() {
                       </td>
                       <td className="px-4 py-3">
                         {u.activo ? (
-                          <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                          <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                             Activo
                           </span>
                         ) : (
@@ -343,7 +343,7 @@ export function AdminUsuariosPage() {
                               "inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
                               u.activo
                                 ? "bg-amber-600 hover:bg-amber-500 text-stone-950"
-                                : "bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30",
+                                : "bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30",
                             )}
                           >
                             {u.activo ? "Deshabilitar" : "Habilitar"}

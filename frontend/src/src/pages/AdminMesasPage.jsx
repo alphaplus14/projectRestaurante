@@ -258,7 +258,7 @@ export function AdminMesasPage() {
                             </thead>
                             <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                                 {mesas.map((m) => (
-                                    <tr key={m.idMesa} className="hover:bg-stone-100/70 dark:bg-stone-950/50">
+                                    <tr key={m.idMesa} className="hover:bg-stone-100/70 dark:bg-stone-950/50 dark:hover:bg-stone-800/35">
                                         <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-50 tabular-nums">{m.numero}</td>
                                         <td className="px-4 py-3 text-stone-700 dark:text-stone-300">{m.nombre || '—'}</td>
                                         <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{m.capacidad}</td>
@@ -275,7 +275,7 @@ export function AdminMesasPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             {m.activa ? (
-                                                <span className="inline-flex rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                                                <span className="inline-flex rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                                                     Activa
                                                 </span>
                                             ) : (
@@ -307,7 +307,7 @@ export function AdminMesasPage() {
                                                         'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
                                                         m.activa
                                                             ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
+                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30',
                                                     )}
                                                 >
                                                     {m.activa ? 'Desactivar' : 'Activar'}
@@ -447,7 +447,7 @@ export function AdminMesasPage() {
                                                     </div>
                                                 ) : null}
                                                 {row.notas ? (
-                                                    <div className="text-amber-200/90 pt-1">Nota: {row.notas}</div>
+                                                    <div className="text-amber-800 dark:text-amber-200/90 pt-1">Nota: {row.notas}</div>
                                                 ) : null}
                                             </div>
                                         </li>
