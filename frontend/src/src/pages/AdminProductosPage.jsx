@@ -327,7 +327,7 @@ export function AdminProductosPage() {
                             'inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                             listaPorCategoriaAbierta
-                                ? 'border-amber-500/40 bg-amber-600/15 text-amber-200'
+                                ? 'border-amber-500/40 bg-amber-600/15 text-amber-900 dark:text-amber-200'
                                 : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60',
                         )}
                     >
@@ -355,7 +355,7 @@ export function AdminProductosPage() {
             </div>
 
             {listaPorCategoriaAbierta ? (
-                <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-lg shadow-black/10">
+                <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
                             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50">Menú ordenado por categoría</h2>
@@ -418,7 +418,7 @@ export function AdminProductosPage() {
                             </thead>
                             <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                                 {productos.map((p) => (
-                                    <tr key={p.idProducto} className="hover:bg-stone-100/70 dark:bg-stone-900/60">
+                                    <tr key={p.idProducto} className="hover:bg-stone-100/70 dark:hover:bg-stone-800/35">
                                         <td className="px-4 py-3 align-middle">
                                             <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="sm" />
                                         </td>
@@ -433,7 +433,7 @@ export function AdminProductosPage() {
                                         <td className="px-4 py-3 text-right">{formatCOP(p.precio)}</td>
                                         <td className="px-4 py-3">
                                             {p.activo ? (
-                                                <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                                                <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                                                     Activo
                                                 </span>
                                             ) : (
@@ -456,7 +456,7 @@ export function AdminProductosPage() {
                                                         'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
                                                         p.activo
                                                             ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
+                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30',
                                                     )}
                                                 >
                                                     {p.activo ? 'Deshabilitar' : 'Habilitar'}
@@ -488,7 +488,7 @@ export function AdminProductosPage() {
                     {productos.map((p) => (
                         <div
                             key={p.idProducto}
-                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden flex flex-col shadow-lg shadow-black/20"
+                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden flex flex-col"
                         >
                             <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="lg" />
                             <div className="p-5 flex-1 flex flex-col gap-3">
@@ -502,14 +502,14 @@ export function AdminProductosPage() {
                                     <div className="flex-1" />
                                 )}
                                 <div className="flex items-center justify-between gap-3 pt-1">
-                                    <div className="text-amber-200 font-semibold">{formatCOP(p.precio)}</div>
+                                    <div className="text-amber-800 dark:text-amber-200 font-semibold tabular-nums">{formatCOP(p.precio)}</div>
                                     <span className="text-xs font-medium text-stone-600 dark:text-stone-500 border border-stone-200 dark:border-stone-800 rounded-full px-2 py-0.5">
                                         {p.tipo}
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
                                     {p.activo ? (
-                                        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-200">
+                                        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                                             Activo
                                         </span>
                                     ) : (
@@ -531,7 +531,7 @@ export function AdminProductosPage() {
                                             'flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
                                             p.activo
                                                 ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                                                : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-200 border border-amber-500/30',
+                                                : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30',
                                         )}
                                     >
                                         {p.activo ? 'Deshabilitar' : 'Habilitar'}
