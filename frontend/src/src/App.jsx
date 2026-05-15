@@ -18,6 +18,7 @@ import { RequireAdmin } from './auth/RequireAdmin';
 import { getToken } from './auth/authStorage';
 import { AdminReportesPage } from "./pages/AdminReportesPage";
 import { AdminInventarioPage } from "./pages/AdminInventarioPage";
+import { AdminFinanzasPage } from "./pages/AdminFinanzasPage";
 
 function RequireAuth({ children }) {
     const token = getToken();
@@ -32,6 +33,14 @@ export function App() {
         <Route path="/login-cocina" element={<LoginCocinaPage />} />
         <Route path="/login-mesero" element={<LoginMeseroPage />} />
         <Route path="/login-admin" element={<LoginAdminPage />} />
+        <Route
+          path="/admin/finanzas"
+          element={
+            <RequireAdmin>
+              <AdminFinanzasPage />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="/admin/reportes"
           element={

@@ -166,6 +166,11 @@ export function AdminLayout({ title, children }) {
                 label="Inventario"
                 collapsed={collapsed}
               />
+              <SidebarItem
+                to="/admin/finanzas"
+                label="Finanzas"
+                collapsed={collapsed}
+              />
             </div>
           </aside>
 
