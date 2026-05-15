@@ -15,6 +15,25 @@ function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
 }
 
+function IconChefHat({ className }) {
+    return (
+        <svg
+            className={className}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+        >
+            <path d="M4 17h16" />
+            <path d="M7 17v-1.5C7 12 9.5 9 12 9s5 3 5 6.5V17" />
+            <path d="M8.5 10.5c.7-1.8 2.3-3 3.5-3s2.8 1.2 3.5 3" />
+        </svg>
+    );
+}
+
 /** Normaliza para búsqueda insensible a mayúsculas y tildes */
 function normalizarBusqueda(s) {
     return String(s ?? '')
@@ -30,6 +49,23 @@ const ESTADO_LABEL = {
     CERRADO: 'Cerrado',
     CANCELADO: 'Cancelado',
 };
+
+function formatHora(iso) {
+    if (!iso) return null;
+    try {
+        return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+        return null;
+    }
+}
+
+/** Título visible del pedido: nota de mesa si existe, si no el número de pedido */
+function tituloReferenciaPedido(active) {
+    if (!active?.idPedido) return null;
+    const n = active.notas_mesa?.trim?.() || active.notas?.trim?.();
+    if (n) return n.length > 52 ? `${n.slice(0, 49)}…` : n;
+    return `Pedido #${active.idPedido}`;
+}
 
 export function MeseroSalonPage() {
     const [mesas, setMesas] = useState([]);
@@ -228,7 +264,7 @@ export function MeseroSalonPage() {
                             Toca una mesa · pedido y menú · actualización automática
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
                         <ThemeToggle />
                         <button
                             type="button"
@@ -237,6 +273,14 @@ export function MeseroSalonPage() {
                         >
                             Actualizar
                         </button>
+                        <Link
+                            to="/login-cocina"
+                            aria-label="Cambiar a pantalla de cocina"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
+                        >
+                            <IconChefHat className="h-4 w-4 shrink-0 opacity-90" />
+                            <span className="whitespace-nowrap">Cambiar a cocina</span>
+                        </Link>
                         <button
                             type="button"
                             onClick={onSalir}
@@ -248,7 +292,7 @@ export function MeseroSalonPage() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-3 sm:py-6 pb-24 sm:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6">
                 {banner ? (
                     <div className="lg:col-span-12 rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 sm:px-4 py-3 text-sm text-amber-100">
                         {banner}
@@ -261,50 +305,123 @@ export function MeseroSalonPage() {
                         selectedId ? 'hidden lg:block' : '',
                     )}
                 >
-                    <h2 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50">Mesas</h2>
+                    <div className="flex items-end justify-between gap-2">
+                        <h2 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50">Mesas</h2>
+                        <span className="text-xs text-stone-500 dark:text-stone-400 tabular-nums shrink-0">
+                            {mesas.length} en salón
+                        </span>
+                    </div>
                     {loadingMesas ? (
-                        <p className="text-stone-600 dark:text-stone-500 text-sm">Cargando…</p>
+                        <div className="space-y-2">
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="h-28 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-200/60 dark:bg-stone-900/80 animate-pulse"
+                                />
+                            ))}
+                        </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
                             {mesas.map((m) => {
                                 const active = m.pedido_activo;
                                 const sel = selectedId === m.idMesa;
                                 const bloqueado = active?.bloqueado;
                                 const ocupada = m.estado === 'OCUPADA';
+                                const hora = active?.creado_en ? formatHora(active.creado_en) : null;
+                                const estadoPedido = active?.estado ? ESTADO_LABEL[active.estado] || active.estado : null;
+                                const refTitulo = active && !bloqueado ? tituloReferenciaPedido(active) : null;
+
                                 return (
                                     <button
                                         key={m.idMesa}
                                         type="button"
                                         onClick={() => setSelectedId(m.idMesa)}
                                         className={classNames(
-                                            'rounded-xl border p-3 sm:p-3.5 text-left transition-colors min-h-[88px] active:scale-[0.98]',
+                                            'rounded-xl border p-4 text-left transition-all min-h-[100px] active:scale-[0.99] touch-manipulation shadow-sm',
                                             sel
-                                                ? 'border-amber-500 bg-amber-600/10 ring-1 ring-amber-500/40'
-                                                : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-stone-300 dark:border-stone-700',
+                                                ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/50 shadow-amber-900/20'
+                                                : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-600',
                                         )}
                                     >
-                                        <div className="text-[10px] sm:text-xs text-stone-600 dark:text-stone-500 uppercase tracking-wide">Mesa</div>
-                                        <div className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-50 leading-tight truncate">
-                                            {m.nombre || `#${m.numero}`}
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                                                    Mesa {m.numero}
+                                                    {m.nombre ? (
+                                                        <span className="text-stone-600 dark:text-stone-300 font-semibold normal-case">
+                                                            {' '}
+                                                            · {m.nombre}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <div className="mt-0.5 text-lg font-bold text-stone-900 dark:text-stone-50 leading-snug truncate">
+                                                    {m.nombre || `Mesa ${m.numero}`}
+                                                </div>
+                                            </div>
+                                            <span className="shrink-0 rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400">
+                                                {m.capacidad ?? '—'} p
+                                            </span>
                                         </div>
-                                        <div
-                                            className={classNames(
-                                                'text-[10px] sm:text-xs mt-1 font-medium',
-                                                ocupada ? 'text-orange-400' : 'text-stone-600 dark:text-stone-400',
-                                            )}
-                                        >
-                                            {ocupada ? 'Ocupada' : 'Libre'}
+
+                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                            <span
+                                                className={classNames(
+                                                    'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                                    bloqueado
+                                                        ? 'bg-stone-800 text-stone-300 border border-stone-600'
+                                                        : ocupada
+                                                          ? 'bg-orange-950/50 text-orange-300 border border-orange-800/60'
+                                                          : 'bg-stone-800/90 text-stone-300 border border-stone-600',
+                                                )}
+                                            >
+                                                {bloqueado ? 'Otro mesero' : ocupada ? 'Ocupada' : 'Libre'}
+                                            </span>
+                                            {active && estadoPedido ? (
+                                                <span className="text-[11px] text-stone-500 dark:text-stone-400 truncate max-w-[10rem] sm:max-w-none">
+                                                    {estadoPedido}
+                                                    {hora ? ` · ${hora}` : ''}
+                                                </span>
+                                            ) : null}
                                         </div>
+
                                         {bloqueado ? (
-                                            <div className="mt-1.5 text-[10px] sm:text-xs text-amber-200/90 line-clamp-2">
-                                                Otro mesero ({active.estado})
-                                            </div>
+                                            <p className="mt-2 text-xs text-stone-600 dark:text-stone-400 leading-snug line-clamp-2">
+                                                {active?.mensaje || 'Cuenta tomada por otro compañero.'}
+                                                {active?.num_lineas > 0 ? (
+                                                    <span className="block mt-1 text-stone-500">
+                                                        {active.total_unidades} u. en {active.num_lineas} línea
+                                                        {active.num_lineas !== 1 ? 's' : ''}
+                                                    </span>
+                                                ) : null}
+                                            </p>
                                         ) : active?.idPedido ? (
-                                            <div className="mt-1.5 text-[10px] sm:text-xs font-medium text-amber-400">
-                                                Pedido #{active.idPedido}
+                                            <div className="mt-2 space-y-1 text-xs text-stone-600 dark:text-stone-300">
+                                                <div className="font-medium text-amber-600 dark:text-amber-400 truncate">
+                                                    {refTitulo}
+                                                </div>
+                                                {active.resumen_productos ? (
+                                                    <p className="text-[11px] leading-snug text-stone-600 dark:text-stone-400 line-clamp-2">
+                                                        {active.resumen_productos}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-[11px] text-stone-500">Sin ítems aún</p>
+                                                )}
+                                                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
+                                                    <span>
+                                                        {active.num_lineas ?? 0} línea{(active.num_lineas ?? 0) !== 1 ? 's' : ''} ·{' '}
+                                                        {active.total_unidades ?? 0} u.
+                                                    </span>
+                                                    {active.subtotal_cop != null && active.subtotal_cop > 0 ? (
+                                                        <span className="font-semibold text-stone-700 dark:text-stone-200 tabular-nums">
+                                                            {formatMoney(active.subtotal_cop)}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                             </div>
+                                        ) : ocupada ? (
+                                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">Sin pedido vinculado a tu sesión.</p>
                                         ) : (
-                                            <div className="mt-1.5 text-[10px] sm:text-xs text-stone-600 dark:text-stone-500">Sin pedido</div>
+                                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">Toca para abrir cuenta o ver detalle.</p>
                                         )}
                                     </button>
                                 );
@@ -315,43 +432,60 @@ export function MeseroSalonPage() {
 
                 <section
                     className={classNames(
-                        'space-y-4 lg:col-span-8',
+                        'space-y-3 sm:space-y-4 lg:col-span-8 min-h-[50vh]',
                         !selectedId ? 'hidden lg:block' : '',
                     )}
                 >
                     {!selectedId ? (
                         <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 sm:p-8 text-center text-stone-600 dark:text-stone-400 text-sm">
-                            Selecciona una mesa a la izquierda para tomar el pedido o ver la cuenta.
+                            Selecciona una mesa arriba para tomar el pedido o ver la cuenta.
                         </div>
                     ) : (
                         <>
                             <button
                                 type="button"
                                 onClick={() => setSelectedId(null)}
-                                className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto touch-manipulation"
                             >
                                 <span aria-hidden>←</span> Todas las mesas
                             </button>
 
                             <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 sm:p-5">
                                 <div className="flex flex-wrap items-start justify-between gap-4">
-                                    <div className="min-w-0">
-                                        <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-500">Mesa</div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-xs text-stone-600 dark:text-stone-500">Mesa seleccionada</div>
                                         <div className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-50 truncate">
                                             {selectedMesa?.nombre || `Mesa ${selectedMesa?.numero}`}
                                         </div>
-                                        <div className="text-xs text-stone-600 dark:text-stone-500 mt-1">Cap. {selectedMesa?.capacidad ?? '—'}</div>
+                                        <div className="flex flex-wrap gap-2 mt-2 text-xs text-stone-600 dark:text-stone-500">
+                                            <span className="rounded-md border border-stone-200 dark:border-stone-700 px-2 py-0.5">
+                                                N.º {selectedMesa?.numero}
+                                            </span>
+                                            <span className="rounded-md border border-stone-200 dark:border-stone-700 px-2 py-0.5">
+                                                Cap. {selectedMesa?.capacidad ?? '—'} pers.
+                                            </span>
+                                            <span
+                                                className={classNames(
+                                                    'rounded-md border px-2 py-0.5 font-medium',
+                                                    selectedMesa?.estado === 'OCUPADA'
+                                                        ? 'border-orange-800/50 text-orange-400 bg-orange-950/20'
+                                                        : 'border-stone-600 text-stone-400 bg-stone-900/40',
+                                                )}
+                                            >
+                                                {selectedMesa?.estado === 'OCUPADA' ? 'Ocupada' : 'Libre'}
+                                            </span>
+                                        </div>
                                     </div>
                                     {!pedido && !loadingPedido ? (
                                         selectedMesa?.pedido_activo?.bloqueado ? (
-                                            <p className="text-sm text-amber-200/90 max-w-md">
+                                            <p className="text-sm text-stone-600 dark:text-stone-400 max-w-md">
                                                 {selectedMesa.pedido_activo.mensaje || 'Pedido de otro mesero.'}
                                             </p>
                                         ) : (
                                             <button
                                                 type="button"
                                                 onClick={abrirCuenta}
-                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2.5 text-sm font-semibold text-stone-900 dark:text-stone-50 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-orange-700 hover:bg-orange-600 px-5 py-3 text-sm font-semibold text-stone-50 focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
                                             >
                                                 Abrir cuenta
                                             </button>
@@ -359,12 +493,57 @@ export function MeseroSalonPage() {
                                     ) : null}
                                 </div>
 
+                                {selectedMesa?.pedido_activo && !selectedMesa.pedido_activo.bloqueado && selectedMesa.pedido_activo.idPedido ? (
+                                    <div className="mt-4 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/80 p-3 sm:p-4">
+                                        <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                                            Vista rápida (salón)
+                                        </div>
+                                        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                            <span className="font-semibold text-amber-600 dark:text-amber-400 truncate">
+                                                {tituloReferenciaPedido(selectedMesa.pedido_activo)}
+                                            </span>
+                                            <span className="text-xs text-stone-500">
+                                                {ESTADO_LABEL[selectedMesa.pedido_activo.estado] || selectedMesa.pedido_activo.estado}
+                                                {selectedMesa.pedido_activo.creado_en
+                                                    ? ` · ${formatHora(selectedMesa.pedido_activo.creado_en)}`
+                                                    : ''}
+                                            </span>
+                                        </div>
+                                        {selectedMesa.pedido_activo.resumen_productos ? (
+                                            <p className="mt-2 text-xs text-stone-600 dark:text-stone-300 leading-snug">
+                                                {selectedMesa.pedido_activo.resumen_productos}
+                                            </p>
+                                        ) : null}
+                                        <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-stone-500">
+                                            <span>
+                                                {selectedMesa.pedido_activo.num_lineas ?? 0} línea
+                                                {(selectedMesa.pedido_activo.num_lineas ?? 0) !== 1 ? 's' : ''} ·{' '}
+                                                {selectedMesa.pedido_activo.total_unidades ?? 0} u.
+                                            </span>
+                                            {selectedMesa.pedido_activo.subtotal_cop > 0 ? (
+                                                <span className="font-semibold text-stone-800 dark:text-stone-200 tabular-nums">
+                                                    {formatMoney(selectedMesa.pedido_activo.subtotal_cop)}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                ) : null}
+
                                 {loadingPedido ? (
-                                    <p className="mt-4 text-stone-600 dark:text-stone-500 text-sm">Cargando pedido…</p>
+                                    <div className="mt-4 space-y-2">
+                                        <div className="h-4 w-40 rounded bg-stone-200 dark:bg-stone-800 animate-pulse" />
+                                        <div className="h-16 rounded-lg bg-stone-200 dark:bg-stone-800 animate-pulse" />
+                                    </div>
                                 ) : pedido ? (
                                     <div className="mt-4 space-y-3">
                                         <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-                                            <span className="text-sm text-stone-600 dark:text-stone-400">Pedido #{pedido.idPedido}</span>
+                                            <span className="text-sm font-medium text-amber-600 dark:text-amber-400 truncate max-w-full">
+                                                {tituloReferenciaPedido({
+                                                    idPedido: pedido.idPedido,
+                                                    notas_mesa: pedido.notas,
+                                                    notas: pedido.notas,
+                                                })}
+                                            </span>
                                             <span className="rounded-full border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 px-2.5 py-1 text-xs text-stone-700 dark:text-stone-200">
                                                 {ESTADO_LABEL[pedido.estado] || pedido.estado}
                                             </span>
@@ -522,7 +701,7 @@ export function MeseroSalonPage() {
                                                                         type="button"
                                                                         disabled={addingId === p.idProducto}
                                                                         onClick={() => agregarProducto(p.idProducto)}
-                                                                        className="rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2 text-sm font-semibold text-stone-900 dark:text-stone-50 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto"
+                                                                        className="rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2.5 text-sm font-semibold text-stone-50 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto touch-manipulation"
                                                                     >
                                                                         {addingId === p.idProducto ? '…' : 'Añadir'}
                                                                     </button>
@@ -540,12 +719,6 @@ export function MeseroSalonPage() {
                     )}
                 </section>
             </div>
-
-            <p className="text-center text-sm text-stone-600 dark:text-stone-500 pb-6 px-4">
-                <Link to="/login-cocina" className="text-amber-600 hover:text-amber-500 focus-visible:ring-2 focus-visible:ring-amber-500 rounded">
-                    Pantalla cocina
-                </Link>
-            </p>
         </div>
     );
 }

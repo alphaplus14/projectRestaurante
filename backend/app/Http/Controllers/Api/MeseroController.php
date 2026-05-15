@@ -35,6 +35,12 @@ class MeseroController extends Controller
 
         $pedidos = Pedido::query()
             ->whereIn('estado', self::ABIERTOS)
+            ->with([
+                'detalles' => function ($q) {
+                    $q->orderBy('idPedidoDetalle')
+                        ->with('producto:idProducto,nombreProducto');
+                },
+            ])
             ->get()
             ->keyBy('mesa_idMesa');
 
@@ -45,17 +51,39 @@ class MeseroController extends Controller
 
                 $pedidoActivo = null;
                 if ($p) {
+                    $lineas = $p->detalles;
+                    $totalUnidades = (int) $lineas->sum('cantidad');
+                    $numLineas = $lineas->count();
+
                     if ((int) $p->mesero_idUsuario === $authId) {
+                        $subtotal = $lineas->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
+                        $previewParts = $lineas->take(2)->map(function ($d) {
+                            $name = $d->producto?->nombreProducto ?? 'Ítem';
+
+                            return $name.' ×'.(int) $d->cantidad;
+                        });
+                        $preview = $previewParts->filter()->implode(' · ');
+                        if ($numLineas > 2) {
+                            $preview .= ' +'.($numLineas - 2).' más';
+                        }
+
                         $pedidoActivo = [
                             'idPedido' => $p->idPedido,
                             'estado' => $p->estado,
                             'creado_en' => $p->creado_en?->toIso8601String(),
+                            'notas_mesa' => $p->notas,
+                            'num_lineas' => $numLineas,
+                            'total_unidades' => $totalUnidades,
+                            'subtotal_cop' => (int) round($subtotal),
+                            'resumen_productos' => $preview !== '' ? $preview : null,
                         ];
                     } else {
                         $pedidoActivo = [
                             'bloqueado' => true,
                             'estado' => $p->estado,
                             'mensaje' => 'Pedido abierto por otro mesero.',
+                            'num_lineas' => $numLineas,
+                            'total_unidades' => $totalUnidades,
                         ];
                     }
                 }
