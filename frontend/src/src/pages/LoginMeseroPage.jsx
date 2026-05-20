@@ -62,9 +62,12 @@ export function LoginMeseroPage() {
                         <p className="mt-4 text-stone-700 dark:text-stone-300 leading-relaxed max-w-prose">
                             Elige mesa, abre la cuenta y envía ítems a cocina. Los pedidos aparecen en la pantalla de cocina en estado pendiente.
                         </p>
-                        <div className="mt-4 flex flex-wrap gap-4 text-sm text-stone-600 dark:text-stone-500">
-                            <Link className="text-amber-400/90 hover:text-amber-300" to="/login">
-                                Acceso clientes
+                        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                            <Link className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200" to="/staff">
+                                Portal del personal
+                            </Link>
+                            <Link className="text-amber-400/90 hover:text-amber-300" to="/cliente">
+                                Sitio para clientes
                             </Link>
                             <Link className="text-orange-400/90 hover:text-orange-300" to="/login-cocina">
                                 Acceso cocina

@@ -4,6 +4,7 @@ import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginCocinaPage } from './pages/LoginCocinaPage';
 import { LoginMeseroPage } from './pages/LoginMeseroPage';
 import { LoginAdminPage } from './pages/LoginAdminPage';
+import { StaffPortalPage } from './pages/StaffPortalPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
@@ -16,25 +17,45 @@ import { AdminReportesPage } from './pages/AdminReportesPage';
 import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
 import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
-import { BlankPage } from './pages/BlankPage';
+import { LandingPage } from './pages/LandingPage';
+import { ClienteCartaPage } from './pages/ClienteCartaPage';
+import { ClienteReservasPage } from './pages/ClienteReservasPage';
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireAdmin } from './auth/RequireAdmin';
-import { getToken } from './auth/authStorage';
-
-function RequireAuth({ children }) {
-    const token = getToken();
-    if (!token) return <Navigate to="/login" replace />;
-    return children;
-}
+import { RequireCliente } from './auth/RequireCliente';
 
 export function App() {
     return (
         <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login-cocina" element={<LoginCocinaPage />} />
-            <Route path="/login-mesero" element={<LoginMeseroPage />} />
+            {/* Sitio clientes (público + sesión cliente) */}
+            <Route path="/" element={<Navigate to="/cliente" replace />} />
+            <Route path="/cliente" element={<LandingPage />} />
+            <Route path="/cliente/login" element={<LoginClientePage />} />
+            <Route path="/login" element={<Navigate to="/cliente/login" replace />} />
+            <Route path="/blank" element={<Navigate to="/cliente/carta" replace />} />
+            <Route
+                path="/cliente/carta"
+                element={
+                    <RequireCliente>
+                        <ClienteCartaPage />
+                    </RequireCliente>
+                }
+            />
+            <Route
+                path="/cliente/reservas"
+                element={
+                    <RequireCliente>
+                        <ClienteReservasPage />
+                    </RequireCliente>
+                }
+            />
+
+            {/* Personal del restaurante */}
+            <Route path="/staff" element={<StaffPortalPage />} />
             <Route path="/login-admin" element={<LoginAdminPage />} />
+            <Route path="/login-mesero" element={<LoginMeseroPage />} />
+            <Route path="/login-cocina" element={<LoginCocinaPage />} />
             <Route
                 path="/mesero"
                 element={
@@ -131,16 +152,8 @@ export function App() {
                     </RequireAdmin>
                 }
             />
-            <Route path="/login" element={<LoginClientePage />} />
-            <Route
-                path="/blank"
-                element={
-                    <RequireAuth>
-                        <BlankPage />
-                    </RequireAuth>
-                }
-            />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+
+            <Route path="*" element={<Navigate to="/cliente" replace />} />
         </Routes>
     );
 }
