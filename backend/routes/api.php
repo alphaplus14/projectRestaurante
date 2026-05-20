@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(fu
 
 Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(function () {
     Route::get('mesas', [MeseroController::class, 'mesas']);
+    Route::get('categorias', [ProductoController::class, 'categoriasMesero']);
     Route::get('productos', [ProductoController::class, 'indexMesero']);
     Route::post('pedidos', [MeseroController::class, 'storePedido']);
     Route::post('pedidos/{pedido:idPedido}/cerrar', [MeseroController::class, 'cerrarPedido']);
