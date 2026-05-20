@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Categoria;
 use App\Models\Producto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,10 +26,32 @@ class ProductoController extends Controller
         return $this->catalogoActivo($request);
     }
 
+    /**
+     * Categorías activas para filtros del menú en salón (sin productos).
+     */
+    public function categoriasMesero(Request $request): JsonResponse
+    {
+        $categorias = Categoria::query()
+            ->where('activa', true)
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get(['idCategoria', 'nombre', 'orden']);
+
+        return response()->json([
+            'data' => $categorias->map(fn (Categoria $c) => [
+                'idCategoria' => $c->idCategoria,
+                'nombre' => $c->nombre,
+                'orden' => $c->orden,
+            ]),
+        ]);
+    }
+
     private function catalogoActivo(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'tipo' => ['sometimes', 'string', 'in:PLATO,BEBIDA,COMBO'],
+            'categoria_id' => ['sometimes', 'integer', 'exists:categoria,idCategoria'],
+            'q' => ['sometimes', 'string', 'min:2', 'max:80'],
         ]);
 
         $query = Producto::query()
@@ -45,6 +68,18 @@ class ProductoController extends Controller
 
         if (! empty($validated['tipo'])) {
             $query->where('producto.tipo', $validated['tipo']);
+        }
+
+        if (! empty($validated['categoria_id'])) {
+            $query->where('producto.categoria_idCategoria', $validated['categoria_id']);
+        }
+
+        if (! empty($validated['q'])) {
+            $term = '%'.addcslashes($validated['q'], '%_\\').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('producto.nombreProducto', 'like', $term)
+                    ->orWhere('producto.descripcion', 'like', $term);
+            });
         }
 
         $productos = $query->get();

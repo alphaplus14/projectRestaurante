@@ -34,7 +34,6 @@ function IconChefHat({ className }) {
     );
 }
 
-/** Normaliza para búsqueda insensible a mayúsculas y tildes */
 function normalizarBusqueda(s) {
     return String(s ?? '')
         .toLowerCase()
@@ -59,7 +58,6 @@ function formatHora(iso) {
     }
 }
 
-/** Título visible del pedido: nota de mesa si existe, si no el número de pedido */
 function tituloReferenciaPedido(active) {
     if (!active?.idPedido) return null;
     const n = active.notas_mesa?.trim?.() || active.notas?.trim?.();
@@ -67,19 +65,178 @@ function tituloReferenciaPedido(active) {
     return `Pedido #${active.idPedido}`;
 }
 
+function ProductThumb({ imagenUrl, nombre, className }) {
+    return (
+        <div
+            className={classNames(
+                'aspect-[4/3] w-full overflow-hidden bg-stone-200 dark:bg-stone-800 flex items-center justify-center text-stone-500 dark:text-stone-400',
+                className,
+            )}
+        >
+            {imagenUrl ? (
+                <img src={imagenUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+            ) : (
+                <span className="text-2xl font-bold opacity-60">{nombre?.slice(0, 2)?.toUpperCase() ?? '?'}</span>
+            )}
+        </div>
+    );
+}
+
+function MesaCard({ mesa, onSelect }) {
+    const active = mesa.pedido_activo;
+    const bloqueado = active?.bloqueado;
+    const ocupada = mesa.estado === 'OCUPADA';
+    const hora = active?.creado_en ? formatHora(active.creado_en) : null;
+    const estadoPedido = active?.estado ? ESTADO_LABEL[active.estado] || active.estado : null;
+    const refTitulo = active && !bloqueado ? tituloReferenciaPedido(active) : null;
+
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(mesa.idMesa)}
+            className={classNames(
+                'rounded-2xl border p-4 sm:p-5 text-left transition-all min-h-[120px] active:scale-[0.98] touch-manipulation shadow-sm w-full',
+                'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-amber-500/50 hover:shadow-md',
+            )}
+        >
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                        Mesa {mesa.numero}
+                    </div>
+                    <div className="mt-0.5 text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-50 leading-snug truncate">
+                        {mesa.nombre || `Mesa ${mesa.numero}`}
+                    </div>
+                </div>
+                <span className="shrink-0 rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 px-2.5 py-1 text-[10px] font-medium text-stone-600 dark:text-stone-400">
+                    {mesa.capacidad ?? '—'} pers.
+                </span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span
+                    className={classNames(
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                        bloqueado
+                            ? 'bg-stone-200 text-stone-700 border border-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-600'
+                            : ocupada
+                              ? 'bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800/60'
+                              : 'bg-stone-100 text-stone-700 border border-stone-300 dark:bg-stone-800/90 dark:text-stone-300 dark:border-stone-600',
+                    )}
+                >
+                    {bloqueado ? 'Otro mesero' : ocupada ? 'Ocupada' : 'Libre'}
+                </span>
+                {active && estadoPedido ? (
+                    <span className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
+                        {estadoPedido}
+                        {hora ? ` · ${hora}` : ''}
+                    </span>
+                ) : null}
+            </div>
+
+            {bloqueado ? (
+                <p className="mt-2 text-xs text-stone-600 dark:text-stone-400 line-clamp-2">
+                    {active?.mensaje || 'Cuenta de otro compañero.'}
+                </p>
+            ) : active?.idPedido ? (
+                <div className="mt-2 space-y-0.5">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 truncate">{refTitulo}</p>
+                    {active.resumen_productos ? (
+                        <p className="text-[11px] text-stone-600 dark:text-stone-400 line-clamp-1">
+                            {active.resumen_productos}
+                        </p>
+                    ) : null}
+                    {active.subtotal_cop > 0 ? (
+                        <p className="text-sm font-semibold text-stone-800 dark:text-stone-200 tabular-nums mt-1">
+                            {formatMoney(active.subtotal_cop)}
+                        </p>
+                    ) : null}
+                </div>
+            ) : (
+                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">Toca para abrir o tomar pedido</p>
+            )}
+        </button>
+    );
+}
+
+function ProductMenuCard({ producto, qty, nota, adding, onQty, onNota, onAdd }) {
+    const [showNota, setShowNota] = useState(false);
+
+    return (
+        <article className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 overflow-hidden flex flex-col shadow-sm">
+            <ProductThumb imagenUrl={producto.imagenUrl} nombre={producto.nombreProducto} />
+            <div className="p-3 flex flex-col flex-1 gap-2">
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-stone-900 dark:text-stone-50 text-sm leading-snug line-clamp-2">
+                        {producto.nombreProducto}
+                    </h4>
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 tabular-nums mt-0.5">
+                        {formatMoney(producto.precio)}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="sr-only" htmlFor={`q-${producto.idProducto}`}>
+                        Cantidad
+                    </label>
+                    <input
+                        id={`q-${producto.idProducto}`}
+                        type="number"
+                        min={1}
+                        max={99}
+                        className="w-14 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 px-2 py-2 text-sm text-stone-900 dark:text-stone-50 tabular-nums focus-visible:ring-2 focus-visible:ring-amber-500"
+                        value={qty}
+                        onChange={(e) => onQty(e.target.value)}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowNota((v) => !v)}
+                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-2 py-2 text-xs text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"
+                        aria-expanded={showNota}
+                    >
+                        Nota
+                    </button>
+                    <button
+                        type="button"
+                        disabled={adding}
+                        onClick={onAdd}
+                        className="flex-1 rounded-lg bg-orange-700 hover:bg-orange-600 text-stone-50 text-sm font-semibold py-2 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
+                    >
+                        {adding ? '…' : '+'}
+                    </button>
+                </div>
+                {showNota ? (
+                    <input
+                        type="text"
+                        placeholder="Ej. sin cebolla"
+                        value={nota}
+                        onChange={(e) => onNota(e.target.value)}
+                        className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 px-2 py-1.5 text-xs text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus-visible:ring-2 focus-visible:ring-amber-500"
+                    />
+                ) : null}
+            </div>
+        </article>
+    );
+}
+
 export function MeseroSalonPage() {
     const [mesas, setMesas] = useState([]);
-    const [catalogo, setCatalogo] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
+    const [mesaTab, setMesaTab] = useState('cuenta');
     const [pedido, setPedido] = useState(null);
+    const [categorias, setCategorias] = useState([]);
+    const [catalogo, setCatalogo] = useState([]);
+    const [categoriaActiva, setCategoriaActiva] = useState(null);
+    const [busquedaMenu, setBusquedaMenu] = useState('');
+    const [busquedaAplicada, setBusquedaAplicada] = useState('');
     const [banner, setBanner] = useState('');
     const [loadingMesas, setLoadingMesas] = useState(true);
     const [loadingPedido, setLoadingPedido] = useState(false);
+    const [loadingCategorias, setLoadingCategorias] = useState(false);
+    const [loadingCatalogo, setLoadingCatalogo] = useState(false);
     const [addingId, setAddingId] = useState(null);
     const [cerrando, setCerrando] = useState(false);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
-    const [busquedaMenu, setBusquedaMenu] = useState('');
 
     const selectedMesa = useMemo(() => mesas.find((m) => m.idMesa === selectedId), [mesas, selectedId]);
 
@@ -95,12 +252,33 @@ export function MeseroSalonPage() {
         }
     }, []);
 
-    const fetchCatalogo = useCallback(async () => {
+    const fetchCategorias = useCallback(async () => {
+        setLoadingCategorias(true);
         try {
-            const res = await apiFetch('/api/mesero/productos');
-            setCatalogo(Array.isArray(res?.data) ? res.data : []);
+            const res = await apiFetch('/api/mesero/categorias');
+            setCategorias(Array.isArray(res?.data) ? res.data : []);
         } catch (e) {
-            setBanner(e?.message || 'No se pudo cargar el menú.');
+            setBanner(e?.message || 'No se pudieron cargar las categorías.');
+        } finally {
+            setLoadingCategorias(false);
+        }
+    }, []);
+
+    const fetchProductos = useCallback(async ({ categoriaId, q }) => {
+        setLoadingCatalogo(true);
+        setCatalogo([]);
+        try {
+            const params = new URLSearchParams();
+            if (categoriaId) params.set('categoria_id', String(categoriaId));
+            if (q?.trim()) params.set('q', q.trim());
+            const res = await apiFetch(`/api/mesero/productos?${params}`);
+            setCatalogo(Array.isArray(res?.data) ? res.data : []);
+            setBanner('');
+        } catch (e) {
+            setBanner(e?.message || 'No se pudieron cargar los productos.');
+            setCatalogo([]);
+        } finally {
+            setLoadingCatalogo(false);
         }
     }, []);
 
@@ -120,8 +298,7 @@ export function MeseroSalonPage() {
 
     useEffect(() => {
         fetchMesas();
-        fetchCatalogo();
-    }, [fetchMesas, fetchCatalogo]);
+    }, [fetchMesas]);
 
     useEffect(() => {
         const id = setInterval(() => {
@@ -147,6 +324,54 @@ export function MeseroSalonPage() {
         }
     }, [selectedId, mesas, loadPedido]);
 
+    useEffect(() => {
+        if (selectedId && mesaTab === 'menu' && categorias.length === 0 && !loadingCategorias) {
+            void fetchCategorias();
+        }
+    }, [selectedId, mesaTab, categorias.length, loadingCategorias, fetchCategorias]);
+
+    useEffect(() => {
+        if (!selectedId) return;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [selectedId]);
+
+    function resetMenuFiltros() {
+        setCategoriaActiva(null);
+        setBusquedaMenu('');
+        setBusquedaAplicada('');
+        setCatalogo([]);
+    }
+
+    function cerrarMesa() {
+        setSelectedId(null);
+        setMesaTab('cuenta');
+        resetMenuFiltros();
+        setCategorias([]);
+        setPedido(null);
+    }
+
+    function seleccionarCategoria(idCategoria) {
+        setCategoriaActiva(idCategoria);
+        setBusquedaMenu('');
+        setBusquedaAplicada('');
+        void fetchProductos({ categoriaId: idCategoria });
+    }
+
+    function ejecutarBusqueda(e) {
+        e?.preventDefault?.();
+        const term = busquedaMenu.trim();
+        if (term.length < 2) {
+            setBanner('Escribe al menos 2 letras para buscar.');
+            return;
+        }
+        setCategoriaActiva(null);
+        setBusquedaAplicada(term);
+        void fetchProductos({ q: term });
+    }
+
     async function abrirCuenta() {
         if (!selectedId) return;
         setBanner('');
@@ -158,6 +383,7 @@ export function MeseroSalonPage() {
             const p = res?.data;
             if (p?.idPedido) {
                 setPedido(p);
+                setMesaTab('menu');
                 await fetchMesas();
             }
         } catch (e) {
@@ -203,6 +429,7 @@ export function MeseroSalonPage() {
             setPedido(null);
             setBanner(res?.message || 'Cuenta cerrada.');
             await fetchMesas();
+            cerrarMesa();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cerrar la cuenta.');
         } finally {
@@ -215,53 +442,30 @@ export function MeseroSalonPage() {
         window.location.href = '/login-mesero';
     }
 
-    useEffect(() => {
-        setBusquedaMenu('');
-    }, [selectedId]);
-
-    const catalogoPorCat = useMemo(() => {
-        const q = normalizarBusqueda(busquedaMenu.trim());
-        const filtrados = !q
-            ? catalogo
-            : catalogo.filter((p) => {
-                  const nombre = normalizarBusqueda(p.nombreProducto);
-                  const desc = normalizarBusqueda(p.descripcion);
-                  const cat = normalizarBusqueda(p.categoria?.nombre);
-                  const tipo = normalizarBusqueda(p.tipo);
-                  return nombre.includes(q) || desc.includes(q) || cat.includes(q) || tipo.includes(q);
-              });
-
-        const map = new Map();
-        for (const p of filtrados) {
-            const cat = p.categoria?.nombre || 'Otros';
-            if (!map.has(cat)) map.set(cat, []);
-            map.get(cat).push(p);
-        }
-        return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-    }, [catalogo, busquedaMenu]);
+    const nombreCategoriaActiva = useMemo(
+        () => categorias.find((c) => c.idCategoria === categoriaActiva)?.nombre ?? null,
+        [categorias, categoriaActiva],
+    );
 
     const totalPedido = useMemo(() => {
         if (!pedido?.detalles?.length) return 0;
         return pedido.detalles.reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
     }, [pedido]);
 
-    const totalCatalogo = catalogo.length;
-    const totalFiltrado = useMemo(
-        () => catalogoPorCat.reduce((acc, [, items]) => acc + items.length, 0),
-        [catalogoPorCat],
-    );
-
-    const inputClass =
-        'rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 px-2 py-1.5 text-sm tabular-nums placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500';
+    const puedeAgregar = pedido && !['LISTO', 'CERRADO', 'CANCELADO'].includes(pedido.estado);
+    const menuSinSeleccion = !categoriaActiva && !busquedaAplicada && !loadingCatalogo;
+    const bloqueado = selectedMesa?.pedido_activo?.bloqueado;
 
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <header className="sticky top-0 z-20 border-b border-stone-200 dark:border-stone-800 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur">
-                <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="mx-auto max-w-5xl px-3 sm:px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
-                        <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 truncate">Salón — mesero</h1>
+                        <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 truncate">
+                            Salón — mesero
+                        </h1>
                         <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-500 truncate">
-                            Toca una mesa · pedido y menú · actualización automática
+                            Elige una mesa para ver la cuenta o agregar platos
                         </p>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
@@ -279,12 +483,12 @@ export function MeseroSalonPage() {
                             className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
                         >
                             <IconChefHat className="h-4 w-4 shrink-0 opacity-90" />
-                            <span className="whitespace-nowrap">Cambiar a cocina</span>
+                            <span className="whitespace-nowrap hidden sm:inline">Cocina</span>
                         </Link>
                         <button
                             type="button"
                             onClick={onSalir}
-                            className="rounded-lg border border-stone-200 dark:border-stone-800 px-3 sm:px-4 py-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:text-stone-200 focus-visible:ring-2 focus-visible:ring-amber-500"
+                            className="rounded-lg border border-stone-200 dark:border-stone-800 px-3 sm:px-4 py-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
                             Salir
                         </button>
@@ -292,433 +496,366 @@ export function MeseroSalonPage() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 py-3 sm:py-6 pb-24 sm:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6">
-                {banner ? (
-                    <div className="lg:col-span-12 rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 sm:px-4 py-3 text-sm text-amber-100">
+            <main className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-8">
+                {banner && !selectedId ? (
+                    <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-100 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
                         {banner}
                     </div>
                 ) : null}
 
-                <section
-                    className={classNames(
-                        'space-y-3 lg:col-span-4',
-                        selectedId ? 'hidden lg:block' : '',
-                    )}
-                >
-                    <div className="flex items-end justify-between gap-2">
-                        <h2 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50">Mesas</h2>
-                        <span className="text-xs text-stone-500 dark:text-stone-400 tabular-nums shrink-0">
-                            {mesas.length} en salón
-                        </span>
+                <div className="flex items-end justify-between gap-2 mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-stone-50">Mesas</h2>
+                    <span className="text-xs text-stone-500 dark:text-stone-400 tabular-nums">{mesas.length} activas</span>
+                </div>
+
+                {loadingMesas ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div
+                                key={i}
+                                className="h-32 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-200/60 dark:bg-stone-900/80 animate-pulse"
+                            />
+                        ))}
                     </div>
-                    {loadingMesas ? (
-                        <div className="space-y-2">
-                            {[1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    className="h-28 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-200/60 dark:bg-stone-900/80 animate-pulse"
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-                            {mesas.map((m) => {
-                                const active = m.pedido_activo;
-                                const sel = selectedId === m.idMesa;
-                                const bloqueado = active?.bloqueado;
-                                const ocupada = m.estado === 'OCUPADA';
-                                const hora = active?.creado_en ? formatHora(active.creado_en) : null;
-                                const estadoPedido = active?.estado ? ESTADO_LABEL[active.estado] || active.estado : null;
-                                const refTitulo = active && !bloqueado ? tituloReferenciaPedido(active) : null;
+                ) : mesas.length === 0 ? (
+                    <p className="text-sm text-stone-600 dark:text-stone-400 text-center py-12">No hay mesas activas.</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        {mesas.map((m) => (
+                            <MesaCard key={m.idMesa} mesa={m} onSelect={setSelectedId} />
+                        ))}
+                    </div>
+                )}
+            </main>
 
-                                return (
-                                    <button
-                                        key={m.idMesa}
-                                        type="button"
-                                        onClick={() => setSelectedId(m.idMesa)}
-                                        className={classNames(
-                                            'rounded-xl border p-4 text-left transition-all min-h-[100px] active:scale-[0.99] touch-manipulation shadow-sm',
-                                            sel
-                                                ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/50 shadow-amber-900/20'
-                                                : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-600',
-                                        )}
-                                    >
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
-                                                    Mesa {m.numero}
-                                                    {m.nombre ? (
-                                                        <span className="text-stone-600 dark:text-stone-300 font-semibold normal-case">
-                                                            {' '}
-                                                            · {m.nombre}
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                                <div className="mt-0.5 text-lg font-bold text-stone-900 dark:text-stone-50 leading-snug truncate">
-                                                    {m.nombre || `Mesa ${m.numero}`}
-                                                </div>
-                                            </div>
-                                            <span className="shrink-0 rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400">
-                                                {m.capacidad ?? '—'} p
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                            <span
-                                                className={classNames(
-                                                    'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                                                    bloqueado
-                                                        ? 'bg-stone-800 text-stone-300 border border-stone-600'
-                                                        : ocupada
-                                                          ? 'bg-orange-950/50 text-orange-300 border border-orange-800/60'
-                                                          : 'bg-stone-800/90 text-stone-300 border border-stone-600',
-                                                )}
-                                            >
-                                                {bloqueado ? 'Otro mesero' : ocupada ? 'Ocupada' : 'Libre'}
-                                            </span>
-                                            {active && estadoPedido ? (
-                                                <span className="text-[11px] text-stone-500 dark:text-stone-400 truncate max-w-[10rem] sm:max-w-none">
-                                                    {estadoPedido}
-                                                    {hora ? ` · ${hora}` : ''}
-                                                </span>
-                                            ) : null}
-                                        </div>
-
-                                        {bloqueado ? (
-                                            <p className="mt-2 text-xs text-stone-600 dark:text-stone-400 leading-snug line-clamp-2">
-                                                {active?.mensaje || 'Cuenta tomada por otro compañero.'}
-                                                {active?.num_lineas > 0 ? (
-                                                    <span className="block mt-1 text-stone-500">
-                                                        {active.total_unidades} u. en {active.num_lineas} línea
-                                                        {active.num_lineas !== 1 ? 's' : ''}
-                                                    </span>
-                                                ) : null}
-                                            </p>
-                                        ) : active?.idPedido ? (
-                                            <div className="mt-2 space-y-1 text-xs text-stone-600 dark:text-stone-300">
-                                                <div className="font-medium text-amber-600 dark:text-amber-400 truncate">
-                                                    {refTitulo}
-                                                </div>
-                                                {active.resumen_productos ? (
-                                                    <p className="text-[11px] leading-snug text-stone-600 dark:text-stone-400 line-clamp-2">
-                                                        {active.resumen_productos}
-                                                    </p>
-                                                ) : (
-                                                    <p className="text-[11px] text-stone-500">Sin ítems aún</p>
-                                                )}
-                                                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
-                                                    <span>
-                                                        {active.num_lineas ?? 0} línea{(active.num_lineas ?? 0) !== 1 ? 's' : ''} ·{' '}
-                                                        {active.total_unidades ?? 0} u.
-                                                    </span>
-                                                    {active.subtotal_cop != null && active.subtotal_cop > 0 ? (
-                                                        <span className="font-semibold text-stone-700 dark:text-stone-200 tabular-nums">
-                                                            {formatMoney(active.subtotal_cop)}
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        ) : ocupada ? (
-                                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">Sin pedido vinculado a tu sesión.</p>
-                                        ) : (
-                                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">Toca para abrir cuenta o ver detalle.</p>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
-
-                <section
-                    className={classNames(
-                        'space-y-3 sm:space-y-4 lg:col-span-8 min-h-[50vh]',
-                        !selectedId ? 'hidden lg:block' : '',
-                    )}
+            {selectedId && selectedMesa ? (
+                <div
+                    className="fixed inset-0 z-40 flex flex-col bg-stone-100 dark:bg-stone-950"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="mesa-modal-title"
                 >
-                    {!selectedId ? (
-                        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 sm:p-8 text-center text-stone-600 dark:text-stone-400 text-sm">
-                            Selecciona una mesa arriba para tomar el pedido o ver la cuenta.
-                        </div>
-                    ) : (
-                        <>
+                    <div className="shrink-0 border-b border-stone-200 dark:border-stone-800 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur safe-area-inset-top">
+                        <div className="flex items-center gap-2 px-3 sm:px-4 py-3 max-w-3xl mx-auto w-full">
                             <button
                                 type="button"
-                                onClick={() => setSelectedId(null)}
-                                className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto touch-manipulation"
+                                onClick={cerrarMesa}
+                                className="shrink-0 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-2.5 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800 focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
+                                aria-label="Volver al salón"
                             >
-                                <span aria-hidden>←</span> Todas las mesas
+                                <span className="text-lg leading-none" aria-hidden>
+                                    ←
+                                </span>
                             </button>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                                    Mesa {selectedMesa.numero}
+                                </p>
+                                <h2
+                                    id="mesa-modal-title"
+                                    className="text-lg font-bold text-stone-900 dark:text-stone-50 truncate"
+                                >
+                                    {selectedMesa.nombre || `Mesa ${selectedMesa.numero}`}
+                                </h2>
+                            </div>
+                        </div>
 
-                            <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 sm:p-5">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-xs text-stone-600 dark:text-stone-500">Mesa seleccionada</div>
-                                        <div className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-50 truncate">
-                                            {selectedMesa?.nombre || `Mesa ${selectedMesa?.numero}`}
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mt-2 text-xs text-stone-600 dark:text-stone-500">
-                                            <span className="rounded-md border border-stone-200 dark:border-stone-700 px-2 py-0.5">
-                                                N.º {selectedMesa?.numero}
-                                            </span>
-                                            <span className="rounded-md border border-stone-200 dark:border-stone-700 px-2 py-0.5">
-                                                Cap. {selectedMesa?.capacidad ?? '—'} pers.
-                                            </span>
-                                            <span
-                                                className={classNames(
-                                                    'rounded-md border px-2 py-0.5 font-medium',
-                                                    selectedMesa?.estado === 'OCUPADA'
-                                                        ? 'border-orange-800/50 text-orange-400 bg-orange-950/20'
-                                                        : 'border-stone-600 text-stone-400 bg-stone-900/40',
-                                                )}
-                                            >
-                                                {selectedMesa?.estado === 'OCUPADA' ? 'Ocupada' : 'Libre'}
-                                            </span>
-                                        </div>
+                        <div className="flex gap-1 px-3 sm:px-4 pb-3 max-w-3xl mx-auto w-full">
+                            <div className="flex gap-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-1 w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setMesaTab('cuenta')}
+                                    className={classNames(
+                                        'flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-amber-500',
+                                        mesaTab === 'cuenta'
+                                            ? 'bg-orange-700 text-stone-50'
+                                            : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/60',
+                                    )}
+                                >
+                                    Cuenta
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMesaTab('menu')}
+                                    disabled={bloqueado || !puedeAgregar}
+                                    className={classNames(
+                                        'flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40 disabled:cursor-not-allowed',
+                                        mesaTab === 'menu'
+                                            ? 'bg-orange-700 text-stone-50'
+                                            : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/60',
+                                    )}
+                                >
+                                    Menú
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {banner ? (
+                        <div className="shrink-0 mx-3 sm:mx-4 mt-2 max-w-3xl w-full self-center rounded-lg border border-amber-500/30 bg-amber-100 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                            {banner}
+                        </div>
+                    ) : null}
+
+                    <div className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 max-w-3xl mx-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
+                        {mesaTab === 'cuenta' ? (
+                            <div className="space-y-4">
+                                {bloqueado ? (
+                                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 text-sm text-stone-600 dark:text-stone-400">
+                                        {selectedMesa.pedido_activo?.mensaje || 'Esta mesa la atiende otro mesero.'}
                                     </div>
-                                    {!pedido && !loadingPedido ? (
-                                        selectedMesa?.pedido_activo?.bloqueado ? (
-                                            <p className="text-sm text-stone-600 dark:text-stone-400 max-w-md">
-                                                {selectedMesa.pedido_activo.mensaje || 'Pedido de otro mesero.'}
-                                            </p>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={abrirCuenta}
-                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-orange-700 hover:bg-orange-600 px-5 py-3 text-sm font-semibold text-stone-50 focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
-                                            >
-                                                Abrir cuenta
-                                            </button>
-                                        )
-                                    ) : null}
-                                </div>
-
-                                {selectedMesa?.pedido_activo && !selectedMesa.pedido_activo.bloqueado && selectedMesa.pedido_activo.idPedido ? (
-                                    <div className="mt-4 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/80 p-3 sm:p-4">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                                            Vista rápida (salón)
-                                        </div>
-                                        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                                            <span className="font-semibold text-amber-600 dark:text-amber-400 truncate">
-                                                {tituloReferenciaPedido(selectedMesa.pedido_activo)}
-                                            </span>
-                                            <span className="text-xs text-stone-500">
-                                                {ESTADO_LABEL[selectedMesa.pedido_activo.estado] || selectedMesa.pedido_activo.estado}
-                                                {selectedMesa.pedido_activo.creado_en
-                                                    ? ` · ${formatHora(selectedMesa.pedido_activo.creado_en)}`
-                                                    : ''}
-                                            </span>
-                                        </div>
-                                        {selectedMesa.pedido_activo.resumen_productos ? (
-                                            <p className="mt-2 text-xs text-stone-600 dark:text-stone-300 leading-snug">
-                                                {selectedMesa.pedido_activo.resumen_productos}
-                                            </p>
-                                        ) : null}
-                                        <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-stone-500">
-                                            <span>
-                                                {selectedMesa.pedido_activo.num_lineas ?? 0} línea
-                                                {(selectedMesa.pedido_activo.num_lineas ?? 0) !== 1 ? 's' : ''} ·{' '}
-                                                {selectedMesa.pedido_activo.total_unidades ?? 0} u.
-                                            </span>
-                                            {selectedMesa.pedido_activo.subtotal_cop > 0 ? (
-                                                <span className="font-semibold text-stone-800 dark:text-stone-200 tabular-nums">
-                                                    {formatMoney(selectedMesa.pedido_activo.subtotal_cop)}
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                ) : null}
-
-                                {loadingPedido ? (
-                                    <div className="mt-4 space-y-2">
-                                        <div className="h-4 w-40 rounded bg-stone-200 dark:bg-stone-800 animate-pulse" />
-                                        <div className="h-16 rounded-lg bg-stone-200 dark:bg-stone-800 animate-pulse" />
+                                ) : loadingPedido ? (
+                                    <div className="space-y-2">
+                                        <div className="h-4 w-32 rounded bg-stone-200 dark:bg-stone-800 animate-pulse" />
+                                        <div className="h-24 rounded-xl bg-stone-200 dark:bg-stone-800 animate-pulse" />
                                     </div>
                                 ) : pedido ? (
-                                    <div className="mt-4 space-y-3">
-                                        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-                                            <span className="text-sm font-medium text-amber-600 dark:text-amber-400 truncate max-w-full">
-                                                {tituloReferenciaPedido({
-                                                    idPedido: pedido.idPedido,
-                                                    notas_mesa: pedido.notas,
-                                                    notas: pedido.notas,
-                                                })}
-                                            </span>
-                                            <span className="rounded-full border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 px-2.5 py-1 text-xs text-stone-700 dark:text-stone-200">
-                                                {ESTADO_LABEL[pedido.estado] || pedido.estado}
-                                            </span>
-                                            <span className="text-sm text-stone-700 dark:text-stone-300 sm:ml-auto font-medium tabular-nums w-full sm:w-auto text-right sm:text-left">
-                                                Subtotal {formatMoney(totalPedido)}
-                                            </span>
+                                    <>
+                                        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 sm:p-5">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="font-semibold text-amber-700 dark:text-amber-400">
+                                                    {tituloReferenciaPedido({
+                                                        idPedido: pedido.idPedido,
+                                                        notas_mesa: pedido.notas,
+                                                        notas: pedido.notas,
+                                                    })}
+                                                </span>
+                                                <span className="rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-950 px-2.5 py-0.5 text-xs text-stone-700 dark:text-stone-200">
+                                                    {ESTADO_LABEL[pedido.estado] || pedido.estado}
+                                                </span>
+                                                <span className="text-sm font-semibold tabular-nums text-stone-800 dark:text-stone-200 sm:ml-auto">
+                                                    {formatMoney(totalPedido)}
+                                                </span>
+                                            </div>
+                                            {pedido.notas ? (
+                                                <p className="mt-3 text-sm text-stone-700 dark:text-stone-300 rounded-lg bg-stone-50 dark:bg-stone-950 px-3 py-2 border border-stone-200 dark:border-stone-800">
+                                                    Nota: {pedido.notas}
+                                                </p>
+                                            ) : null}
                                         </div>
-                                        {pedido.notas ? (
-                                            <p className="text-sm text-stone-700 dark:text-stone-200 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 px-3 py-2">
-                                                Nota mesa: {pedido.notas}
-                                            </p>
-                                        ) : null}
-                                        <ul className="divide-y divide-stone-200 dark:divide-stone-800 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+
+                                        <ul className="divide-y divide-stone-200 dark:divide-stone-800 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 overflow-hidden">
                                             {pedido.detalles?.length ? (
                                                 pedido.detalles.map((l) => (
-                                                    <li key={l.idPedidoDetalle} className="px-3 py-2.5 flex gap-3 text-sm">
-                                                        <span className="font-semibold text-amber-500/90 tabular-nums w-8 shrink-0">
+                                                    <li
+                                                        key={l.idPedidoDetalle}
+                                                        className="px-4 py-3 flex gap-3 text-sm"
+                                                    >
+                                                        <span className="font-semibold text-amber-600 dark:text-amber-500 tabular-nums w-8 shrink-0">
                                                             {l.cantidad}×
                                                         </span>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="font-medium text-stone-900 dark:text-stone-50 truncate">
+                                                            <div className="font-medium text-stone-900 dark:text-stone-50">
                                                                 {l.producto?.nombreProducto}
                                                             </div>
-                                                            {l.nota ? <div className="text-xs text-stone-600 dark:text-stone-500">{l.nota}</div> : null}
+                                                            {l.nota ? (
+                                                                <div className="text-xs text-stone-600 dark:text-stone-500">
+                                                                    {l.nota}
+                                                                </div>
+                                                            ) : null}
                                                         </div>
-                                                        <span className="text-stone-600 dark:text-stone-400 tabular-nums whitespace-nowrap shrink-0">
-                                                            {formatMoney(Number(l.precio_unitario) * Number(l.cantidad))}
+                                                        <span className="text-stone-600 dark:text-stone-400 tabular-nums shrink-0">
+                                                            {formatMoney(
+                                                                Number(l.precio_unitario) * Number(l.cantidad),
+                                                            )}
                                                         </span>
                                                     </li>
                                                 ))
                                             ) : (
-                                                <li className="px-3 py-4 text-stone-600 dark:text-stone-500 text-sm text-center">Aún no hay ítems.</li>
+                                                <li className="px-4 py-8 text-center text-stone-600 dark:text-stone-500 text-sm">
+                                                    Sin ítems. Ve a la pestaña Menú para agregar.
+                                                </li>
                                             )}
                                         </ul>
-                                        {pedido.estado === 'LISTO' ? (
-                                            <div className="mt-3 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
-                                                <p className="text-xs text-stone-600 dark:text-stone-500 flex-1 min-w-0">
-                                                    Cuando corresponda, cierra la cuenta para liberar la mesa.
-                                                </p>
-                                                <button
-                                                    type="button"
-                                                    disabled={cerrando}
-                                                    onClick={cerrarCuenta}
-                                                    className="rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 px-4 py-2.5 text-sm font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                                >
-                                                    {cerrando ? 'Cerrando…' : 'Cerrar cuenta'}
-                                                </button>
-                                            </div>
-                                        ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
-                                            <p className="text-xs text-stone-600 dark:text-stone-500">
-                                                Este pedido ya no admite nuevos ítems desde aquí.
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                ) : selectedMesa?.pedido_activo?.bloqueado ? (
-                                    <p className="mt-4 text-stone-600 dark:text-stone-500 text-sm">
-                                        Mesa ocupada por otro mesero; no puedes abrir cuenta aquí.
-                                    </p>
-                                ) : (
-                                    <p className="mt-4 text-stone-600 dark:text-stone-500 text-sm">No hay pedido abierto. Pulsa «Abrir cuenta».</p>
-                                )}
-                            </div>
 
-                            {pedido && !['LISTO', 'CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
-                                <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 sm:p-5">
-                                    <h3 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50 mb-3">Agregar al pedido</h3>
-
-                                    <div className="relative mb-3">
-                                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600 dark:text-stone-500" aria-hidden>
-                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <circle cx="11" cy="11" r="7" />
-                                                <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
-                                            </svg>
-                                        </span>
-                                        <input
-                                            type="search"
-                                            enterKeyHint="search"
-                                            autoComplete="off"
-                                            value={busquedaMenu}
-                                            onChange={(e) => setBusquedaMenu(e.target.value)}
-                                            placeholder="Buscar plato, bebida, categoría…"
-                                            className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 py-2.5 pl-10 pr-10 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                                            aria-label="Buscar en el menú"
-                                        />
-                                        {busquedaMenu.trim() ? (
+                                        {puedeAgregar ? (
                                             <button
                                                 type="button"
-                                                onClick={() => setBusquedaMenu('')}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:bg-stone-800 hover:text-stone-700 dark:text-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                                                aria-label="Limpiar búsqueda"
+                                                onClick={() => setMesaTab('menu')}
+                                                className="w-full rounded-xl bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold py-3.5 text-sm focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
                                             >
-                                                Limpiar
+                                                Agregar platos al pedido
                                             </button>
                                         ) : null}
-                                    </div>
-                                    <p className="text-xs text-stone-600 dark:text-stone-500 mb-3">
-                                        {busquedaMenu.trim()
-                                            ? `${totalFiltrado} resultado${totalFiltrado !== 1 ? 's' : ''} de ${totalCatalogo} productos`
-                                            : `${totalCatalogo} productos en el menú`}
-                                    </p>
 
-                                    <div className="space-y-6 max-h-[min(65vh,520px)] overflow-y-auto pr-1 -mr-1">
-                                        {totalFiltrado === 0 ? (
-                                            <p className="text-sm text-stone-600 dark:text-stone-500 py-6 text-center rounded-lg border border-dashed border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-950/50 px-4">
-                                                No hay productos que coincidan con «{busquedaMenu.trim()}». Prueba otra palabra o
-                                                limpia el filtro.
+                                        {pedido.estado === 'LISTO' ? (
+                                            <button
+                                                type="button"
+                                                disabled={cerrando}
+                                                onClick={cerrarCuenta}
+                                                className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold py-3 text-sm disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                            >
+                                                {cerrando ? 'Cerrando…' : 'Cerrar cuenta y liberar mesa'}
+                                            </button>
+                                        ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
+                                            <p className="text-xs text-center text-stone-600 dark:text-stone-500">
+                                                Pedido finalizado.
                                             </p>
-                                        ) : (
-                                            catalogoPorCat.map(([cat, items]) => (
-                                                <div key={cat}>
-                                                    <div className="text-xs uppercase tracking-wide text-stone-600 dark:text-stone-500 mb-2">{cat}</div>
-                                                    <ul className="space-y-2">
-                                                        {items.map((p) => (
-                                                            <li
-                                                                key={p.idProducto}
-                                                                className="flex flex-col gap-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 p-3"
-                                                            >
-                                                                <div className="min-w-0">
-                                                                    <div className="font-medium text-stone-900 dark:text-stone-50">{p.nombreProducto}</div>
-                                                                    <div className="text-sm text-amber-500/90 tabular-nums mt-0.5">
-                                                                        {formatMoney(p.precio)}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-end">
-                                                                    <label className="sr-only" htmlFor={`q-${p.idProducto}`}>
-                                                                        Cantidad
-                                                                    </label>
-                                                                    <input
-                                                                        id={`q-${p.idProducto}`}
-                                                                        type="number"
-                                                                        min={1}
-                                                                        max={99}
-                                                                        className={classNames(inputClass, 'w-full sm:w-16')}
-                                                                        value={qtyByProduct[p.idProducto] ?? 1}
-                                                                        onChange={(e) =>
-                                                                            setQtyByProduct((prev) => ({
-                                                                                ...prev,
-                                                                                [p.idProducto]: e.target.value,
-                                                                            }))
-                                                                        }
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        className={classNames(inputClass, 'flex-1 min-w-0 w-full sm:w-40')}
-                                                                        placeholder="Nota (opc.)"
-                                                                        value={notaByProduct[p.idProducto] ?? ''}
-                                                                        onChange={(e) =>
-                                                                            setNotaByProduct((prev) => ({
-                                                                                ...prev,
-                                                                                [p.idProducto]: e.target.value,
-                                                                            }))
-                                                                        }
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={addingId === p.idProducto}
-                                                                        onClick={() => agregarProducto(p.idProducto)}
-                                                                        className="rounded-lg bg-orange-700 hover:bg-orange-600 px-4 py-2.5 text-sm font-semibold text-stone-50 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500 w-full sm:w-auto touch-manipulation"
-                                                                    >
-                                                                        {addingId === p.idProducto ? '…' : 'Añadir'}
-                                                                    </button>
-                                                                </div>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            ))
-                                        )}
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 text-center space-y-4">
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">
+                                            No hay pedido abierto en esta mesa.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={abrirCuenta}
+                                            className="w-full max-w-xs mx-auto rounded-xl bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold py-3.5 text-sm focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
+                                        >
+                                            Abrir cuenta
+                                        </button>
                                     </div>
-                                </div>
-                            ) : null}
-                        </>
-                    )}
-                </section>
-            </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {!puedeAgregar ? (
+                                    <p className="text-sm text-stone-600 dark:text-stone-400 text-center py-8">
+                                        {bloqueado
+                                            ? 'No puedes tomar pedidos en esta mesa.'
+                                            : 'Abre la cuenta primero en la pestaña Cuenta.'}
+                                    </p>
+                                ) : (
+                                    <>
+                                        <form onSubmit={ejecutarBusqueda} className="flex gap-2">
+                                            <div className="relative flex-1 min-w-0">
+                                                <span
+                                                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-500"
+                                                    aria-hidden
+                                                >
+                                                    <svg
+                                                        className="h-4 w-4"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                    >
+                                                        <circle cx="11" cy="11" r="7" />
+                                                        <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                                                    </svg>
+                                                </span>
+                                                <input
+                                                    type="search"
+                                                    enterKeyHint="search"
+                                                    autoComplete="off"
+                                                    value={busquedaMenu}
+                                                    onChange={(e) => setBusquedaMenu(e.target.value)}
+                                                    placeholder="Buscar por nombre…"
+                                                    className="w-full rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 py-3 pl-10 pr-3 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                    aria-label="Buscar en el menú"
+                                                />
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                className="shrink-0 rounded-xl bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold px-4 py-3 text-sm focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
+                                            >
+                                                Buscar
+                                            </button>
+                                        </form>
+
+                                        <div>
+                                            <p className="text-xs font-medium text-stone-600 dark:text-stone-500 mb-2">
+                                                Categorías
+                                            </p>
+                                            {loadingCategorias ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {[1, 2, 3, 4].map((i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="h-10 w-24 rounded-xl bg-stone-200 dark:bg-stone-800 animate-pulse"
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {categorias.map((cat) => (
+                                                        <button
+                                                            key={cat.idCategoria}
+                                                            type="button"
+                                                            onClick={() => seleccionarCategoria(cat.idCategoria)}
+                                                            className={classNames(
+                                                                'rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-amber-500',
+                                                                categoriaActiva === cat.idCategoria
+                                                                    ? 'border-amber-500 bg-amber-500/15 text-amber-800 dark:text-amber-300'
+                                                                    : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:border-amber-500/40',
+                                                            )}
+                                                        >
+                                                            {cat.nombre}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {menuSinSeleccion && !loadingCatalogo ? (
+                                            <p className="text-sm text-center text-stone-600 dark:text-stone-500 py-10 rounded-xl border border-dashed border-stone-200 dark:border-stone-800">
+                                                Elige una categoría o busca un plato por nombre.
+                                            </p>
+                                        ) : null}
+
+                                        {loadingCatalogo ? (
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-pulse"
+                                                    >
+                                                        <div className="aspect-[4/3] bg-stone-200 dark:bg-stone-800" />
+                                                        <div className="h-20 bg-stone-100 dark:bg-stone-900" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+
+                                        {!loadingCatalogo && (categoriaActiva || busquedaAplicada) ? (
+                                            <>
+                                                <p className="text-xs text-stone-600 dark:text-stone-500">
+                                                    {busquedaAplicada
+                                                        ? `${catalogo.length} resultado${catalogo.length !== 1 ? 's' : ''} para «${busquedaAplicada}»`
+                                                        : nombreCategoriaActiva
+                                                          ? `${catalogo.length} en ${nombreCategoriaActiva}`
+                                                          : null}
+                                                </p>
+                                                {catalogo.length === 0 ? (
+                                                    <p className="text-sm text-center text-stone-600 dark:text-stone-500 py-8">
+                                                        No hay productos en esta selección.
+                                                    </p>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                        {catalogo.map((p) => (
+                                                            <ProductMenuCard
+                                                                key={p.idProducto}
+                                                                producto={p}
+                                                                qty={qtyByProduct[p.idProducto] ?? 1}
+                                                                nota={notaByProduct[p.idProducto] ?? ''}
+                                                                adding={addingId === p.idProducto}
+                                                                onQty={(v) =>
+                                                                    setQtyByProduct((prev) => ({
+                                                                        ...prev,
+                                                                        [p.idProducto]: v,
+                                                                    }))
+                                                                }
+                                                                onNota={(v) =>
+                                                                    setNotaByProduct((prev) => ({
+                                                                        ...prev,
+                                                                        [p.idProducto]: v,
+                                                                    }))
+                                                                }
+                                                                onAdd={() => agregarProducto(p.idProducto)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : null}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
