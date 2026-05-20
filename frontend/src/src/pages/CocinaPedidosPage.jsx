@@ -196,8 +196,8 @@ export function CocinaPedidosPage() {
                 </div>
 
                 <p className="mt-10 text-center text-sm text-stone-600">
-                    <Link to="/login" className="text-stone-600 dark:text-stone-500 hover:text-stone-600 dark:text-stone-400">
-                        Ir al login de clientes
+                    <Link to="/cliente" className="text-stone-600 dark:text-stone-500 hover:text-stone-600 dark:text-stone-400">
+                        Sitio para clientes
                     </Link>
                 </p>
             </div>

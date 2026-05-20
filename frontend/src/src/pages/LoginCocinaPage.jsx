@@ -63,9 +63,12 @@ export function LoginCocinaPage() {
                             El mesero registra el pedido en salón y aparece aquí. Cocina avanza el estado hasta{' '}
                             <span className="text-stone-700 dark:text-stone-200 font-medium">listo para servir</span>.
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-stone-600 dark:text-stone-500">
-                            <Link className="text-amber-400/90 hover:text-amber-300" to="/login">
-                                Acceso clientes
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                            <Link className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200" to="/staff">
+                                Portal del personal
+                            </Link>
+                            <Link className="text-amber-400/90 hover:text-amber-300" to="/cliente">
+                                Sitio para clientes
                             </Link>
                             <Link className="text-emerald-400/90 hover:text-emerald-300" to="/login-mesero">
                                 Acceso meseros
