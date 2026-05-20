@@ -17,6 +17,12 @@ const TABS = [
   { id: "alertas", label: "Alertas" },
 ];
 
+const fieldClass =
+  "rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500";
+
+const panelClass =
+  "bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl";
+
 // ── componentes base ────────────────────────────────────
 
 function TabButton({ active, onClick, children, badge }) {
@@ -28,7 +34,7 @@ function TabButton({ active, onClick, children, badge }) {
         "px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 flex items-center gap-2",
         active
           ? "bg-orange-700 text-stone-50"
-          : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-50",
+          : "text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-50",
       )}
     >
       {children}
@@ -54,9 +60,10 @@ function Btn({
   const variants = {
     primary: "bg-amber-600 hover:bg-amber-500 text-stone-950",
     secondary:
-      "bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700",
+      "bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-700",
     danger: "bg-red-700 hover:bg-red-600 text-stone-50",
-    ghost: "text-stone-400 hover:text-stone-50 hover:bg-stone-800/60",
+    ghost:
+      "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50 hover:bg-stone-200 dark:hover:bg-stone-800/60",
   };
   return (
     <button
@@ -72,7 +79,7 @@ function Btn({
 
 function Label({ children }) {
   return (
-    <label className="block text-xs font-medium text-stone-400 mb-1">
+    <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
       {children}
     </label>
   );
@@ -84,7 +91,7 @@ function Input({ label, ...props }) {
       {label && <Label>{label}</Label>}
       <input
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={classNames("w-full", fieldClass)}
       />
     </div>
   );
@@ -96,7 +103,7 @@ function Select({ label, children, ...props }) {
       {label && <Label>{label}</Label>}
       <select
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={classNames("w-full", fieldClass)}
       >
         {children}
       </select>
@@ -107,14 +114,14 @@ function Select({ label, children, ...props }) {
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 dark:border-stone-700 border-t-amber-500" />
     </div>
   );
 }
 
 function Th({ children }) {
   return (
-    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
       {children}
     </th>
   );
@@ -137,7 +144,7 @@ function StockBar({ stock, stockMinimo }) {
         ? "bg-amber-500"
         : "bg-emerald-500";
   return (
-    <div className="h-1.5 w-full rounded-full bg-stone-800 overflow-hidden mt-1">
+    <div className="h-1.5 w-full rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mt-1">
       <div
         className={classNames(
           "h-full rounded-full transition-all duration-500",
@@ -181,8 +188,8 @@ function ModalIngrediente({ draft, setDraft, saving, onSave, onClose }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-stone-50 mb-5">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 mb-5">
           {esNuevo ? "Registrar ingrediente" : "Editar ingrediente"}
         </h2>
 
@@ -285,13 +292,13 @@ function ModalMovimiento({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-stone-50 mb-1">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 mb-1">
           Registrar movimiento
         </h2>
-        <p className="text-sm text-stone-400 mb-5">
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-5">
           {ingrediente.nombreIngrediente} —{" "}
-          <span className="text-stone-300 font-medium">
+          <span className="text-stone-700 dark:text-stone-300 font-medium">
             Stock actual: {ingrediente.stock} {ingrediente.unidad}
           </span>
         </p>
@@ -309,8 +316,8 @@ function ModalMovimiento({
                   className={classNames(
                     "rounded-lg border p-2.5 text-center text-xs font-semibold transition-colors",
                     mov.tipo === tipo
-                      ? "border-amber-500 bg-amber-500/10 text-amber-300"
-                      : "border-stone-700 bg-stone-800 text-stone-400 hover:border-stone-600",
+                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      : "border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-600",
                   )}
                 >
                   {info.label}
@@ -398,13 +405,13 @@ function ModalHistorial({ ingrediente, onClose }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl max-h-[80vh] flex flex-col">
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-2xl max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-semibold text-stone-50">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50">
               Historial de movimientos
             </h2>
-            <p className="text-sm text-stone-400">
+            <p className="text-sm text-stone-600 dark:text-stone-400">
               {ingrediente.nombreIngrediente}
             </p>
           </div>
@@ -418,7 +425,7 @@ function ModalHistorial({ ingrediente, onClose }) {
         {data && (
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
             {data.data.length === 0 ? (
-              <p className="text-sm text-stone-500 py-8 text-center">
+              <p className="text-sm text-stone-600 dark:text-stone-500 py-8 text-center">
                 Sin movimientos registrados.
               </p>
             ) : (
@@ -436,9 +443,9 @@ function ModalHistorial({ ingrediente, onClose }) {
                   {data.data.map((m) => (
                     <tr
                       key={m.idMovimiento}
-                      className="border-t border-stone-800 hover:bg-stone-800/30"
+                      className="border-t border-stone-200 dark:border-stone-800 hover:bg-stone-100/80 dark:hover:bg-stone-800/30"
                     >
-                      <Td className="text-stone-500 whitespace-nowrap">
+                      <Td className="text-stone-600 dark:text-stone-500 whitespace-nowrap">
                         {m.fecha?.slice(0, 16).replace("T", " ")}
                       </Td>
                       <Td>
@@ -451,12 +458,16 @@ function ModalHistorial({ ingrediente, onClose }) {
                           {m.tipo}
                         </span>
                       </Td>
-                      <Td className="text-stone-50 font-medium tabular-nums">
+                      <Td className="text-stone-900 dark:text-stone-50 font-medium tabular-nums">
                         {m.tipo === "SALIDA" ? "-" : "+"}
                         {m.cantidad} {ingrediente.unidad}
                       </Td>
-                      <Td className="text-stone-300">{m.motivo}</Td>
-                      <Td className="text-stone-500">{m.usuario}</Td>
+                      <Td className="text-stone-700 dark:text-stone-300">
+                        {m.motivo}
+                      </Td>
+                      <Td className="text-stone-600 dark:text-stone-500">
+                        {m.usuario}
+                      </Td>
                     </tr>
                   ))}
                 </tbody>
@@ -581,19 +592,19 @@ function StockGeneral({ data, onRecargar }) {
     <>
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+        <div className={classNames(panelClass, "p-5")}>
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
             Total ingredientes
           </p>
-          <p className="text-2xl font-semibold text-stone-50 mt-2">
+          <p className="text-2xl font-semibold text-stone-900 dark:text-stone-50 mt-2">
             {data?.total ?? "—"}
           </p>
         </div>
-        <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+        <div className={classNames(panelClass, "p-5")}>
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
             Con stock normal
           </p>
-          <p className="text-2xl font-semibold text-emerald-400 mt-2">
+          <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400 mt-2">
             {(data?.total ?? 0) - (data?.total_bajo_stock ?? 0)}
           </p>
         </div>
@@ -601,19 +612,19 @@ function StockGeneral({ data, onRecargar }) {
           className={classNames(
             "border rounded-xl p-5",
             (data?.total_bajo_stock ?? 0) > 0
-              ? "bg-red-900/20 border-red-800/60"
-              : "bg-stone-900 border-stone-800",
+              ? "bg-red-100 border-red-300 dark:bg-red-900/20 dark:border-red-800/60"
+              : panelClass,
           )}
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
             Alertas de stock
           </p>
           <p
             className={classNames(
               "text-2xl font-semibold mt-2",
               (data?.total_bajo_stock ?? 0) > 0
-                ? "text-red-400"
-                : "text-stone-50",
+                ? "text-red-600 dark:text-red-400"
+                : "text-stone-900 dark:text-stone-50",
             )}
           >
             {data?.total_bajo_stock ?? "—"}
@@ -628,15 +639,15 @@ function StockGeneral({ data, onRecargar }) {
           placeholder="Buscar ingrediente…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 w-64"
+          className={classNames(fieldClass, "w-64")}
         />
         <Btn onClick={abrirCrear}>+ Registrar ingrediente</Btn>
       </div>
 
       {/* Tabla */}
-      <div className="rounded-xl border border-stone-800 overflow-hidden">
+      <div className="rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-900">
         <table className="w-full">
-          <thead className="bg-stone-900">
+          <thead className="bg-stone-100 dark:bg-stone-950/50">
             <tr>
               {[
                 "Ingrediente",
@@ -650,12 +661,12 @@ function StockGeneral({ data, onRecargar }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
             {filtrados.length === 0 && (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-10 text-center text-sm text-stone-500"
+                  className="px-4 py-10 text-center text-sm text-stone-600 dark:text-stone-500"
                 >
                   {search
                     ? "Sin coincidencias."
@@ -666,33 +677,37 @@ function StockGeneral({ data, onRecargar }) {
             {filtrados.map((ing) => (
               <tr
                 key={ing.idIngrediente}
-                className="border-t border-stone-800 hover:bg-stone-800/30 transition-colors"
+                className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30 transition-colors"
               >
                 <Td>
-                  <span className="font-medium text-stone-50">
+                  <span className="font-medium text-stone-900 dark:text-stone-50">
                     {ing.nombreIngrediente}
                   </span>
                 </Td>
-                <Td className="text-stone-400">{ing.unidad}</Td>
+                <Td className="text-stone-600 dark:text-stone-400">
+                  {ing.unidad}
+                </Td>
                 <Td>
                   <span
                     className={classNames(
                       "font-semibold tabular-nums",
-                      ing.alerta_stock ? "text-red-400" : "text-stone-50",
+                      ing.alerta_stock
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-stone-900 dark:text-stone-50",
                     )}
                   >
                     {ing.stock}
                   </span>
                   <StockBar stock={ing.stock} stockMinimo={ing.stock_minimo} />
                 </Td>
-                <Td className="text-stone-400 tabular-nums">
+                <Td className="text-stone-600 dark:text-stone-400 tabular-nums">
                   {ing.stock_minimo}
                 </Td>
                 <Td>
                   {ing.alerta_stock ? (
                     <AlertaBadge />
                   ) : (
-                    <span className="text-xs font-semibold text-emerald-400">
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       OK
                     </span>
                   )}
@@ -766,20 +781,20 @@ function PanelAlertas({ alertas }) {
   return (
     <div className="space-y-4">
       {alertas.total_alertas === 0 ? (
-        <div className="rounded-xl border border-emerald-800/50 bg-emerald-900/20 px-6 py-10 text-center">
+        <div className="rounded-xl border border-emerald-300 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-6 py-10 text-center">
           <p className="text-2xl mb-2">✅</p>
-          <p className="text-sm font-semibold text-emerald-300">
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
             Todo el inventario está en niveles normales
           </p>
-          <p className="text-xs text-stone-500 mt-1">
+          <p className="text-xs text-stone-600 dark:text-stone-500 mt-1">
             Ningún ingrediente está por debajo de su stock mínimo.
           </p>
         </div>
       ) : (
         <>
-          <div className="rounded-xl border border-red-800/60 bg-red-900/20 px-4 py-3 flex items-center gap-3">
-            <span className="text-red-400 text-lg">⚠️</span>
-            <p className="text-sm text-red-300 font-semibold">
+          <div className="rounded-xl border border-red-300 dark:border-red-800/60 bg-red-50 dark:bg-red-900/20 px-4 py-3 flex items-center gap-3">
+            <span className="text-red-600 dark:text-red-400 text-lg">⚠️</span>
+            <p className="text-sm text-red-700 dark:text-red-300 font-semibold">
               {alertas.total_alertas} ingrediente
               {alertas.total_alertas !== 1 ? "s" : ""} con stock bajo o agotado
             </p>
@@ -789,33 +804,41 @@ function PanelAlertas({ alertas }) {
             {alertas.data.map((ing) => (
               <div
                 key={ing.idIngrediente}
-                className="rounded-xl border border-red-800/50 bg-stone-900 p-4"
+                className="rounded-xl border border-red-300 dark:border-red-800/50 bg-white dark:bg-stone-900 p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="text-sm font-semibold text-stone-50">
+                    <p className="text-sm font-semibold text-stone-900 dark:text-stone-50">
                       {ing.nombreIngrediente}
                     </p>
-                    <p className="text-xs text-stone-500">{ing.unidad}</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-500">
+                      {ing.unidad}
+                    </p>
                   </div>
                   <AlertaBadge />
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-stone-500">Stock actual</span>
-                    <span className="font-semibold text-red-400">
+                    <span className="text-stone-600 dark:text-stone-500">
+                      Stock actual
+                    </span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">
                       {ing.stock} {ing.unidad}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-stone-500">Mínimo</span>
-                    <span className="text-stone-400">
+                    <span className="text-stone-600 dark:text-stone-500">
+                      Mínimo
+                    </span>
+                    <span className="text-stone-600 dark:text-stone-400">
                       {ing.stock_minimo} {ing.unidad}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-stone-500">Faltan</span>
-                    <span className="font-semibold text-amber-400">
+                    <span className="text-stone-600 dark:text-stone-500">
+                      Faltan
+                    </span>
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
                       {Math.max(0, ing.stock_minimo - ing.stock).toFixed(2)}{" "}
                       {ing.unidad}
                     </span>
@@ -863,17 +886,17 @@ export function AdminInventarioPage() {
     <AdminLayout title="Inventario">
       <div className="space-y-6 max-w-6xl">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">
+          <h1 className="text-xl font-semibold text-stone-900 dark:text-stone-50">
             Inventario de ingredientes
           </h1>
-          <p className="text-sm text-stone-400 mt-1">
+          <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
             Gestiona el stock de ingredientes, registra movimientos y revisa
             alertas.
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
+        <div className="flex gap-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-1 w-fit">
           {TABS.map((t) => (
             <TabButton
               key={t.id}

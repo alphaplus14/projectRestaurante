@@ -32,21 +32,31 @@ const CATEGORIAS = ["arriendo", "servicios", "insumos", "otros"];
 const CATEGORIA_LABELS = {
   arriendo: {
     label: "Arriendo",
-    color: "bg-violet-900/60 text-violet-300 border-violet-700/50",
+    color:
+      "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/60 dark:text-violet-300 dark:border-violet-700/50",
   },
   servicios: {
     label: "Servicios",
-    color: "bg-blue-900/60 text-blue-300 border-blue-700/50",
+    color:
+      "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/60 dark:text-blue-300 dark:border-blue-700/50",
   },
   insumos: {
     label: "Insumos",
-    color: "bg-amber-900/60 text-amber-300 border-amber-700/50",
+    color:
+      "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-700/50",
   },
   otros: {
     label: "Otros",
-    color: "bg-stone-800 text-stone-400 border-stone-700",
+    color:
+      "bg-stone-200 text-stone-700 border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700",
   },
 };
+
+const fieldClass =
+  "rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500";
+
+const panelClass =
+  "bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl";
 
 const METODOS = ["EFECTIVO", "TARJETA", "NEQUI", "DAVIPLATA", "OTRO"];
 
@@ -66,7 +76,7 @@ function TabButton({ active, onClick, children }) {
         "px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
         active
           ? "bg-orange-700 text-stone-50"
-          : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-50",
+          : "text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-50",
       )}
     >
       {children}
@@ -87,9 +97,10 @@ function Btn({
   const variants = {
     primary: "bg-amber-600 hover:bg-amber-500 text-stone-950",
     secondary:
-      "bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700",
+      "bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-700",
     danger: "bg-red-700 hover:bg-red-600 text-stone-50",
-    ghost: "text-stone-400 hover:text-stone-50 hover:bg-stone-800/60",
+    ghost:
+      "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-50 hover:bg-stone-200 dark:hover:bg-stone-800/60",
   };
   return (
     <button
@@ -105,7 +116,7 @@ function Btn({
 
 function Label({ children }) {
   return (
-    <label className="block text-xs font-medium text-stone-400 mb-1">
+    <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
       {children}
     </label>
   );
@@ -117,7 +128,7 @@ function Input({ label, ...props }) {
       {label && <Label>{label}</Label>}
       <input
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={classNames("w-full", fieldClass)}
       />
     </div>
   );
@@ -129,7 +140,7 @@ function Select({ label, children, ...props }) {
       {label && <Label>{label}</Label>}
       <select
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={classNames("w-full", fieldClass)}
       >
         {children}
       </select>
@@ -144,7 +155,7 @@ function Textarea({ label, ...props }) {
       <textarea
         {...props}
         rows={3}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+        className={classNames("w-full resize-none", fieldClass)}
       />
     </div>
   );
@@ -153,14 +164,14 @@ function Textarea({ label, ...props }) {
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 dark:border-stone-700 border-t-amber-500" />
     </div>
   );
 }
 
 function Th({ children }) {
   return (
-    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
       {children}
     </th>
   );
@@ -175,7 +186,8 @@ function Td({ children, className }) {
 function CategoriaBadge({ categoria }) {
   const info = CATEGORIA_LABELS[categoria] ?? {
     label: categoria,
-    color: "bg-stone-800 text-stone-400 border-stone-700",
+    color:
+      "bg-stone-200 text-stone-700 border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700",
   };
   return (
     <span
@@ -191,9 +203,14 @@ function CategoriaBadge({ categoria }) {
 
 function KpiCard({ label, value, valueColor, hint, icon }) {
   return (
-    <div className="bg-stone-900 border border-stone-800 rounded-xl p-5 flex flex-col justify-between min-h-[110px]">
+    <div
+      className={classNames(
+        panelClass,
+        "p-5 flex flex-col justify-between min-h-[110px]",
+      )}
+    >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+        <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
           {label}
         </p>
         {icon && <span className="text-lg">{icon}</span>}
@@ -201,12 +218,14 @@ function KpiCard({ label, value, valueColor, hint, icon }) {
       <p
         className={classNames(
           "text-2xl font-semibold tabular-nums mt-2",
-          valueColor ?? "text-stone-50",
+          valueColor ?? "text-stone-900 dark:text-stone-50",
         )}
       >
         {value}
       </p>
-      {hint && <p className="text-xs text-stone-500 mt-1">{hint}</p>}
+      {hint && (
+        <p className="text-xs text-stone-600 dark:text-stone-500 mt-1">{hint}</p>
+      )}
     </div>
   );
 }
@@ -214,7 +233,7 @@ function KpiCard({ label, value, valueColor, hint, icon }) {
 function MiniBar({ value, max, color = "bg-amber-500" }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden mt-2">
+    <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mt-2">
       <div
         className={classNames(
           "h-full rounded-full transition-all duration-500",
@@ -247,8 +266,8 @@ function ModalGasto({ draft, setDraft, saving, onSave, onClose }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-stone-50 mb-5">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 mb-5">
           {esNuevo ? "Registrar gasto" : "Editar gasto"}
         </h2>
 
@@ -331,16 +350,16 @@ function ModalConfirmar({ gasto, saving, onConfirm, onClose }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-stone-700 bg-stone-900 p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-stone-50 mb-2">
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-2xl">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 mb-2">
           ¿Eliminar gasto?
         </h2>
-        <p className="text-sm text-stone-400 mb-1">
-          <span className="text-stone-200 font-medium">
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
+          <span className="text-stone-900 dark:text-stone-200 font-medium">
             {gasto.descripcion || "Sin descripción"}
           </span>
         </p>
-        <p className="text-sm text-stone-400 mb-6">
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">
           Valor:{" "}
           <span className="text-red-400 font-semibold">
             {formatCOP(gasto.valor)}
@@ -480,7 +499,7 @@ function TabGastos() {
               onChange={(e) =>
                 setFiltros((f) => ({ ...f, fecha_desde: e.target.value }))
               }
-              className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={fieldClass}
             />
           </div>
           <div>
@@ -491,7 +510,7 @@ function TabGastos() {
               onChange={(e) =>
                 setFiltros((f) => ({ ...f, fecha_hasta: e.target.value }))
               }
-              className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={fieldClass}
             />
           </div>
           <div>
@@ -501,7 +520,7 @@ function TabGastos() {
               onChange={(e) =>
                 setFiltros((f) => ({ ...f, categoria: e.target.value }))
               }
-              className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={fieldClass}
             >
               <option value="">Todas</option>
               {CATEGORIAS.map((c) => (
@@ -539,9 +558,9 @@ function TabGastos() {
       {loading ? (
         <Spinner />
       ) : (
-        <div className="rounded-xl border border-stone-800 overflow-hidden">
+        <div className="rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-900">
           <table className="w-full">
-            <thead className="bg-stone-900">
+            <thead className="bg-stone-100 dark:bg-stone-950/50">
               <tr>
                 {[
                   "Fecha",
@@ -556,12 +575,12 @@ function TabGastos() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
               {(!data || data.data.length === 0) && (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-4 py-10 text-center text-sm text-stone-500"
+                    className="px-4 py-10 text-center text-sm text-stone-600 dark:text-stone-500"
                   >
                     Sin gastos para el filtro seleccionado.
                   </td>
@@ -570,26 +589,26 @@ function TabGastos() {
               {data?.data.map((g) => (
                 <tr
                   key={g.idGasto}
-                  className="border-t border-stone-800 hover:bg-stone-800/30 transition-colors"
+                  className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30 transition-colors"
                 >
-                  <Td className="text-stone-400 whitespace-nowrap">
+                  <Td className="text-stone-600 dark:text-stone-400 whitespace-nowrap">
                     {g.fecha?.slice(0, 10)}
                   </Td>
                   <Td>
                     <CategoriaBadge categoria={g.categoria} />
                   </Td>
-                  <Td className="text-stone-300 max-w-[200px] truncate">
+                  <Td className="text-stone-700 dark:text-stone-300 max-w-[200px] truncate">
                     {g.descripcion || (
-                      <span className="text-stone-600 italic">
+                      <span className="text-stone-500 dark:text-stone-600 italic">
                         Sin descripción
                       </span>
                     )}
                   </Td>
-                  <Td className="text-red-400 font-semibold tabular-nums">
+                  <Td className="text-red-600 dark:text-red-400 font-semibold tabular-nums">
                     {formatCOP(g.valor)}
                   </Td>
-                  <Td className="text-stone-400">{g.metodo ?? "—"}</Td>
-                  <Td className="text-stone-500">{g.registrado_por}</Td>
+                  <Td className="text-stone-600 dark:text-stone-400">{g.metodo ?? "—"}</Td>
+                  <Td className="text-stone-500 dark:text-stone-500">{g.registrado_por}</Td>
                   <Td>
                     <div className="flex items-center gap-2">
                       <Btn
@@ -714,7 +733,7 @@ function TabPyG() {
             onChange={(e) =>
               setFechas((f) => ({ ...f, desde: e.target.value }))
             }
-            className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className={fieldClass}
           />
         </div>
         <div>
@@ -725,7 +744,7 @@ function TabPyG() {
             onChange={(e) =>
               setFechas((f) => ({ ...f, hasta: e.target.value }))
             }
-            className="rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className={fieldClass}
           />
         </div>
         <Btn onClick={cargar} disabled={loading}>
@@ -761,7 +780,7 @@ function TabPyG() {
               )}
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
                   Utilidad neta
                 </p>
                 <span className="text-lg">
@@ -776,7 +795,7 @@ function TabPyG() {
               >
                 {formatCOP(data.utilidad_neta)}
               </p>
-              <p className="text-xs text-stone-500 mt-1">
+              <p className="text-xs text-stone-600 dark:text-stone-500 mt-1">
                 {utilidadPositiva ? "Ganancia" : "Pérdida"}
               </p>
             </div>
@@ -784,18 +803,18 @@ function TabPyG() {
               className={classNames(
                 "border rounded-xl p-5 flex flex-col justify-between min-h-[110px]",
                 data.margen_pct != null && data.margen_pct >= 0
-                  ? "bg-stone-900 border-stone-800"
+                  ? "bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800"
                   : "bg-red-900/20 border-red-800/60",
               )}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
                 Margen neto
               </p>
               <p
                 className={classNames(
                   "text-2xl font-semibold tabular-nums mt-2",
                   data.margen_pct == null
-                    ? "text-stone-500"
+                    ? "text-stone-600 dark:text-stone-500"
                     : data.margen_pct >= 0
                       ? "text-emerald-400"
                       : "text-red-400",
@@ -803,30 +822,30 @@ function TabPyG() {
               >
                 {data.margen_pct != null ? `${data.margen_pct}%` : "—"}
               </p>
-              <p className="text-xs text-stone-500 mt-1">sobre ingresos</p>
+              <p className="text-xs text-stone-600 dark:text-stone-500 mt-1">sobre ingresos</p>
             </div>
           </div>
 
           {/* Gráfica combinada ingresos vs gastos por día */}
           {diasCombinados.length > 0 && (
-            <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-4">
+            <div className={classNames(panelClass, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-500 mb-4">
                 Ingresos vs Gastos por día
               </p>
               <div className="flex gap-4 mb-4 text-xs">
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />
-                  <span className="text-stone-400">Ingresos</span>
+                  <span className="text-stone-600 dark:text-stone-400">Ingresos</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />
-                  <span className="text-stone-400">Gastos</span>
+                  <span className="text-stone-600 dark:text-stone-400">Gastos</span>
                 </span>
               </div>
               <div className="space-y-4">
                 {diasCombinados.map((d) => (
                   <div key={d.fecha}>
-                    <div className="flex justify-between text-xs text-stone-500 mb-1">
+                    <div className="flex justify-between text-xs text-stone-600 dark:text-stone-500 mb-1">
                       <span>{d.fecha}</span>
                       <span
                         className={
@@ -877,8 +896,8 @@ function TabPyG() {
 
           {/* Gastos por categoría */}
           {data.gastos_por_categoria?.length > 0 && (
-            <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-4">
+            <div className={classNames(panelClass, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-500 mb-4">
                 Gastos por categoría
               </p>
               <div className="space-y-3">
@@ -909,8 +928,8 @@ function TabPyG() {
           {/* Sin datos */}
           {diasCombinados.length === 0 &&
             data.gastos_por_categoria?.length === 0 && (
-              <div className="rounded-xl border border-stone-800 bg-stone-900 px-6 py-10 text-center">
-                <p className="text-stone-500 text-sm">
+              <div className={classNames(panelClass, "px-6 py-10 text-center")}>
+                <p className="text-stone-600 dark:text-stone-500 text-sm">
                   Sin movimientos financieros en este período.
                 </p>
               </div>
@@ -930,13 +949,13 @@ export function AdminFinanzasPage() {
     <AdminLayout title="Finanzas">
       <div className="space-y-6 max-w-6xl">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">Finanzas</h1>
-          <p className="text-sm text-stone-400 mt-1">
+          <h1 className="text-xl font-semibold text-stone-900 dark:text-stone-50">Finanzas</h1>
+          <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
             Registra gastos operativos y consulta el P&amp;G del período.
           </p>
         </div>
 
-        <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
+        <div className="flex gap-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-1 w-fit">
           {TABS.map((t) => (
             <TabButton
               key={t.id}

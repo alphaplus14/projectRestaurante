@@ -105,7 +105,6 @@ export function AdminConfiguracionPage() {
             if (hasFile) {
                 const fd = new FormData();
                 fd.append('nombre_comercial', nombreTrim);
-                fd.append('nit_o_documento', nit.trim() || '');
                 fd.append('telefono', telefono.trim() || '');
                 fd.append('direccion', direccion.trim() || '');
                 if (nombreCambio) {
@@ -116,7 +115,6 @@ export function AdminConfiguracionPage() {
             } else {
                 const body = {
                     nombre_comercial: nombreTrim,
-                    nit_o_documento: nit.trim() || null,
                     telefono: telefono.trim() || null,
                     direccion: direccion.trim() || null,
                 };
@@ -261,7 +259,7 @@ export function AdminConfiguracionPage() {
                     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6 space-y-5">
                         <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50 border-b border-stone-200 dark:border-stone-800 pb-3">Datos del negocio</h2>
                         <p className="text-xs text-stone-600 dark:text-stone-500 -mt-2">
-                            NIT, teléfono y dirección se usan en cuentas e impresiones según lo definido en el proyecto.
+                            Teléfono y dirección puedes actualizarlos aquí. El NIT identifica tu licencia y no se puede cambiar desde el panel.
                         </p>
 
                         <div>
@@ -271,12 +269,15 @@ export function AdminConfiguracionPage() {
                             <input
                                 id="cfg-nit"
                                 type="text"
-                                maxLength={40}
+                                readOnly
+                                disabled
                                 value={nit}
-                                onChange={(e) => setNit(e.target.value)}
-                                className="w-full bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-50 rounded-lg px-4 py-2.5 text-sm placeholder:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                                placeholder="Opcional"
+                                className="w-full cursor-not-allowed rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-200/60 dark:bg-stone-900/80 text-stone-600 dark:text-stone-400 px-4 py-2.5 text-sm opacity-90"
+                                aria-describedby="cfg-nit-hint"
                             />
+                            <p id="cfg-nit-hint" className="mt-1.5 text-xs text-stone-600 dark:text-stone-500">
+                                Dato fijo de tu instalación. Si necesitas corregirlo, contacta a soporte del proveedor del software.
+                            </p>
                         </div>
 
                         <div>
