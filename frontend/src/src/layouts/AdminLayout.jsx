@@ -195,7 +195,7 @@ export function AdminLayout({ title, children }) {
 
                 <main className="flex-1">
                     <div className="h-16 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between px-6 gap-4">
-                        <div className="text-lg font-semibold">{title}</div>
+                        <div className="text-lg font-semibold text-stone-900 dark:text-stone-50">{title}</div>
                         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <ThemeToggle />
                             <button

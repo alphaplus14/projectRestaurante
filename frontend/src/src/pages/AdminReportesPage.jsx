@@ -28,18 +28,33 @@ const TABS = [
   { id: "ranking", label: "Productos más vendidos" },
 ];
 
+const fieldClass =
+  "w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500";
+
+const panelClass =
+  "bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl";
+
 // ── componentes base ───────────────────────────────────
 
 function KpiCard({ label, value, hint }) {
   return (
-    <div className="bg-stone-900 border border-stone-800 rounded-xl p-5 flex flex-col justify-between min-h-[100px]">
-      <div className="text-xs font-medium uppercase tracking-wide text-stone-500">
+    <div
+      className={classNames(
+        panelClass,
+        "p-5 flex flex-col justify-between min-h-[100px]",
+      )}
+    >
+      <div className="text-xs font-medium uppercase tracking-wide text-stone-600 dark:text-stone-500">
         {label}
       </div>
-      <div className="text-2xl font-semibold text-stone-50 tabular-nums mt-2">
+      <div className="text-2xl font-semibold text-stone-900 dark:text-stone-50 tabular-nums mt-2">
         {value}
       </div>
-      {hint && <div className="text-xs text-stone-500 mt-1">{hint}</div>}
+      {hint && (
+        <div className="text-xs text-stone-600 dark:text-stone-500 mt-1">
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
@@ -47,7 +62,7 @@ function KpiCard({ label, value, hint }) {
 function MiniBar({ value, max }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden mt-2">
+    <div className="h-2 w-full rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mt-2">
       <div
         className="h-full rounded-full bg-amber-500 transition-all duration-500"
         style={{ width: `${pct}%` }}
@@ -65,7 +80,7 @@ function TabButton({ active, onClick, children }) {
         "px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
         active
           ? "bg-orange-700 text-stone-50"
-          : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-50",
+          : "text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-50",
       )}
     >
       {children}
@@ -89,7 +104,7 @@ function ActionButton({ onClick, disabled, children }) {
 // Label unificado con Inventario y Finanzas (text-xs, text-stone-400, sin uppercase)
 function Label({ children }) {
   return (
-    <label className="block text-xs font-medium text-stone-400 mb-1">
+    <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
       {children}
     </label>
   );
@@ -103,7 +118,7 @@ function InputField({ label, type, value, onChange }) {
         type={type}
         value={value}
         onChange={onChange}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={fieldClass}
       />
     </div>
   );
@@ -116,7 +131,7 @@ function SelectField({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={onChange}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className={fieldClass}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -131,14 +146,19 @@ function SelectField({ label, value, onChange, options }) {
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 dark:border-stone-700 border-t-amber-500" />
     </div>
   );
 }
 
 function TableWrapper({ children }) {
   return (
-    <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
+    <div
+      className={classNames(
+        panelClass,
+        "overflow-hidden",
+      )}
+    >
       <table className="w-full border-collapse">{children}</table>
     </div>
   );
@@ -147,7 +167,7 @@ function TableWrapper({ children }) {
 // Th sin bg diferenciado, alineado con Inventario y Finanzas
 function Th({ children }) {
   return (
-    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
       {children}
     </th>
   );
@@ -155,7 +175,12 @@ function Th({ children }) {
 
 function Td({ children, className }) {
   return (
-    <td className={classNames("px-4 py-3 text-sm text-stone-300", className)}>
+    <td
+      className={classNames(
+        "px-4 py-3 text-sm text-stone-700 dark:text-stone-300",
+        className,
+      )}
+    >
       {children}
     </td>
   );
@@ -246,18 +271,18 @@ function VentasHoy() {
 
           <TableWrapper>
             <thead>
-              <tr className="border-b border-stone-800">
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950/50">
                 {["# Venta", "Mesa", "Total", "Método(s)", "Hora"].map((h) => (
                   <Th key={h}>{h}</Th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
               {data.data.length === 0 && (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-8 text-center text-sm text-stone-500"
+                    className="px-4 py-8 text-center text-sm text-stone-600 dark:text-stone-500"
                   >
                     Sin ventas para este filtro
                   </td>
@@ -266,18 +291,20 @@ function VentasHoy() {
               {data.data.map((v) => (
                 <tr
                   key={v.idVenta}
-                  className="border-t border-stone-800 hover:bg-stone-800/30 transition-colors"
+                  className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30 transition-colors"
                 >
-                  <Td className="text-stone-400">#{v.idVenta}</Td>
+                  <Td className="text-stone-600 dark:text-stone-400">
+                    #{v.idVenta}
+                  </Td>
                   <Td>
                     Mesa {v.mesa_numero}
                     {v.mesa_nombre ? ` — ${v.mesa_nombre}` : ""}
                   </Td>
-                  <Td className="text-amber-400 font-semibold">
+                  <Td className="text-amber-700 dark:text-amber-400 font-semibold">
                     {formatCOP(v.total)}
                   </Td>
                   <Td>{v.metodos_pago ?? "—"}</Td>
-                  <Td className="text-stone-500">
+                  <Td className="text-stone-600 dark:text-stone-500">
                     {v.registrada_en?.slice(11, 16)}
                   </Td>
                 </tr>
@@ -356,16 +383,18 @@ function VentasPorRango() {
           </div>
 
           {data.por_dia?.length > 0 && (
-            <div className="bg-stone-900 border border-stone-800 rounded-xl p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-4">
+            <div className={classNames(panelClass, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-500 mb-4">
                 Ventas por día
               </p>
               <div className="space-y-3">
                 {data.por_dia.map((d) => (
                   <div key={d.fecha}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-stone-400">{d.fecha}</span>
-                      <span className="text-amber-400 font-semibold">
+                      <span className="text-stone-600 dark:text-stone-400">
+                        {d.fecha}
+                      </span>
+                      <span className="text-amber-700 dark:text-amber-400 font-semibold">
                         {formatCOP(d.total_dia)}
                       </span>
                     </div>
@@ -378,18 +407,18 @@ function VentasPorRango() {
 
           <TableWrapper>
             <thead>
-              <tr className="border-b border-stone-800">
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950/50">
                 {["# Venta", "Fecha", "Mesa", "Total", "Métodos"].map((h) => (
                   <Th key={h}>{h}</Th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
               {data.data.length === 0 && (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-8 text-center text-sm text-stone-500"
+                    className="px-4 py-8 text-center text-sm text-stone-600 dark:text-stone-500"
                   >
                     Sin ventas en este rango
                   </td>
@@ -398,14 +427,16 @@ function VentasPorRango() {
               {data.data.map((v) => (
                 <tr
                   key={v.idVenta}
-                  className="border-t border-stone-800 hover:bg-stone-800/30 transition-colors"
+                  className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30 transition-colors"
                 >
-                  <Td className="text-stone-400">#{v.idVenta}</Td>
-                  <Td className="text-stone-500">
+                  <Td className="text-stone-600 dark:text-stone-400">
+                    #{v.idVenta}
+                  </Td>
+                  <Td className="text-stone-600 dark:text-stone-500">
                     {v.registrada_en?.slice(0, 16).replace("T", " ")}
                   </Td>
                   <Td>Mesa {v.mesa_numero}</Td>
-                  <Td className="text-amber-400 font-semibold">
+                  <Td className="text-amber-700 dark:text-amber-400 font-semibold">
                     {formatCOP(v.total)}
                   </Td>
                   <Td>{v.metodos_pago ?? "—"}</Td>
@@ -455,7 +486,7 @@ function RankingProductos() {
     if (i === 0) return "bg-amber-500 text-stone-900";
     if (i === 1) return "bg-stone-400 text-stone-900";
     if (i === 2) return "bg-orange-700 text-stone-50";
-    return "bg-stone-800 text-stone-500";
+    return "bg-stone-200 text-stone-600 dark:bg-stone-800 dark:text-stone-500";
   };
 
   return (
@@ -483,7 +514,7 @@ function RankingProductos() {
       {data && (
         <div className="space-y-3">
           {data.data.length === 0 && (
-            <p className="text-sm text-stone-500">
+            <p className="text-sm text-stone-600 dark:text-stone-500">
               Sin datos para el período seleccionado.
             </p>
           )}
@@ -491,8 +522,11 @@ function RankingProductos() {
             <div
               key={p.idProducto}
               className={classNames(
-                "bg-stone-900 border rounded-xl p-4",
-                i === 0 ? "border-amber-500/50" : "border-stone-800",
+                panelClass,
+                "p-4",
+                i === 0
+                  ? "border-amber-400 dark:border-amber-500/50"
+                  : "",
               )}
             >
               <div className="flex items-center justify-between mb-2">
@@ -505,15 +539,15 @@ function RankingProductos() {
                   >
                     #{i + 1}
                   </span>
-                  <span className="text-sm font-semibold text-stone-50">
+                  <span className="text-sm font-semibold text-stone-900 dark:text-stone-50">
                     {p.nombreProducto}
                   </span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-amber-400">
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
                     {formatCOP(p.ingreso_total)}
                   </p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-stone-600 dark:text-stone-500">
                     {p.total_vendido} unidades
                   </p>
                 </div>
@@ -536,16 +570,16 @@ export function AdminReportesPage() {
     <AdminLayout title="Reportes">
       <div className="space-y-6 max-w-5xl">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">
+          <h1 className="text-xl font-semibold text-stone-900 dark:text-stone-50">
             Reportes de ventas
           </h1>
-          <p className="text-sm text-stone-400 mt-1">
+          <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
             Consulta las ventas del día, por rango de fechas o el ranking de
             productos.
           </p>
         </div>
 
-        <div className="flex gap-1 bg-stone-900 border border-stone-800 rounded-xl p-1 w-fit">
+        <div className="flex gap-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-1 w-fit">
           {TABS.map((t) => (
             <TabButton
               key={t.id}

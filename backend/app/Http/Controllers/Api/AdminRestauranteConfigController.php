@@ -42,7 +42,6 @@ class AdminRestauranteConfigController extends Controller
 
         $data = $request->validate([
             'nombre_comercial' => ['required', 'string', 'max:160'],
-            'nit_o_documento' => ['nullable', 'string', 'max:40'],
             'telefono' => ['nullable', 'string', 'max:40'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'password_actual' => [
@@ -72,12 +71,11 @@ class AdminRestauranteConfigController extends Controller
             }
         }
 
-        $nit = isset($data['nit_o_documento']) ? trim((string) $data['nit_o_documento']) : null;
         $tel = isset($data['telefono']) ? trim((string) $data['telefono']) : null;
         $dir = isset($data['direccion']) ? trim((string) $data['direccion']) : null;
 
         $config->nombre_comercial = $nombreNuevo;
-        $config->nit_o_documento = $nit !== '' ? $nit : null;
+        // NIT/documento: solo lectura vía panel; identifica la licencia del local.
         $config->telefono = $tel !== '' ? $tel : null;
         $config->direccion = $dir !== '' ? $dir : null;
 
@@ -123,6 +121,7 @@ class AdminRestauranteConfigController extends Controller
             'idConfig' => $c->idConfig,
             'nombre_comercial' => $c->nombre_comercial,
             'nit_o_documento' => $c->nit_o_documento,
+            'nit_editable' => false,
             'telefono' => $c->telefono,
             'direccion' => $c->direccion,
             'logo_url' => $c->logo_url,

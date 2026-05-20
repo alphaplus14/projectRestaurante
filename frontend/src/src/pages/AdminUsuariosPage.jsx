@@ -36,15 +36,14 @@ function emptyDraft() {
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-700 border-t-amber-500" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 dark:border-stone-700 border-t-amber-500" />
     </div>
   );
 }
 
-// Label e Input/Select unificados con Inventario y Finanzas
 function Label({ children }) {
   return (
-    <label className="block text-xs font-medium text-stone-400 mb-1">
+    <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">
       {children}
     </label>
   );
@@ -56,7 +55,7 @@ function FieldInput({ label, ...props }) {
       {label && <Label>{label}</Label>}
       <input
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
       />
     </div>
   );
@@ -68,7 +67,7 @@ function FieldSelect({ label, children, ...props }) {
       {label && <Label>{label}</Label>}
       <select
         {...props}
-        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
       >
         {children}
       </select>
@@ -207,10 +206,10 @@ export function AdminUsuariosPage() {
         {/* ── cabecera — alineada con el resto del admin ── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-stone-50">
+            <h1 className="text-xl font-semibold text-stone-900 dark:text-stone-50">
               Usuarios y roles
             </h1>
-            <p className="text-sm text-stone-400 mt-1">
+            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
               Crea, edita o deshabilita usuarios. Puedes cambiar su rol en
               cualquier momento.
             </p>
@@ -237,7 +236,7 @@ export function AdminUsuariosPage() {
                   "rounded-full px-4 py-1.5 text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
                   activo
                     ? "bg-amber-600 border-amber-500 text-stone-950"
-                    : "border-stone-700 text-stone-400 hover:border-stone-600 hover:text-stone-200",
+                    : "border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-600 hover:text-stone-900 dark:hover:text-stone-200",
                 )}
               >
                 {r === "TODOS"
@@ -246,7 +245,7 @@ export function AdminUsuariosPage() {
                 <span
                   className={classNames(
                     "ml-2 rounded-full px-1.5 py-0.5 text-xs",
-                    activo ? "bg-amber-700/50" : "bg-stone-800",
+                    activo ? "bg-amber-700/50" : "bg-stone-200 dark:bg-stone-800",
                   )}
                 >
                   {count}
@@ -260,11 +259,11 @@ export function AdminUsuariosPage() {
         {loading ? (
           <Spinner />
         ) : (
-          <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-stone-800">
+                <thead className="bg-stone-100 dark:bg-stone-950/50">
+                  <tr className="border-b border-stone-200 dark:border-stone-800">
                     {[
                       "Nombre",
                       "Correo",
@@ -276,7 +275,7 @@ export function AdminUsuariosPage() {
                       <th
                         key={h}
                         className={classNames(
-                          "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-stone-400",
+                          "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400",
                           h === "Acciones" ? "text-right" : "text-left",
                         )}
                       >
@@ -285,24 +284,24 @@ export function AdminUsuariosPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-800">
+                <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                   {usuarios.map((u) => (
                     <tr
                       key={u.idUsuario}
-                      className="hover:bg-stone-800/30 transition-colors"
+                      className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-stone-50">
+                        <div className="font-medium text-stone-900 dark:text-stone-50">
                           {u.nombre} {u.apellido}
                         </div>
-                        <div className="mt-0.5 text-stone-500 text-xs">
+                        <div className="mt-0.5 text-stone-500 dark:text-stone-500 text-xs">
                           Cédula: {u.cedula}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-stone-400">
+                      <td className="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
                         {u.correo}
                       </td>
-                      <td className="px-4 py-3 text-sm text-stone-400">
+                      <td className="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
                         {u.telefono}
                       </td>
                       <td className="px-4 py-3">
@@ -310,7 +309,7 @@ export function AdminUsuariosPage() {
                           className={classNames(
                             "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
                             ROL_BADGE[u.rol] ??
-                              "bg-stone-800 border-stone-700 text-stone-300",
+                              "bg-stone-200 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300",
                           )}
                         >
                           {u.rol
@@ -324,7 +323,7 @@ export function AdminUsuariosPage() {
                             Activo
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-xs text-stone-400">
+                          <span className="inline-flex items-center rounded-full border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 px-2 py-0.5 text-xs text-stone-600 dark:text-stone-400">
                             Inactivo
                           </span>
                         )}
@@ -333,7 +332,7 @@ export function AdminUsuariosPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => openEdit(u)}
-                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                           >
                             Editar
                           </button>
@@ -379,14 +378,14 @@ export function AdminUsuariosPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div className="relative z-10 w-full max-w-xl bg-stone-900 border border-stone-700 rounded-2xl p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-6 shadow-2xl">
             {/* cabecera modal */}
             <div className="flex items-start justify-between gap-6 mb-5">
               <div>
-                <h2 className="text-base font-semibold text-stone-50">
+                <h2 className="text-base font-semibold text-stone-900 dark:text-stone-50">
                   {draft.idUsuario ? "Editar usuario" : "Crear usuario"}
                 </h2>
-                <p className="mt-1 text-sm text-stone-400">
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                   {draft.idUsuario
                     ? "Deja la contraseña vacía para no cambiarla."
                     : "La contraseña es obligatoria al crear."}
@@ -395,7 +394,7 @@ export function AdminUsuariosPage() {
               <button
                 onClick={closeModal}
                 type="button"
-                className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 Cerrar
               </button>
@@ -510,7 +509,7 @@ export function AdminUsuariosPage() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-stone-800 hover:bg-stone-700 text-stone-50 border border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40"
                   disabled={saving}
                 >
                   Cancelar
