@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClienteReservaController;
 use App\Http\Controllers\Api\CocinaPedidoController;
 use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
@@ -30,6 +31,9 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(function () {
     Route::get('productos', [ProductoController::class, 'indexCliente']);
+    Route::get('mesas', [ClienteReservaController::class, 'mesas']);
+    Route::get('reservas', [ClienteReservaController::class, 'index']);
+    Route::post('reservas', [ClienteReservaController::class, 'store']);
 });
 
 Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(function () {
