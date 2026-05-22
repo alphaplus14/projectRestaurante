@@ -179,9 +179,9 @@ class MeseroController extends Controller
     {
         $this->authorizeMesero($request, $pedido);
 
-        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO', 'LISTO'], true)) {
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
             return response()->json([
-                'message' => 'No se pueden agregar ítems: el pedido está listo o cerrado.',
+                'message' => 'No se pueden agregar ítems: la cuenta ya está cerrada.',
             ], 422);
         }
 
@@ -211,7 +211,13 @@ class MeseroController extends Controller
             'creado_en' => now(),
         ]);
 
-        $pedido->touch();
+        // Nuevos ítems en una cuenta ya marcada lista → vuelven a cocina como pedido pendiente.
+        if ($pedido->estado === 'LISTO') {
+            $pedido->estado = 'PENDIENTE';
+            $pedido->save();
+        } else {
+            $pedido->touch();
+        }
 
         $detalle->load('producto:idProducto,nombreProducto,tipo');
 
@@ -249,15 +255,22 @@ class MeseroController extends Controller
             ], 422);
         }
 
-        if ($pedido->estado !== 'LISTO') {
-            return response()->json([
-                'message' => 'Solo puedes cerrar cuenta cuando cocina marque el pedido como listo.',
-            ], 422);
-        }
-
         if (! $pedido->detalles()->exists()) {
             return response()->json([
                 'message' => 'El pedido no tiene ítems.',
+            ], 422);
+        }
+
+        $pendientesCocina = $pedido->detalles()->where('estado_item', '!=', 'LISTO')->count();
+        if ($pendientesCocina > 0) {
+            return response()->json([
+                'message' => 'Aún hay platos en cocina. Espera a que estén listos o agrega solo cuando cocina termine.',
+            ], 422);
+        }
+
+        if ($pedido->estado !== 'LISTO') {
+            return response()->json([
+                'message' => 'Solo puedes cerrar cuenta cuando cocina marque el pedido como listo.',
             ], 422);
         }
 
