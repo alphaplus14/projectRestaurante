@@ -22,7 +22,7 @@ class CocinaPedidoController extends Controller
                 'mesa:idMesa,numero,nombre',
                 'mesero:idUsuario,nombre,apellido',
                 'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
-                    'producto:idProducto,nombreProducto,tipo',
+                    'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
                 ]),
             ])
             ->whereIn('estado', ['PENDIENTE', 'EN_PREPARACION', 'LISTO'])
@@ -83,7 +83,7 @@ class CocinaPedidoController extends Controller
             'mesa:idMesa,numero,nombre',
             'mesero:idUsuario,nombre,apellido',
             'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
-                'producto:idProducto,nombreProducto,tipo',
+                'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
             ]),
         ]);
 
@@ -121,6 +121,10 @@ class CocinaPedidoController extends Controller
                 'producto' => $d->producto ? [
                     'nombreProducto' => $d->producto->nombreProducto,
                     'tipo' => $d->producto->tipo,
+                    'descripcion' => $d->producto->descripcion,
+                    'imagenUrl' => $d->producto->imagen
+                        ? asset('storage/'.$d->producto->imagen)
+                        : null,
                 ] : null,
             ]),
         ];
