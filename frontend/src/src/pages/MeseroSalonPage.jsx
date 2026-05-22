@@ -49,6 +49,22 @@ const ESTADO_LABEL = {
     CANCELADO: 'Cancelado',
 };
 
+const ESTADO_ITEM_LABEL = {
+    PENDIENTE: 'En cocina',
+    EN_PREPARACION: 'Preparando',
+    LISTO: 'Listo',
+};
+
+function badgeItemEstado(estado) {
+    if (estado === 'LISTO') {
+        return 'bg-[#4d7c6f]/20 text-[#4d7c6f] border-[#4d7c6f]/30';
+    }
+    if (estado === 'EN_PREPARACION') {
+        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/50';
+    }
+    return 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/50';
+}
+
 function formatHora(iso) {
     if (!iso) return null;
     try {
@@ -452,7 +468,16 @@ export function MeseroSalonPage() {
         return pedido.detalles.reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
     }, [pedido]);
 
-    const puedeAgregar = pedido && !['LISTO', 'CERRADO', 'CANCELADO'].includes(pedido.estado);
+    const puedeAgregar = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
+    const hayItemsPendientesCocina = useMemo(
+        () => (pedido?.detalles ?? []).some((l) => l.estado_item && l.estado_item !== 'LISTO'),
+        [pedido],
+    );
+    const puedeCerrarCuenta =
+        pedido &&
+        pedido.estado === 'LISTO' &&
+        (pedido.detalles?.length ?? 0) > 0 &&
+        !hayItemsPendientesCocina;
     const menuSinSeleccion = !categoriaActiva && !busquedaAplicada && !loadingCatalogo;
     const bloqueado = selectedMesa?.pedido_activo?.bloqueado;
 
@@ -632,6 +657,12 @@ export function MeseroSalonPage() {
                                                     Nota: {pedido.notas}
                                                 </p>
                                             ) : null}
+                                            {pedido.estado === 'LISTO' && puedeAgregar ? (
+                                                <p className="mt-3 text-xs text-stone-600 dark:text-stone-400">
+                                                    Puedes seguir agregando platos; lo nuevo se envía a cocina y se suma al
+                                                    total de la mesa.
+                                                </p>
+                                            ) : null}
                                         </div>
 
                                         <ul className="divide-y divide-stone-200 dark:divide-stone-800 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 overflow-hidden">
@@ -645,8 +676,21 @@ export function MeseroSalonPage() {
                                                             {l.cantidad}×
                                                         </span>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="font-medium text-stone-900 dark:text-stone-50">
-                                                                {l.producto?.nombreProducto}
+                                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                                <span className="font-medium text-stone-900 dark:text-stone-50">
+                                                                    {l.producto?.nombreProducto}
+                                                                </span>
+                                                                {l.estado_item ? (
+                                                                    <span
+                                                                        className={classNames(
+                                                                            'text-[10px] font-semibold px-1.5 py-0.5 rounded-full border',
+                                                                            badgeItemEstado(l.estado_item),
+                                                                        )}
+                                                                    >
+                                                                        {ESTADO_ITEM_LABEL[l.estado_item] ||
+                                                                            l.estado_item}
+                                                                    </span>
+                                                                ) : null}
                                                             </div>
                                                             {l.nota ? (
                                                                 <div className="text-xs text-stone-600 dark:text-stone-500">
@@ -674,11 +718,13 @@ export function MeseroSalonPage() {
                                                 onClick={() => setMesaTab('menu')}
                                                 className="w-full rounded-xl bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold py-3.5 text-sm focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
                                             >
-                                                Agregar platos al pedido
+                                                {pedido.estado === 'LISTO'
+                                                    ? 'Agregar más platos a la mesa'
+                                                    : 'Agregar platos al pedido'}
                                             </button>
                                         ) : null}
 
-                                        {pedido.estado === 'LISTO' ? (
+                                        {puedeCerrarCuenta ? (
                                             <button
                                                 type="button"
                                                 disabled={cerrando}
@@ -687,6 +733,10 @@ export function MeseroSalonPage() {
                                             >
                                                 {cerrando ? 'Cerrando…' : 'Cerrar cuenta y liberar mesa'}
                                             </button>
+                                        ) : pedido.estado === 'LISTO' && hayItemsPendientesCocina ? (
+                                            <p className="text-xs text-center text-stone-600 dark:text-stone-500">
+                                                Hay platos nuevos en cocina. Cierra la cuenta cuando todo esté listo.
+                                            </p>
                                         ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">
                                                 Pedido finalizado.

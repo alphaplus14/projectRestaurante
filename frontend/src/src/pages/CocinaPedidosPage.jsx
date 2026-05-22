@@ -61,17 +61,32 @@ function PedidoCard({ pedido, onAdvance, busyId }) {
             ) : null}
 
             <ul className="mt-4 space-y-2 border-t border-stone-200 dark:border-white/10 pt-3">
-                {pedido.detalles?.map((l) => (
-                    <li key={l.idPedidoDetalle} className="flex gap-3 text-sm">
-                        <span className="font-semibold text-orange-700 dark:text-orange-200 tabular-nums shrink-0">{l.cantidad}×</span>
-                        <div className="min-w-0 flex-1">
-                            <div className="font-medium text-stone-900 dark:text-stone-100 truncate">
-                                {l.producto?.nombreProducto ?? 'Producto'}
+                {pedido.detalles?.map((l) => {
+                    const esNuevo = l.estado_item === 'PENDIENTE';
+                    return (
+                        <li
+                            key={l.idPedidoDetalle}
+                            className={`flex gap-3 text-sm rounded-lg px-2 py-1.5 ${esNuevo ? 'bg-orange-50 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-800/40' : ''}`}
+                        >
+                            <span className="font-semibold text-orange-700 dark:text-orange-200 tabular-nums shrink-0">
+                                {l.cantidad}×
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <div className="font-medium text-stone-900 dark:text-stone-100 truncate">
+                                    {l.producto?.nombreProducto ?? 'Producto'}
+                                    {esNuevo ? (
+                                        <span className="ml-1.5 text-[10px] font-bold uppercase text-orange-700 dark:text-orange-300">
+                                            Nuevo
+                                        </span>
+                                    ) : null}
+                                </div>
+                                {l.nota ? (
+                                    <div className="text-stone-600 dark:text-stone-500 text-xs mt-0.5">Nota: {l.nota}</div>
+                                ) : null}
                             </div>
-                            {l.nota ? <div className="text-stone-600 dark:text-stone-500 text-xs mt-0.5">Nota: {l.nota}</div> : null}
-                        </div>
-                    </li>
-                ))}
+                        </li>
+                    );
+                })}
             </ul>
 
             {action ? (
