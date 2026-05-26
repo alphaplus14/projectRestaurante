@@ -540,18 +540,19 @@ export function LandingPage() {
                 </section>
 
                 {/* Grid tipo “Lo más buscado” */}
-                <section id="destacados" className="scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
+                <section id="destacados" className="group scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
                     <div
-                        className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 bg-no-repeat bg-cover"
+                        className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 bg-no-repeat bg-cover transition-transform duration-700 ease-out group-hover:scale-105"
                         style={{
                             backgroundImage: "url('/mesero.jpeg')",
                             backgroundPosition: 'right center',
                             WebkitMaskImage:
-                                'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
                             WebkitMaskComposite: 'source-in',
                             maskImage:
-                                'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
                             maskComposite: 'intersect',
+                            transformOrigin: 'right center',
                         }}
                         aria-hidden
                     />
