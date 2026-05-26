@@ -8,7 +8,7 @@ function classNames(...xs) {
 }
 
 /**
- * Formulario de login cliente (landing /cliente y /cliente/login).
+ * Formulario de login cliente (/cliente/login). Ver la carta no requiere sesión (ruta /cliente/carta).
  */
 export function ClienteLoginPanel({
     redirectPath = '/cliente/carta',
