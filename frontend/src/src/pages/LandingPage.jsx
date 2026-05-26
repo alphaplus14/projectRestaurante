@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { getToken } from '../auth/authStorage';
+import { clearToken, getToken } from '../auth/authStorage';
 import { ClienteLoginPanel } from '../components/ClienteLoginPanel';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
@@ -94,7 +94,7 @@ const NOVEDADES = [
         fecha: '28 Abr 2026',
         titulo: 'Menú digital renovado',
         texto:
-            'Actualizamos la carta online para que veas fotos, precios y disponibilidad al instante cuando inicias sesión.',
+            'La carta en la web se puede explorar sin iniciar sesión; al entrar también puedes usar reservas y el resto del área cliente.',
     },
     {
         fecha: '15 Abr 2026',
@@ -189,6 +189,20 @@ export function LandingPage() {
         if (window.location.hash === '#login-esquina' || window.location.hash === '#acceso') {
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
         }
+    }
+
+    async function cerrarSesionCliente() {
+        try {
+            if (getToken()) {
+                await apiFetch('/api/auth/logout', { method: 'POST' });
+            }
+        } catch {
+            /* sesión ya inválida o sin red */
+        }
+        clearToken();
+        setSesionCliente(false);
+        cerrarLoginEsquina();
+        closeMobileNav();
     }
 
     const fabVerCartaClass = classNames(
@@ -297,6 +311,14 @@ export function LandingPage() {
                                         <span className="sm:hidden">Carta</span>
                                         <span className="hidden sm:inline">Ver carta</span>
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={cerrarSesionCliente}
+                                        className="inline-flex items-center justify-center rounded-lg sm:rounded-xl border border-stone-300 dark:border-white/20 bg-stone-100 dark:bg-white/10 px-2 py-2 min-[375px]:px-3 min-[375px]:py-2 text-[11px] sm:text-xs md:text-sm font-semibold text-stone-800 dark:text-neutral-200 hover:bg-stone-200 dark:hover:bg-white/15 transition-colors whitespace-nowrap"
+                                    >
+                                        <span className="sm:hidden">Salir</span>
+                                        <span className="hidden sm:inline">Cerrar sesión</span>
+                                    </button>
                                 </>
                             ) : (
                                 <>
@@ -365,8 +387,17 @@ export function LandingPage() {
                             {label}
                         </a>
                     ))}
+                    {sesionCliente ? (
+                        <button
+                            type="button"
+                            onClick={cerrarSesionCliente}
+                            className="mt-3 rounded-xl border border-stone-300 dark:border-white/15 bg-stone-100 dark:bg-white/10 px-3 py-3 text-left font-semibold text-stone-800 dark:text-neutral-100 hover:bg-stone-200 dark:hover:bg-white/15"
+                        >
+                            Cerrar sesión
+                        </button>
+                    ) : null}
                     <p className="pt-4 text-xs text-stone-500 dark:text-neutral-500 px-3">
-                        Ver la carta: burbuja abajo a la derecha · Iniciar sesión: junto al modo claro/oscuro arriba.
+                        Ver carta sin cuenta: usa la burbuja abajo a la derecha o el bloque Carta · Reservas e inicio de sesión: junto al modo claro/oscuro arriba.
                     </p>
                 </div>
             </header>
@@ -379,25 +410,14 @@ export function LandingPage() {
                 )}
             >
                 <div className="pointer-events-auto flex flex-col items-end gap-2">
-                    {sesionCliente ? (
-                        <Link to="/cliente/carta" className={fabVerCartaClass} aria-label="Ver carta del menú">
-                            <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-black/15">
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                            </span>
-                            Ver carta
-                        </Link>
-                    ) : (
-                        <button type="button" onClick={abrirLoginEsquina} className={fabVerCartaClass} aria-label="Ver carta; inicia sesión si hace falta">
-                            <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-black/15">
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                            </span>
-                            Ver carta
-                        </button>
-                    )}
+                    <Link to="/cliente/carta" className={fabVerCartaClass} aria-label="Ver carta del menú">
+                        <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-black/15">
+                            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                        </span>
+                        Ver carta
+                    </Link>
                 </div>
             </div>
 
@@ -508,7 +528,7 @@ export function LandingPage() {
                             <div className="relative max-w-2xl">
                                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Menú</h2>
                                 <p className="mt-4 text-lg text-stone-300 leading-relaxed">
-                                    Las delicias del día en un solo lugar digital: categorías, fotos cuando están disponibles y precios actualizados para quien ya tiene cuenta cliente.
+                                    Las delicias del día en un solo lugar digital: categorías, fotos cuando están disponibles y precios al día. No necesitas iniciar sesión para verla; la cuenta cliente sirve para reservas y un acceso personalizado.
                                 </p>
                                 <div className="mt-8 flex flex-wrap gap-4">
                                     {sesionCliente ? (
@@ -527,13 +547,20 @@ export function LandingPage() {
                                             </Link>
                                         </>
                                     ) : (
-                                        <button
-                                            type="button"
-                                            onClick={abrirLoginEsquina}
-                                            className="rounded-full px-8 py-3.5 font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 transition-colors"
-                                        >
-                                            Entrar para ver la carta
-                                        </button>
+                                        <>
+                                            <Link
+                                                to="/cliente/carta"
+                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 transition-colors"
+                                            >
+                                                Ver carta
+                                            </Link>
+                                            <Link
+                                                to="/cliente/login"
+                                                className="rounded-full px-8 py-3.5 font-semibold border border-white/35 bg-white/10 text-white hover:bg-white/15 transition-colors"
+                                            >
+                                                Entrar para reservar
+                                            </Link>
+                                        </>
                                     )}
                                     <a
                                         href="#novedades"
@@ -586,11 +613,22 @@ export function LandingPage() {
                     <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
                         <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-neutral-50">Carta digital</h2>
                         <p className="mt-3 text-stone-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
-                            Inicia sesión desde el botón junto al <strong className="text-stone-800 dark:text-neutral-200">cambio claro / oscuro</strong> arriba, o pulsa la{' '}
-                            <strong className="text-stone-800 dark:text-neutral-200">burbuja «Ver carta»</strong> abajo a la derecha. Con cuenta cliente verás platos,
-                            precios y fotos al momento, y podrás <strong className="text-stone-800 dark:text-neutral-200">reservar mesa</strong> desde el menú de cliente.
+                            Pulsa{' '}
+                            <Link to="/cliente/carta" className="font-semibold text-amber-700 dark:text-amber-400 hover:underline">
+                                ver carta
+                            </Link>{' '}
+                            para consultar precios sin cuenta (también con la{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">burbuja «Ver carta»</strong>). Para iniciar sesión usa el botón junto al{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">cambio claro / oscuro</strong>; con cuenta cliente también puedes gestionar tus{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">reservas</strong>.
                         </p>
                         <div className="mt-6 flex flex-wrap justify-center gap-3">
+                            <Link
+                                to="/cliente/carta"
+                                className="rounded-full px-6 py-2.5 text-sm font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 inline-flex items-center justify-center"
+                            >
+                                Ver carta
+                            </Link>
                             {!sesionCliente ? (
                                 <button
                                     type="button"
@@ -649,7 +687,10 @@ export function LandingPage() {
                         <div className="rounded-2xl border border-stone-300 dark:border-white/10 bg-white dark:bg-neutral-950 p-8">
                             <h3 className="font-semibold text-stone-900 dark:text-neutral-50">Preguntas frecuentes</h3>
                             <ul className="mt-4 space-y-3 text-sm text-stone-600 dark:text-neutral-400">
-                                <li>¿Necesito cuenta para ver información general? No; solo para la carta digital privada.</li>
+                                <li>
+                                    ¿Necesito cuenta para consultar precios del menú? No; la carta es pública en la web. La cuenta cliente sirve para reservas y otros
+                                    accesos personalizados.
+                                </li>
                                 <li>¿Puedo pedir por esta web? El demo muestra carta; pedidos en sala siguen el flujo del restaurante.</li>
                             </ul>
                         </div>

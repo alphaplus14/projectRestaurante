@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('public/productos-carta', [ProductoController::class, 'catalogoPublico']);
+
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('login-cliente', [AuthController::class, 'loginCliente']);

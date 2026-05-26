@@ -34,14 +34,7 @@ export function App() {
             <Route path="/cliente/login" element={<LoginClientePage />} />
             <Route path="/login" element={<Navigate to="/cliente/login" replace />} />
             <Route path="/blank" element={<Navigate to="/cliente/carta" replace />} />
-            <Route
-                path="/cliente/carta"
-                element={
-                    <RequireCliente>
-                        <ClienteCartaPage />
-                    </RequireCliente>
-                }
-            />
+            <Route path="/cliente/carta" element={<ClienteCartaPage />} />
             <Route
                 path="/cliente/reservas"
                 element={

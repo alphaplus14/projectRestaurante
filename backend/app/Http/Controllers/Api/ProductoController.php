@@ -19,6 +19,14 @@ class ProductoController extends Controller
     }
 
     /**
+     * Mismo catálogo para visitantes (sin sesión): solo datos ya visibles para clientes registrados (activos).
+     */
+    public function catalogoPublico(Request $request): JsonResponse
+    {
+        return $this->catalogoActivo($request);
+    }
+
+    /**
      * Mismo catálogo para meseros al registrar pedidos en salón.
      */
     public function indexMesero(Request $request): JsonResponse

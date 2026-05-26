@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { clearToken } from '../auth/authStorage';
+import { clearToken, getToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
@@ -34,12 +34,19 @@ export function ClienteCartaPage() {
             setLoading(true);
             setError('');
             try {
-                const [me, catalogo] = await Promise.all([
-                    apiFetch('/api/auth/me'),
-                    apiFetch('/api/cliente/productos'),
-                ]);
+                const catalogoPromise = apiFetch('/api/public/productos-carta');
+                let usuario = null;
+                if (getToken()) {
+                    try {
+                        const me = await apiFetch('/api/auth/me');
+                        if (me?.user?.rol === 'CLIENTE') usuario = me.user;
+                    } catch (e) {
+                        if (e?.status === 401) clearToken();
+                    }
+                }
+                const catalogo = await catalogoPromise;
                 if (cancelled) return;
-                setUser(me?.user ?? null);
+                setUser(usuario);
                 setProductos(Array.isArray(catalogo?.data) ? catalogo.data : []);
             } catch (e) {
                 if (cancelled) return;
@@ -87,7 +94,7 @@ export function ClienteCartaPage() {
                     <div className="flex flex-wrap items-center gap-1.5 min-[375px]:gap-2 sm:gap-3 w-full min-[520px]:w-auto min-[520px]:justify-end shrink-0 touch-manipulation">
                         <ThemeToggle />
                         <Link
-                            to="/cliente/reservas"
+                            to={nombreMostrar ? '/cliente/reservas' : '/cliente/login'}
                             className="text-[11px] sm:text-sm px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl border border-teal-500/35 text-teal-800 dark:text-teal-300 hover:bg-teal-500/10 transition-colors whitespace-nowrap"
                         >
                             <span className="inline min-[520px]:hidden">Reserva</span>
@@ -100,14 +107,23 @@ export function ClienteCartaPage() {
                         >
                             Inicio
                         </Link>
-                        <button
-                            type="button"
-                            onClick={cerrarSesion}
-                            className="text-[11px] sm:text-sm px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-stone-200 dark:bg-white/10 hover:bg-stone-300 dark:hover:bg-white/15 border border-stone-300 dark:border-white/15 whitespace-nowrap"
-                        >
-                            <span className="sm:hidden">Salir</span>
-                            <span className="hidden sm:inline">Cerrar sesión</span>
-                        </button>
+                        {nombreMostrar ? (
+                            <button
+                                type="button"
+                                onClick={cerrarSesion}
+                                className="text-[11px] sm:text-sm px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-stone-200 dark:bg-white/10 hover:bg-stone-300 dark:hover:bg-white/15 border border-stone-300 dark:border-white/15 whitespace-nowrap"
+                            >
+                                <span className="sm:hidden">Salir</span>
+                                <span className="hidden sm:inline">Cerrar sesión</span>
+                            </button>
+                        ) : (
+                            <Link
+                                to="/cliente/login"
+                                className="text-[11px] sm:text-sm px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-amber-400/85 dark:bg-amber-500/35 text-neutral-950 dark:text-amber-100 hover:bg-amber-400 dark:hover:bg-amber-500/45 border border-amber-500/40 dark:border-amber-400/35 whitespace-nowrap font-semibold"
+                            >
+                                Entrar
+                            </Link>
+                        )}
                     </div>
                 </div>
             </header>
