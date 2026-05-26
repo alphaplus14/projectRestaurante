@@ -540,8 +540,22 @@ export function LandingPage() {
                 </section>
 
                 {/* Grid tipo “Lo más buscado” */}
-                <section id="destacados" className="scroll-mt-28 py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
+                <section id="destacados" className="scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
+                    <div
+                        className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 bg-no-repeat bg-cover"
+                        style={{
+                            backgroundImage: "url('/mesero.jpeg')",
+                            backgroundPosition: 'right center',
+                            WebkitMaskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+                            WebkitMaskComposite: 'source-in',
+                            maskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+                            maskComposite: 'intersect',
+                        }}
+                        aria-hidden
+                    />
+                    <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
                         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
                             <div>
                                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-neutral-50">
@@ -560,8 +574,20 @@ export function LandingPage() {
                 </section>
 
                 {/* Carta / acceso: recordatorio (formulario en esquina + burbuja) */}
-                <section id="acceso" className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:py-20">
-                    <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
+                <section id="acceso" className="scroll-mt-28 relative overflow-hidden">
+                    <div
+                        className="pointer-events-none absolute inset-x-0 top-0 h-[110%] bg-no-repeat bg-top bg-cover opacity-55 dark:opacity-25"
+                        style={{
+                            backgroundImage: "url('/salchipapas.png')",
+                            WebkitMaskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%)',
+                            maskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%)',
+                        }}
+                        aria-hidden
+                    />
+                    <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:py-20">
+                    <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 backdrop-blur-sm px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
                         <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-neutral-50">Carta digital</h2>
                         <p className="mt-3 text-stone-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
                             Pulsa{' '}
@@ -605,6 +631,7 @@ export function LandingPage() {
                                 </>
                             )}
                         </div>
+                    </div>
                     </div>
                 </section>
 
