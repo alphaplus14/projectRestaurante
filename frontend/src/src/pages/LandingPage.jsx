@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken, getToken } from '../auth/authStorage';
@@ -50,18 +50,19 @@ const DESTACADOS = [
     },
 ];
 
-function TarjetaServicioDestacado({ item }) {
+function TarjetaServicioDestacado({ item, className }) {
     const cardCls = classNames(
-        'group relative rounded-2xl border border-stone-200 dark:border-white/10 bg-stone-50/80 dark:bg-neutral-950/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-amber-300/40 dark:hover:border-amber-500/30 transition-all min-h-[180px] flex flex-col',
+        'group relative rounded-2xl border border-stone-200 dark:border-white/10 bg-stone-50/80 dark:bg-neutral-950/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-amber-300/40 dark:hover:border-amber-500/30 transition-all min-h-[340px] sm:min-h-[380px] flex flex-col',
+        className,
     );
 
     const inner = (
         <>
-            <div className={classNames('h-24 bg-gradient-to-br shrink-0', item.accent)} />
-            <div className="p-5 flex flex-col flex-1">
-                <h3 className="font-semibold text-stone-900 dark:text-neutral-50 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{item.title}</h3>
-                <p className="mt-2 text-sm text-stone-600 dark:text-neutral-400 leading-relaxed flex-1">{item.desc}</p>
-                <span className="mt-4 text-sm font-semibold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1">
+            <div className={classNames('h-40 sm:h-48 bg-gradient-to-br shrink-0', item.accent)} />
+            <div className="p-6 sm:p-7 flex flex-col flex-1">
+                <h3 className="text-lg font-semibold text-stone-900 dark:text-neutral-50 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{item.title}</h3>
+                <p className="mt-3 text-base text-stone-600 dark:text-neutral-400 leading-relaxed flex-1">{item.desc}</p>
+                <span className="mt-5 text-sm font-semibold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1">
                     Ver más <span aria-hidden>→</span>
                 </span>
             </div>
@@ -80,6 +81,80 @@ function TarjetaServicioDestacado({ item }) {
         <a href={item.href} className={cardCls}>
             {inner}
         </a>
+    );
+}
+
+function CarruselServicios({ items }) {
+    const trackRef = useRef(null);
+    const [canPrev, setCanPrev] = useState(false);
+    const [canNext, setCanNext] = useState(false);
+
+    const updateBtns = useCallback(() => {
+        const el = trackRef.current;
+        if (!el) return;
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        setCanPrev(el.scrollLeft > 4);
+        setCanNext(el.scrollLeft < maxScroll - 4);
+    }, []);
+
+    useEffect(() => {
+        const el = trackRef.current;
+        if (!el) return;
+        updateBtns();
+        el.addEventListener('scroll', updateBtns, { passive: true });
+        window.addEventListener('resize', updateBtns);
+        return () => {
+            el.removeEventListener('scroll', updateBtns);
+            window.removeEventListener('resize', updateBtns);
+        };
+    }, [updateBtns]);
+
+    function scrollByDir(dir) {
+        const el = trackRef.current;
+        if (!el) return;
+        const card = el.querySelector('[data-carousel-card]');
+        const step = card ? card.clientWidth + 16 : el.clientWidth * 0.8;
+        el.scrollBy({ left: dir * step, behavior: 'smooth' });
+    }
+
+    return (
+        <div className="relative">
+            <div
+                ref={trackRef}
+                className="flex gap-4 lg:gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 -mx-4 sm:-mx-6 px-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+                {items.map((item) => (
+                    <TarjetaServicioDestacado
+                        key={item.title}
+                        item={item}
+                        className="snap-start shrink-0 basis-[85%] sm:basis-[55%] lg:basis-[40%] xl:basis-[30%]"
+                    />
+                ))}
+            </div>
+
+            <button
+                type="button"
+                onClick={() => scrollByDir(-1)}
+                disabled={!canPrev}
+                aria-label="Anterior"
+                className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-white/15 bg-white/90 dark:bg-neutral-900/90 text-stone-800 dark:text-neutral-100 shadow-md hover:bg-white dark:hover:bg-neutral-800 disabled:opacity-0 disabled:pointer-events-none transition-opacity"
+            >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button
+                type="button"
+                onClick={() => scrollByDir(1)}
+                disabled={!canNext}
+                aria-label="Siguiente"
+                className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-white/15 bg-white/90 dark:bg-neutral-900/90 text-stone-800 dark:text-neutral-100 shadow-md hover:bg-white dark:hover:bg-neutral-800 disabled:opacity-0 disabled:pointer-events-none transition-opacity"
+            >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
     );
 }
 
@@ -424,6 +499,17 @@ export function LandingPage() {
             <main id="contenido" className="pb-[max(9rem,calc(env(safe-area-inset-bottom)+8rem))] sm:pb-40">
                 {/* Hero amplio — mensaje para todo público */}
                 <section className="relative overflow-hidden border-b border-stone-200/80 dark:border-white/10">
+                    <div
+                        className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 bg-no-repeat bg-right bg-cover opacity-55 dark:opacity-30"
+                        style={{
+                            backgroundImage: "url('/bandeja%20paisa.jpg')",
+                            WebkitMaskImage:
+                                'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 50%)',
+                            maskImage:
+                                'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 50%)',
+                        }}
+                        aria-hidden
+                    />
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(245,158,11,0.35),transparent),radial-gradient(ellipse_60%_40%_at_100%_50%,rgba(251,146,60,0.12),transparent)] dark:opacity-80" />
                     <div className="relative mx-auto max-w-7xl px-4 sm:px-6 pt-14 pb-20 lg:pt-20 lg:pb-28">
                         <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-800 dark:text-amber-400">
@@ -469,50 +555,43 @@ export function LandingPage() {
                                 Todo el público · Sin necesidad de cuenta para conocernos
                             </p>
                         </div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-5">
-                            {destacadosLista.map((item) => (
-                                <TarjetaServicioDestacado key={item.title} item={item} />
-                            ))}
-                        </div>
+                        <CarruselServicios items={destacadosLista} />
                     </div>
                 </section>
 
                 {/* Nosotros */}
-                <section id="nosotros" className="scroll-mt-28 py-16 lg:py-24 bg-[#faf8f5] dark:bg-neutral-950">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                <section id="nosotros" className="scroll-mt-28 py-10 lg:py-14 bg-[#faf8f5] dark:bg-neutral-950">
+                    <div className="mx-auto max-w-6xl px-4 sm:px-6 grid lg:grid-cols-[1.2fr_1fr] gap-8 lg:gap-10 items-center">
                         <div>
-                            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-neutral-50">
+                            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-stone-900 dark:text-neutral-50">
                                 Nosotros
                             </h2>
-                            <p className="mt-6 text-stone-600 dark:text-neutral-400 leading-relaxed text-lg">
-                                Somos un restaurante demo con vocación real: cocina ordenada, sala ágil y una carta que puedes explorar desde casa antes de venir o desde la mesa con tu cuenta digital.
+                            <p className="mt-3 text-stone-600 dark:text-neutral-400 leading-relaxed">
+                                Restaurante demo con vocación real: cocina ordenada, sala ágil y una carta que puedes explorar desde casa o desde la mesa.
                             </p>
-                            <p className="mt-4 text-stone-600 dark:text-neutral-400 leading-relaxed">
-                                Creemos en ingredientes bien contados, precios claros y un ambiente donde cualquier persona se sienta bienvenida —del almuerzo rápido a la celebración larga.
-                            </p>
-                            <ul className="mt-8 space-y-3 text-stone-700 dark:text-neutral-300">
-                                <li className="flex gap-3">
+                            <ul className="mt-5 space-y-1.5 text-sm text-stone-700 dark:text-neutral-300">
+                                <li className="flex gap-2">
                                     <span className="text-amber-600 dark:text-amber-400 font-bold">·</span>
                                     Tradición en el servicio y orden en cocina.
                                 </li>
-                                <li className="flex gap-3">
+                                <li className="flex gap-2">
                                     <span className="text-amber-600 dark:text-amber-400 font-bold">·</span>
                                     Carta digital para reducir dudas al pedir.
                                 </li>
-                                <li className="flex gap-3">
+                                <li className="flex gap-2">
                                     <span className="text-amber-600 dark:text-amber-400 font-bold">·</span>
-                                    Equipo preparado para mesas numerosas y grupos.
+                                    Equipo preparado para grupos.
                                 </li>
                             </ul>
                         </div>
-                        <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-stone-200 dark:border-white/10 shadow-xl bg-gradient-to-br from-amber-100 via-orange-50 to-stone-200 dark:from-amber-950/40 dark:via-neutral-900 dark:to-stone-950">
-                            <div className="absolute inset-0 flex items-center justify-center p-10 text-center">
+                        <div className="relative aspect-[5/3] rounded-2xl overflow-hidden border border-stone-200 dark:border-white/10 shadow-md bg-gradient-to-br from-amber-100 via-orange-50 to-stone-200 dark:from-amber-950/40 dark:via-neutral-900 dark:to-stone-950">
+                            <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
                                 <div>
-                                    <p className="text-sm uppercase tracking-widest text-amber-900/70 dark:text-amber-400/90 font-medium">
+                                    <p className="text-[11px] uppercase tracking-widest text-amber-900/70 dark:text-amber-400/90 font-medium">
                                         Del horno a tu mesa
                                     </p>
-                                    <p className="mt-4 text-2xl sm:text-3xl font-semibold text-stone-900 dark:text-neutral-50 leading-snug">
-                                        Más de una década en cada detalle —demo académica con estándares de sitio vivo.
+                                    <p className="mt-2 text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50 leading-snug">
+                                        Más de una década en cada detalle.
                                     </p>
                                 </div>
                             </div>
