@@ -523,11 +523,11 @@ export function LandingPage() {
                 {/* Carta digital teaser */}
                 <section id="carta" className="scroll-mt-28 py-16 lg:py-24 bg-white dark:bg-neutral-900/30 border-y border-stone-200/80 dark:border-white/10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                        <div className="rounded-3xl border border-stone-200 dark:border-white/10 bg-gradient-to-br from-stone-900 via-stone-800 to-neutral-950 text-white px-8 py-12 lg:px-14 lg:py-16 relative overflow-hidden">
-                            <div className="pointer-events-none absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.25),transparent_55%)]" />
+                        <div className="rounded-3xl border border-stone-200 dark:border-white/10 bg-gradient-to-br from-amber-50 via-stone-100 to-orange-100 text-stone-900 dark:from-stone-900 dark:via-stone-800 dark:to-neutral-950 dark:text-white px-8 py-12 lg:px-14 lg:py-16 relative overflow-hidden">
+                            <div className="pointer-events-none absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.35),transparent_55%)] dark:bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.25),transparent_55%)]" />
                             <div className="relative max-w-2xl">
                                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Menú</h2>
-                                <p className="mt-4 text-lg text-stone-300 leading-relaxed">
+                                <p className="mt-4 text-lg text-stone-700 dark:text-stone-300 leading-relaxed">
                                     Las delicias del día en un solo lugar digital: categorías, fotos cuando están disponibles y precios al día. No necesitas iniciar sesión para verla; la cuenta cliente sirve para reservas y un acceso personalizado.
                                 </p>
                                 <div className="mt-8 flex flex-wrap gap-4">
@@ -535,13 +535,13 @@ export function LandingPage() {
                                         <>
                                             <Link
                                                 to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 transition-colors"
+                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
                                             >
                                                 Abrir carta menú
                                             </Link>
                                             <Link
                                                 to="/cliente/reservas"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-white/35 bg-white/10 text-white hover:bg-white/15 transition-colors"
+                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
                                             >
                                                 Reservar mesa
                                             </Link>
@@ -550,13 +550,13 @@ export function LandingPage() {
                                         <>
                                             <Link
                                                 to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 transition-colors"
+                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
                                             >
                                                 Ver carta
                                             </Link>
                                             <Link
                                                 to="/cliente/login"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-white/35 bg-white/10 text-white hover:bg-white/15 transition-colors"
+                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
                                             >
                                                 Entrar para reservar
                                             </Link>
@@ -564,7 +564,7 @@ export function LandingPage() {
                                     )}
                                     <a
                                         href="#novedades"
-                                        className="rounded-full px-8 py-3.5 font-semibold border border-white/30 hover:bg-white/10 transition-colors"
+                                        className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 text-stone-800 hover:bg-stone-50 dark:border-white/30 dark:text-white dark:hover:bg-white/10 transition-colors"
                                     >
                                         Ver novedades
                                     </a>
@@ -698,29 +698,29 @@ export function LandingPage() {
                 </section>
 
                 {/* Pie corporativo */}
-                <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-900 text-stone-300 py-14">
+                <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300 py-14">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
                         <div className="sm:col-span-2 lg:col-span-1">
-                            <div className="flex items-center gap-2 text-white font-semibold text-lg">
+                            <div className="flex items-center gap-2 text-stone-900 dark:text-white font-semibold text-lg">
                                 <span className="h-9 w-9 rounded-xl bg-amber-400 flex items-center justify-center text-neutral-950 font-bold text-sm">
                                     R
                                 </span>
                                 Proyecto Restaurante
                             </div>
-                            <p className="mt-4 text-sm text-stone-400 leading-relaxed max-w-xs">
+                            <p className="mt-4 text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
                                 Sitio público inspirado en portales gastronómicos como{' '}
-                                <a href="https://www.lucerna.com.co/" className="text-amber-400 hover:underline" target="_blank" rel="noreferrer noopener">
+                                <a href="https://www.lucerna.com.co/" className="text-amber-700 dark:text-amber-400 hover:underline" target="_blank" rel="noreferrer noopener">
                                     Lucerna
                                 </a>
                                 : navegación clara, bloques destacados y espacio para novedades.
                             </p>
                         </div>
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-4">Enlaces</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Enlaces</h4>
                             <ul className="space-y-2 text-sm">
                                 {NAV_LINKS.map(({ href, label }) => (
                                     <li key={href}>
-                                        <a href={href} className="hover:text-white transition-colors">
+                                        <a href={href} className="hover:text-stone-900 dark:hover:text-white transition-colors">
                                             {label}
                                         </a>
                                     </li>
@@ -728,27 +728,27 @@ export function LandingPage() {
                             </ul>
                         </div>
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-4">Legal</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Legal</h4>
                             <ul className="space-y-2 text-sm">
                                 <li>
-                                    <button type="button" className="hover:text-white text-left transition-colors">
+                                    <button type="button" className="hover:text-stone-900 dark:hover:text-white text-left transition-colors">
                                         Política de tratamiento de datos
                                     </button>
                                 </li>
                                 <li>
-                                    <button type="button" className="hover:text-white text-left transition-colors">
+                                    <button type="button" className="hover:text-stone-900 dark:hover:text-white text-left transition-colors">
                                         Preguntas frecuentes
                                     </button>
                                 </li>
                             </ul>
                         </div>
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-4">Redes</h4>
-                            <p className="text-sm text-stone-400">@proyectorestaurante_demo</p>
-                            <p className="mt-2 text-xs text-stone-500">Contenido ilustrativo para proyecto académico.</p>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Redes</h4>
+                            <p className="text-sm text-stone-600 dark:text-stone-400">@proyectorestaurante_demo</p>
+                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-500">Contenido ilustrativo para proyecto académico.</p>
                         </div>
                     </div>
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-700 text-center text-xs text-stone-500">
+                    <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
                         Copyright © {new Date().getFullYear()} Proyecto Restaurante · Demo académico
                     </div>
                 </footer>
