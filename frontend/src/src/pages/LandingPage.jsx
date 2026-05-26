@@ -496,7 +496,7 @@ export function LandingPage() {
                 </div>
             </div>
 
-            <main id="contenido" className="pb-[max(9rem,calc(env(safe-area-inset-bottom)+8rem))] sm:pb-40">
+            <main id="contenido">
                 {/* Hero amplio — mensaje para todo público */}
                 <section className="relative overflow-hidden border-b border-stone-200/80 dark:border-white/10">
                     <div
@@ -556,6 +556,55 @@ export function LandingPage() {
                             </p>
                         </div>
                         <CarruselServicios items={destacadosLista} />
+                    </div>
+                </section>
+
+                {/* Carta / acceso: recordatorio (formulario en esquina + burbuja) */}
+                <section id="acceso" className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:py-20">
+                    <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
+                        <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-neutral-50">Carta digital</h2>
+                        <p className="mt-3 text-stone-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
+                            Pulsa{' '}
+                            <Link to="/cliente/carta" className="font-semibold text-amber-700 dark:text-amber-400 hover:underline">
+                                ver carta
+                            </Link>{' '}
+                            para consultar precios sin cuenta (también con la{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">burbuja «Ver carta»</strong>). Para iniciar sesión usa el botón junto al{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">cambio claro / oscuro</strong>; con cuenta cliente también puedes gestionar tus{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">reservas</strong>.
+                        </p>
+                        <div className="mt-6 flex flex-wrap justify-center gap-3">
+                            <Link
+                                to="/cliente/carta"
+                                className="rounded-full px-6 py-2.5 text-sm font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 inline-flex items-center justify-center"
+                            >
+                                Ver carta
+                            </Link>
+                            {!sesionCliente ? (
+                                <button
+                                    type="button"
+                                    onClick={abrirLoginEsquina}
+                                    className="rounded-full px-6 py-2.5 text-sm font-semibold bg-stone-900 text-white dark:bg-amber-400 dark:text-neutral-950 hover:opacity-90"
+                                >
+                                    Abrir iniciar sesión
+                                </button>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/cliente/reservas"
+                                        className="rounded-full px-6 py-2.5 text-sm font-semibold bg-teal-700 text-white hover:bg-teal-600 inline-flex items-center justify-center"
+                                    >
+                                        Ir a reservas
+                                    </Link>
+                                    <Link
+                                        to="/cliente/carta"
+                                        className="rounded-full px-6 py-2.5 text-sm font-semibold border border-amber-400/80 text-amber-800 dark:text-amber-300 hover:bg-amber-400/15 inline-flex items-center justify-center"
+                                    >
+                                        Ir a la carta
+                                    </Link>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </section>
 
@@ -687,55 +736,6 @@ export function LandingPage() {
                     </div>
                 </section>
 
-                {/* Carta / acceso: recordatorio (formulario en esquina + burbuja) */}
-                <section id="acceso" className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:py-20">
-                    <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
-                        <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-neutral-50">Carta digital</h2>
-                        <p className="mt-3 text-stone-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
-                            Pulsa{' '}
-                            <Link to="/cliente/carta" className="font-semibold text-amber-700 dark:text-amber-400 hover:underline">
-                                ver carta
-                            </Link>{' '}
-                            para consultar precios sin cuenta (también con la{' '}
-                            <strong className="text-stone-800 dark:text-neutral-200">burbuja «Ver carta»</strong>). Para iniciar sesión usa el botón junto al{' '}
-                            <strong className="text-stone-800 dark:text-neutral-200">cambio claro / oscuro</strong>; con cuenta cliente también puedes gestionar tus{' '}
-                            <strong className="text-stone-800 dark:text-neutral-200">reservas</strong>.
-                        </p>
-                        <div className="mt-6 flex flex-wrap justify-center gap-3">
-                            <Link
-                                to="/cliente/carta"
-                                className="rounded-full px-6 py-2.5 text-sm font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 inline-flex items-center justify-center"
-                            >
-                                Ver carta
-                            </Link>
-                            {!sesionCliente ? (
-                                <button
-                                    type="button"
-                                    onClick={abrirLoginEsquina}
-                                    className="rounded-full px-6 py-2.5 text-sm font-semibold bg-stone-900 text-white dark:bg-amber-400 dark:text-neutral-950 hover:opacity-90"
-                                >
-                                    Abrir iniciar sesión
-                                </button>
-                            ) : (
-                                <>
-                                    <Link
-                                        to="/cliente/reservas"
-                                        className="rounded-full px-6 py-2.5 text-sm font-semibold bg-teal-700 text-white hover:bg-teal-600 inline-flex items-center justify-center"
-                                    >
-                                        Ir a reservas
-                                    </Link>
-                                    <Link
-                                        to="/cliente/carta"
-                                        className="rounded-full px-6 py-2.5 text-sm font-semibold border border-amber-400/80 text-amber-800 dark:text-amber-300 hover:bg-amber-400/15 inline-flex items-center justify-center"
-                                    >
-                                        Ir a la carta
-                                    </Link>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
                 {/* Contacto */}
                 <section id="contacto" className="scroll-mt-28 py-16 bg-stone-200/60 dark:bg-neutral-900/50 border-t border-stone-200 dark:border-white/10">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 grid md:grid-cols-2 gap-10">
@@ -776,8 +776,10 @@ export function LandingPage() {
                     </div>
                 </section>
 
-                {/* Pie corporativo */}
-                <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300 py-14">
+            </main>
+
+            {/* Pie corporativo */}
+            <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300 py-14 pb-[max(3.5rem,calc(env(safe-area-inset-bottom)+1rem))]">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
                         <div className="sm:col-span-2 lg:col-span-1">
                             <div className="flex items-center gap-2 text-stone-900 dark:text-white font-semibold text-lg">
@@ -827,11 +829,10 @@ export function LandingPage() {
                             <p className="mt-2 text-xs text-stone-500 dark:text-stone-500">Contenido ilustrativo para proyecto académico.</p>
                         </div>
                     </div>
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
-                        Copyright © {new Date().getFullYear()} Proyecto Restaurante · Demo académico
-                    </div>
-                </footer>
-            </main>
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
+                    Copyright © {new Date().getFullYear()} Proyecto Restaurante · Demo académico
+                </div>
+            </footer>
         </div>
     );
 }
