@@ -463,11 +463,13 @@ export function LandingPage() {
                                         type="button"
                                         onClick={() => (loginEsquinaAbierto ? cerrarLoginEsquina() : abrirLoginEsquina())}
                                         className={classNames(
-                                            'rounded-lg sm:rounded-xl border px-2 py-2 min-[375px]:px-3 font-semibold transition-colors whitespace-nowrap text-[11px] sm:text-xs md:text-sm',
-                                            'border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 text-stone-800 dark:text-neutral-100',
-                                            'hover:border-amber-400/60 dark:hover:border-amber-500/40',
-                                            'active:bg-stone-50 dark:active:bg-white/10',
-                                            loginEsquinaAbierto && 'ring-2 ring-amber-400/70 border-amber-400/40',
+                                            'inline-flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl border px-2.5 py-2 min-[375px]:px-3 font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs md:text-sm shadow-sm',
+                                            'border-amber-600/70 dark:border-amber-500/55 bg-amber-500 text-stone-950 dark:bg-amber-400 dark:text-neutral-950',
+                                            'hover:bg-amber-400 hover:border-amber-500 dark:hover:bg-amber-300 dark:hover:border-amber-400',
+                                            'active:scale-[0.98]',
+                                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-neutral-950',
+                                            loginEsquinaAbierto &&
+                                                'ring-2 ring-amber-600/50 border-amber-700/80 bg-amber-600/90 text-white dark:bg-amber-500 dark:text-neutral-950',
                                         )}
                                         aria-expanded={loginEsquinaAbierto}
                                         aria-haspopup="dialog"
@@ -476,6 +478,12 @@ export function LandingPage() {
                                             'Cerrar'
                                         ) : (
                                             <>
+                                                <img
+                                                    src="/iniciar sesion.png"
+                                                    alt=""
+                                                    className="h-4 w-4 sm:h-[18px] sm:w-[18px] object-contain shrink-0"
+                                                    draggable={false}
+                                                />
                                                 <span className="inline sm:hidden">Entrar</span>
                                                 <span className="hidden sm:inline">Iniciar sesión</span>
                                             </>
