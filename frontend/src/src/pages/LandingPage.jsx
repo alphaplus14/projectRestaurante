@@ -50,6 +50,51 @@ const DESTACADOS = [
     },
 ];
 
+const DESTACADOS_BG_IMAGES = [
+    '/comidas carrousel.jpg',
+    '/evento de familia carrousel.jpeg',
+    '/familia carrousel.jpg',
+    '/mesero.jpeg',
+];
+
+const DESTACADOS_BG_MASK = {
+    WebkitMaskImage:
+        'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+    WebkitMaskComposite: 'source-in',
+    maskImage:
+        'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+    maskComposite: 'intersect',
+};
+
+function DestacadosBackgroundCarousel({ activeIndex }) {
+    return (
+        <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 overflow-hidden transition-transform duration-700 ease-out group-hover:scale-105"
+            style={{
+                ...DESTACADOS_BG_MASK,
+                transformOrigin: 'right center',
+            }}
+            aria-hidden
+        >
+            <div
+                className="flex h-full transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+            >
+                {DESTACADOS_BG_IMAGES.map((src) => (
+                    <div
+                        key={src}
+                        className="min-w-full w-full h-full shrink-0 bg-cover bg-no-repeat"
+                        style={{
+                            backgroundImage: `url('${src}')`,
+                            backgroundPosition: 'right center',
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function TarjetaServicioDestacado({ item, className }) {
     const cardCls = classNames(
         'group relative rounded-2xl border border-stone-200 dark:border-white/10 bg-stone-50/80 dark:bg-neutral-950/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-amber-300/40 dark:hover:border-amber-500/30 transition-all min-h-[340px] sm:min-h-[380px] flex flex-col',
@@ -179,10 +224,14 @@ const NOVEDADES = [
     },
 ];
 
+const DESTACADOS_BG_INTERVAL_MS = 1500;
+
 export function LandingPage() {
     const [sesionCliente, setSesionCliente] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [loginEsquinaAbierto, setLoginEsquinaAbierto] = useState(false);
+    const [destacadosBgHover, setDestacadosBgHover] = useState(false);
+    const [destacadosBgIndex, setDestacadosBgIndex] = useState(0);
 
     const destacadosLista = useMemo(
         () => [
@@ -221,6 +270,19 @@ export function LandingPage() {
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        if (!destacadosBgHover) {
+            setDestacadosBgIndex(0);
+            return;
+        }
+
+        const id = window.setInterval(() => {
+            setDestacadosBgIndex((i) => (i + 1) % DESTACADOS_BG_IMAGES.length);
+        }, DESTACADOS_BG_INTERVAL_MS);
+
+        return () => window.clearInterval(id);
+    }, [destacadosBgHover]);
 
     useEffect(() => {
         function syncLoginHash() {
@@ -540,22 +602,13 @@ export function LandingPage() {
                 </section>
 
                 {/* Grid tipo “Lo más buscado” */}
-                <section id="destacados" className="group scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
-                    <div
-                        className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 bg-no-repeat bg-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                        style={{
-                            backgroundImage: "url('/mesero.jpeg')",
-                            backgroundPosition: 'right center',
-                            WebkitMaskImage:
-                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
-                            WebkitMaskComposite: 'source-in',
-                            maskImage:
-                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
-                            maskComposite: 'intersect',
-                            transformOrigin: 'right center',
-                        }}
-                        aria-hidden
-                    />
+                <section
+                    id="destacados"
+                    className="group scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10"
+                    onMouseEnter={() => setDestacadosBgHover(true)}
+                    onMouseLeave={() => setDestacadosBgHover(false)}
+                >
+                    <DestacadosBackgroundCarousel activeIndex={destacadosBgIndex} />
                     <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
                         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
                             <div>
