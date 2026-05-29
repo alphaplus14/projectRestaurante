@@ -878,11 +878,8 @@ export function LandingPage() {
                                 Proyecto Restaurante
                             </div>
                             <p className="mt-4 text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
-                                Sitio público inspirado en portales gastronómicos como{' '}
-                                <a href="https://www.lucerna.com.co/" className="text-amber-700 dark:text-amber-400 hover:underline" target="_blank" rel="noreferrer noopener">
-                                    Lucerna
-                                </a>
-                                : navegación clara, bloques destacados y espacio para novedades.
+                                Cocina marina con pescados y mariscos frescos, preparados al momento y servidos en un ambiente
+                                cálido para disfrutar en familia o con amigos el sabor del mar.
                             </p>
                         </div>
                         <div>
