@@ -146,9 +146,11 @@ CREATE TABLE `pedido` (
   `reserva_idReserva` int(11) DEFAULT NULL,
   `estado` enum('PENDIENTE','EN_PREPARACION','LISTO','CERRADO','CANCELADO') NOT NULL DEFAULT 'PENDIENTE',
   `notas` varchar(500) DEFAULT NULL,
+  `motivo_cancelacion` varchar(500) DEFAULT NULL,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
   `actualizado_en` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `cerrado_en` datetime DEFAULT NULL
+  `cerrado_en` datetime DEFAULT NULL,
+  `cancelado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
