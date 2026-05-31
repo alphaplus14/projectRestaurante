@@ -170,6 +170,9 @@ export function AdminDashboardPage() {
     const pagos = payload?.pagos_por_metodo_mes || [];
     const serie = payload?.serie_ultimos_7_dias || [];
     const estados = useMemo(() => ordenarPorEstado(payload?.pedidos_por_estado), [payload?.pedidos_por_estado]);
+    const reservas = payload?.reservas;
+    const reservasProximas = reservas?.proximas || [];
+    const reservasNuevas = reservas?.nuevas_ultimas_24h ?? 0;
 
     const pieData = useMemo(
         () => pagos.map((p) => ({ name: p.etiqueta, value: p.total })).filter((d) => d.value > 0),
@@ -247,6 +250,79 @@ export function AdminDashboardPage() {
                                 accent={utilidadClass}
                             />
                         </div>
+
+                        {(reservasNuevas > 0 || reservasProximas.length > 0) ? (
+                            <Panel
+                                title="Reservas de clientes"
+                                subtitle={
+                                    reservasNuevas > 0
+                                        ? `${reservasNuevas} nueva${reservasNuevas !== 1 ? 's' : ''} en las últimas 24 h · próximas visitas`
+                                        : 'Próximas visitas con reserva confirmada'
+                                }
+                            >
+                                {reservasNuevas > 0 ? (
+                                    <div className="mb-4 rounded-lg border border-teal-500/30 bg-teal-50 dark:bg-teal-950/30 px-4 py-3 text-sm text-teal-900 dark:text-teal-100">
+                                        <span className="font-semibold">Aviso:</span> hay reservas registradas recientemente.
+                                        Revisa la lista para preparar el servicio.
+                                    </div>
+                                ) : null}
+                                {reservasProximas.length === 0 ? (
+                                    <p className="text-sm text-stone-600 dark:text-stone-400">No hay reservas próximas.</p>
+                                ) : (
+                                    <ul className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                                        {reservasProximas.map((r) => (
+                                            <li
+                                                key={r.idReserva}
+                                                className={classNames(
+                                                    'rounded-xl border p-4',
+                                                    r.es_nueva
+                                                        ? 'border-teal-500/40 bg-teal-50/50 dark:bg-teal-950/20'
+                                                        : 'border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/30',
+                                                )}
+                                            >
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <div>
+                                                        <p className="font-semibold text-stone-900 dark:text-stone-50">
+                                                            {r.cliente_nombre}
+                                                        </p>
+                                                        {r.cliente_email ? (
+                                                            <p className="text-xs text-stone-500 dark:text-stone-400">
+                                                                {r.cliente_email}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                    {r.es_nueva ? (
+                                                        <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-teal-600 text-white">
+                                                            Nueva
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <p className="mt-2 text-sm text-stone-800 dark:text-stone-200">
+                                                    {r.fecha_hora
+                                                        ? new Date(r.fecha_hora).toLocaleString('es-CO', {
+                                                              weekday: 'short',
+                                                              day: 'numeric',
+                                                              month: 'short',
+                                                              hour: '2-digit',
+                                                              minute: '2-digit',
+                                                          })
+                                                        : '—'}
+                                                </p>
+                                                <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                                                    {r.num_personas} persona{r.num_personas === 1 ? '' : 's'}
+                                                    {r.mesa
+                                                        ? ` · Mesa ${r.mesa.numero}${r.mesa.nombre ? ` (${r.mesa.nombre})` : ''}`
+                                                        : ' · Mesa por asignar'}
+                                                </p>
+                                                {r.notas ? (
+                                                    <p className="mt-2 text-xs text-stone-500 italic">&ldquo;{r.notas}&rdquo;</p>
+                                                ) : null}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </Panel>
+                        ) : null}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <KpiCard
