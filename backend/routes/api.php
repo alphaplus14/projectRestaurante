@@ -43,6 +43,8 @@ Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(fu
 Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(function () {
     Route::get('mesas', [MeseroController::class, 'mesas']);
     Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
+    Route::get('alertas', [MeseroController::class, 'alertas']);
+    Route::post('alertas/llamada-cocina/{llamada}/atender', [MeseroController::class, 'atenderLlamadaCocina']);
     Route::post('pedidos/{pedido:idPedido}/recibir', [MeseroController::class, 'recibirPedido']);
     Route::get('categorias', [ProductoController::class, 'categoriasMesero']);
     Route::get('productos', [ProductoController::class, 'indexMesero']);
@@ -55,6 +57,8 @@ Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(func
 
 Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(function () {
     Route::get('pedidos', [CocinaPedidoController::class, 'index']);
+    Route::get('pedidos/historial', [CocinaPedidoController::class, 'historial']);
+    Route::post('llamar-mesero', [CocinaPedidoController::class, 'llamarMesero']);
     Route::patch('pedidos/{pedido:idPedido}/estado', [CocinaPedidoController::class, 'updateEstado']);
 });
 

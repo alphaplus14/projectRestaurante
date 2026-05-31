@@ -84,7 +84,20 @@ function formatMesaLabel(mesa) {
     return `Mesa #${mesa.idMesa}`;
 }
 
-function ModalPedidosListos({ pedidos, onClose, onRecibir, onIrMesa, busyRecibirId }) {
+function ModalPedidosListos({
+    pedidos,
+    llamadasCocina,
+    onClose,
+    onRecibir,
+    onIrMesa,
+    onAtenderLlamada,
+    busyRecibirId,
+    busyLlamadaId,
+}) {
+    const hayLlamadas = llamadasCocina.length > 0;
+    const hayListos = pedidos.length > 0;
+    const vacio = !hayLlamadas && !hayListos;
+
     return (
         <div className="fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
@@ -99,10 +112,10 @@ function ModalPedidosListos({ pedidos, onClose, onRecibir, onIrMesa, busyRecibir
                         <img src="/cara feliz.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
                         <div>
                             <h2 id="pedidos-listos-titulo" className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-                                Pedidos listos en cocina
+                                Notificaciones
                             </h2>
                             <p className="text-sm text-emerald-800/80 dark:text-emerald-200/80">
-                                Retira el pedido en cocina y pulsa <strong>Recibido</strong> para liberar la cola del cocinero.
+                                Pedidos listos y avisos de cocina.
                             </p>
                         </div>
                     </div>
@@ -114,13 +127,58 @@ function ModalPedidosListos({ pedidos, onClose, onRecibir, onIrMesa, busyRecibir
                         Cerrar
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    {pedidos.length === 0 ? (
-                        <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
-                            No hay pedidos listos pendientes de retirar.
-                        </p>
-                    ) : (
-                        pedidos.map((p) => {
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {hayLlamadas ? (
+                        <section aria-label="Llamadas de cocina">
+                            <h3 className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200 mb-2">
+                                Cocina te necesita
+                            </h3>
+                            <div className="space-y-2">
+                                {llamadasCocina.map((l) => {
+                                    const busy = busyLlamadaId === l.id;
+                                    return (
+                                        <div
+                                            key={l.id}
+                                            className="rounded-xl border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-4"
+                                        >
+                                            <p className="font-semibold text-amber-950 dark:text-amber-100">
+                                                Te llaman desde cocina
+                                            </p>
+                                            <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
+                                                {l.cocinero_nombre || 'Cocina'} necesita ayuda en cocina.
+                                            </p>
+                                            {l.creado_en ? (
+                                                <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                                                    {new Date(l.creado_en).toLocaleTimeString('es-CO', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })}
+                                                </p>
+                                            ) : null}
+                                            <button
+                                                type="button"
+                                                disabled={Boolean(busyLlamadaId)}
+                                                onClick={() => onAtenderLlamada(l)}
+                                                className="mt-3 w-full min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold"
+                                            >
+                                                {busy ? 'Atendiendo…' : 'Voy a cocina'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {hayListos ? (
+                        <section aria-label="Pedidos listos">
+                            {hayLlamadas ? (
+                                <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-200 mb-2">
+                                    Pedidos listos
+                                </h3>
+                            ) : null}
+                            <div className="space-y-2">
+                                {pedidos.map((p) => {
                             const busy = busyRecibirId === p.idPedido;
                             return (
                                 <div
@@ -167,8 +225,16 @@ function ModalPedidosListos({ pedidos, onClose, onRecibir, onIrMesa, busyRecibir
                                     </div>
                                 </div>
                             );
-                        })
-                    )}
+                        })}
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {vacio ? (
+                        <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
+                            No hay notificaciones pendientes.
+                        </p>
+                    ) : null}
                 </div>
             </div>
         </div>
@@ -499,9 +565,11 @@ export function MeseroSalonPage() {
     const [cancelando, setCancelando] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [pedidosListos, setPedidosListos] = useState([]);
+    const [llamadasCocina, setLlamadasCocina] = useState([]);
     const [pedidosListosVistos, setPedidosListosVistos] = useState(() => leerPedidosListosVistos());
     const [modalListosAbierto, setModalListosAbierto] = useState(false);
     const [recibiendoId, setRecibiendoId] = useState(null);
+    const [atendiendoLlamadaId, setAtendiendoLlamadaId] = useState(null);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
 
@@ -519,12 +587,15 @@ export function MeseroSalonPage() {
         }
     }, []);
 
-    const fetchPedidosListos = useCallback(async () => {
+    const fetchAlertas = useCallback(async () => {
         try {
-            const res = await apiFetch('/api/mesero/pedidos-listos');
-            setPedidosListos(Array.isArray(res?.data) ? res.data : []);
+            const res = await apiFetch('/api/mesero/alertas');
+            const listos = res?.pedidos_listos;
+            setPedidosListos(Array.isArray(listos?.data) ? listos.data : []);
+            setLlamadasCocina(Array.isArray(res?.llamadas_cocina) ? res.llamadas_cocina : []);
         } catch {
             setPedidosListos([]);
+            setLlamadasCocina([]);
         }
     }, []);
 
@@ -542,6 +613,8 @@ export function MeseroSalonPage() {
         () => pedidosListos.filter((p) => !pedidosListosVistos.has(p.idPedido)).length,
         [pedidosListos, pedidosListosVistos],
     );
+
+    const notificacionesPendientes = pedidosListosSinLeer + llamadasCocina.length;
 
     function abrirModalListos() {
         setModalListosAbierto(true);
@@ -566,11 +639,17 @@ export function MeseroSalonPage() {
             marcarPedidosListosVistos([p.idPedido]);
             setBanner(res?.message || 'Pedido recibido.');
             await fetchMesas();
-            const listRes = await apiFetch('/api/mesero/pedidos-listos');
-            const remaining = Array.isArray(listRes?.data) ? listRes.data : [];
-            setPedidosListos(remaining);
-            if (remaining.length === 0) {
-                setModalListosAbierto(false);
+            try {
+                const alertRes = await apiFetch('/api/mesero/alertas');
+                const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
+                const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+                setPedidosListos(remaining);
+                setLlamadasCocina(llamadas);
+                if (remaining.length === 0 && llamadas.length === 0) {
+                    setModalListosAbierto(false);
+                }
+            } catch {
+                await fetchAlertas();
             }
             if (p.mesa?.idMesa) {
                 setSelectedId(p.mesa.idMesa);
@@ -585,6 +664,30 @@ export function MeseroSalonPage() {
             setBanner(e?.message || 'No se pudo marcar como recibido.');
         } finally {
             setRecibiendoId(null);
+        }
+    }
+
+    async function atenderLlamadaCocina(llamada) {
+        if (!llamada?.id) return;
+        setAtendiendoLlamadaId(llamada.id);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/alertas/llamada-cocina/${llamada.id}/atender`, {
+                method: 'POST',
+            });
+            setBanner(res?.message || 'Llamada de cocina atendida.');
+            const alertRes = await apiFetch('/api/mesero/alertas');
+            const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
+            const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+            setPedidosListos(remaining);
+            setLlamadasCocina(llamadas);
+            if (remaining.length === 0 && llamadas.length === 0) {
+                setModalListosAbierto(false);
+            }
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo atender la llamada.');
+        } finally {
+            setAtendiendoLlamadaId(null);
         }
     }
 
@@ -634,18 +737,18 @@ export function MeseroSalonPage() {
 
     useEffect(() => {
         fetchMesas();
-        fetchPedidosListos();
-    }, [fetchMesas, fetchPedidosListos]);
+        fetchAlertas();
+    }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         const id = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 fetchMesas();
-                fetchPedidosListos();
+                fetchAlertas();
             }
         }, 6000);
         return () => clearInterval(id);
-    }, [fetchMesas, fetchPedidosListos]);
+    }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         if (!selectedId) {
@@ -770,7 +873,7 @@ export function MeseroSalonPage() {
             setPedido(null);
             setBanner(res?.message || 'Pedido cancelado.');
             await fetchMesas();
-            await fetchPedidosListos();
+            await fetchAlertas();
             cerrarMesa();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cancelar el pedido.');
@@ -791,7 +894,7 @@ export function MeseroSalonPage() {
             setPedido(null);
             setBanner(res?.message || 'Cuenta cerrada.');
             await fetchMesas();
-            await fetchPedidosListos();
+            await fetchAlertas();
             cerrarMesa();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cerrar la cuenta.');
@@ -846,24 +949,34 @@ export function MeseroSalonPage() {
                             type="button"
                             onClick={abrirModalListos}
                             aria-label={
-                                pedidosListosSinLeer > 0
-                                    ? `${pedidosListosSinLeer} pedido${pedidosListosSinLeer !== 1 ? 's' : ''} listo${pedidosListosSinLeer !== 1 ? 's' : ''} en cocina`
-                                    : 'Ver pedidos listos en cocina'
+                                notificacionesPendientes > 0
+                                    ? `${notificacionesPendientes} notificación${notificacionesPendientes !== 1 ? 'es' : ''} pendiente${notificacionesPendientes !== 1 ? 's' : ''}`
+                                    : 'Ver notificaciones de cocina'
                             }
-                            className="relative rounded-lg border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
+                            className="relative rounded-lg border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
                         >
                             <img
                                 src="/cara feliz.png"
                                 alt=""
-                                className="h-6 w-6 sm:h-7 sm:w-7 object-contain"
+                                className="h-5 w-5 object-contain"
                                 draggable={false}
                             />
-                            {pedidosListosSinLeer > 0 ? (
-                                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white ring-2 ring-stone-50 dark:ring-stone-950">
-                                    {pedidosListosSinLeer > 9 ? '9+' : pedidosListosSinLeer}
+                            {notificacionesPendientes > 0 ? (
+                                <span
+                                    className={classNames(
+                                        'absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ring-2 ring-stone-50 dark:ring-stone-950',
+                                        llamadasCocina.length > 0 ? 'bg-amber-600' : 'bg-emerald-600',
+                                    )}
+                                >
+                                    {notificacionesPendientes > 9 ? '9+' : notificacionesPendientes}
                                 </span>
-                            ) : pedidosListos.length > 0 ? (
-                                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-stone-50 dark:ring-stone-950" />
+                            ) : pedidosListos.length > 0 || llamadasCocina.length > 0 ? (
+                                <span
+                                    className={classNames(
+                                        'absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-stone-50 dark:ring-stone-950',
+                                        llamadasCocina.length > 0 ? 'bg-amber-500' : 'bg-emerald-500',
+                                    )}
+                                />
                             ) : null}
                         </button>
                         <ThemeToggle />
@@ -871,7 +984,7 @@ export function MeseroSalonPage() {
                             type="button"
                             onClick={() => {
                                 fetchMesas();
-                                fetchPedidosListos();
+                                fetchAlertas();
                             }}
                             className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
@@ -938,10 +1051,13 @@ export function MeseroSalonPage() {
             {modalListosAbierto ? (
                 <ModalPedidosListos
                     pedidos={pedidosListos}
+                    llamadasCocina={llamadasCocina}
                     busyRecibirId={recibiendoId}
-                    onClose={() => !recibiendoId && setModalListosAbierto(false)}
+                    busyLlamadaId={atendiendoLlamadaId}
+                    onClose={() => !recibiendoId && !atendiendoLlamadaId && setModalListosAbierto(false)}
                     onRecibir={recibirPedidoListo}
                     onIrMesa={irAMesaPedidoListo}
+                    onAtenderLlamada={atenderLlamadaCocina}
                 />
             ) : null}
 
