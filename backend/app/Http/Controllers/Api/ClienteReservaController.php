@@ -11,6 +11,13 @@ use Illuminate\Http\Request;
 
 class ClienteReservaController extends Controller
 {
+    /** Inicio de franjas (duración 90 min). Última franja: 19:00–20:30. */
+    private const SLOT_STARTS = ['10:00', '11:30', '13:00', '14:30', '16:00', '17:30', '19:00'];
+
+    private const SLOT_MINUTES = 90;
+
+    private const MAX_DIAS_ANTICIPACION = 10;
+
     public function mesas(Request $request): JsonResponse
     {
         $mesas = Mesa::query()
@@ -54,18 +61,41 @@ class ClienteReservaController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $maxFecha = now()->startOfDay()->addDays(self::MAX_DIAS_ANTICIPACION)->format('Y-m-d');
+
         $data = $request->validate([
-            'fecha' => ['required', 'date', 'after_or_equal:today'],
+            'fecha' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.$maxFecha],
             'hora' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'mesa_idMesa' => ['nullable', 'integer', 'exists:mesa,idMesa'],
             'num_personas' => ['required', 'integer', 'min:1', 'max:40'],
             'notas' => ['nullable', 'string', 'max:500'],
         ]);
 
+        if (! in_array($data['hora'], self::SLOT_STARTS, true)) {
+            return response()->json([
+                'message' => 'El horario elegido no está disponible. Elige una franja de 1 h 30 min entre 10:00 a. m. y 8:30 p. m.',
+            ], 422);
+        }
+
         $fechaHora = Carbon::parse($data['fecha'].' '.$data['hora'].':00');
         if ($fechaHora->isPast()) {
             return response()->json([
                 'message' => 'La fecha y hora deben ser futuras.',
+            ], 422);
+        }
+
+        $slotFin = $fechaHora->copy()->addMinutes(self::SLOT_MINUTES);
+
+        $hayChoqueFranja = Reserva::query()
+            ->whereIn('estado', ['SOLICITADA', 'CONFIRMADA'])
+            ->whereDate('fecha_hora', $fechaHora->toDateString())
+            ->where('fecha_hora', '<', $slotFin)
+            ->whereRaw('DATE_ADD(fecha_hora, INTERVAL ? MINUTE) > ?', [self::SLOT_MINUTES, $fechaHora->format('Y-m-d H:i:s')])
+            ->exists();
+
+        if ($hayChoqueFranja) {
+            return response()->json([
+                'message' => 'Esa franja horaria ya no está disponible para ese día. Elige otro horario.',
             ], 422);
         }
 
@@ -84,21 +114,6 @@ class ClienteReservaController extends Controller
                     'message' => 'El número de personas supera la capacidad de esa mesa.',
                 ], 422);
             }
-
-            $ventanaIni = $fechaHora->copy()->subMinutes(120);
-            $ventanaFin = $fechaHora->copy()->addMinutes(120);
-
-            $hayChoque = Reserva::query()
-                ->where('mesa_idMesa', $mesa->idMesa)
-                ->whereIn('estado', ['SOLICITADA', 'CONFIRMADA'])
-                ->whereBetween('fecha_hora', [$ventanaIni, $ventanaFin])
-                ->exists();
-
-            if ($hayChoque) {
-                return response()->json([
-                    'message' => 'Esa mesa ya tiene una reserva activa cercana a esa hora.',
-                ], 422);
-            }
         }
 
         $reserva = Reserva::create([
@@ -114,7 +129,7 @@ class ClienteReservaController extends Controller
         $reserva->load('mesa:idMesa,numero,nombre,capacidad');
 
         return response()->json([
-            'message' => 'Reserva registrada. El restaurante revisará tu solicitud.',
+            'message' => 'Tu reserva fue procesada exitosamente. El restaurante revisará tu solicitud y te confirmará pronto.',
             'data' => $this->serializeReserva($reserva),
         ], 201);
     }
