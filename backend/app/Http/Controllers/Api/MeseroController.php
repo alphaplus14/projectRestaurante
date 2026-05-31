@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CocinaLlamadaMesero;
 use App\Models\Mesa;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
@@ -101,9 +102,58 @@ class MeseroController extends Controller
     }
 
     /**
+     * Alertas: pedidos listos + llamadas de cocina.
+     */
+    public function alertas(Request $request): JsonResponse
+    {
+        $listos = $this->pedidosListosData($request);
+
+        $llamadas = CocinaLlamadaMesero::query()
+            ->with('cocinero:idUsuario,nombre,apellido')
+            ->whereNull('atendida_en')
+            ->where('creado_en', '>=', now()->subHours(4))
+            ->orderByDesc('creado_en')
+            ->get();
+
+        return response()->json([
+            'pedidos_listos' => $listos,
+            'llamadas_cocina' => $llamadas->map(fn (CocinaLlamadaMesero $l) => [
+                'id' => $l->id,
+                'creado_en' => $l->creado_en?->toIso8601String(),
+                'cocinero_nombre' => trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina',
+            ]),
+        ]);
+    }
+
+    public function atenderLlamadaCocina(Request $request, CocinaLlamadaMesero $llamada): JsonResponse
+    {
+        $meseroId = (int) $request->user()->getAuthIdentifier();
+
+        if ($llamada->atendida_en) {
+            return response()->json(['message' => 'Esta llamada ya fue atendida.'], 422);
+        }
+
+        $llamada->atendida_en = now();
+        $llamada->mesero_idUsuario = $meseroId;
+        $llamada->save();
+
+        return response()->json([
+            'message' => 'Llamada de cocina atendida.',
+        ]);
+    }
+
+    /**
      * Pedidos marcados listos en cocina, pendientes de retirar por el mesero.
      */
     public function pedidosListos(Request $request): JsonResponse
+    {
+        return response()->json($this->pedidosListosData($request));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pedidosListosData(Request $request): array
     {
         $user = $request->user();
         if (! $user instanceof Usuario) {
@@ -119,7 +169,7 @@ class MeseroController extends Controller
             ->orderBy('actualizado_en')
             ->get();
 
-        return response()->json([
+        return [
             'total' => $pedidos->count(),
             'data' => $pedidos->map(fn (Pedido $p) => [
                 'idPedido' => $p->idPedido,
@@ -132,7 +182,7 @@ class MeseroController extends Controller
                     'nombre' => $p->mesa->nombre,
                 ] : null,
             ]),
-        ]);
+        ];
     }
 
     public function showPedido(Request $request, Pedido $pedido): JsonResponse
