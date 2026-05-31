@@ -8,6 +8,7 @@ use App\Models\Mesa;
 use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
+use App\Models\Reserva;
 use App\Models\Venta;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -116,6 +117,24 @@ class AdminDashboardController extends Controller
                 'total' => (int) $row->total,
             ]);
 
+        $desdeNuevas = $now->copy()->subHours(24);
+
+        $reservasProximas = Reserva::query()
+            ->with([
+                'mesa:idMesa,numero,nombre',
+                'cliente:idUsuario,nombre,apellido,correo',
+            ])
+            ->whereIn('estado', ['CONFIRMADA', 'SOLICITADA'])
+            ->where('fecha_hora', '>=', $now)
+            ->orderBy('fecha_hora')
+            ->limit(30)
+            ->get();
+
+        $reservasNuevas24h = (int) Reserva::query()
+            ->whereIn('estado', ['CONFIRMADA', 'SOLICITADA'])
+            ->where('creado_en', '>=', $desdeNuevas)
+            ->count();
+
         return response()->json([
             'data' => [
                 'generado_en' => $now->toIso8601String(),
@@ -153,6 +172,35 @@ class AdminDashboardController extends Controller
                 'pagos_por_metodo_mes' => $pagosPorMetodo,
                 'serie_ultimos_7_dias' => $serieUltimos7Dias,
                 'pedidos_por_estado' => $pedidosPorEstado,
+                'reservas' => [
+                    'nuevas_ultimas_24h' => $reservasNuevas24h,
+                    'proximas' => $reservasProximas->map(function (Reserva $r) use ($desdeNuevas) {
+                        /** @var \Carbon\Carbon|null $fh */
+                        $fh = $r->fecha_hora;
+                        /** @var \Carbon\Carbon|null $creado */
+                        $creado = $r->creado_en;
+                        $cliente = $r->cliente;
+                        $nombreCliente = $cliente
+                            ? trim(($cliente->nombre ?? '').' '.($cliente->apellido ?? '')) ?: $cliente->correo
+                            : 'Cliente';
+
+                        return [
+                            'idReserva' => $r->idReserva,
+                            'fecha_hora' => $fh ? $fh->timezone(config('app.timezone'))->format(\DateTime::ATOM) : null,
+                            'num_personas' => $r->num_personas,
+                            'estado' => $r->estado,
+                            'notas' => $r->notas,
+                            'creado_en' => $creado ? $creado->timezone(config('app.timezone'))->format(\DateTime::ATOM) : null,
+                            'es_nueva' => $creado && $creado->gte($desdeNuevas),
+                            'cliente_nombre' => $nombreCliente,
+                            'cliente_email' => $cliente?->correo,
+                            'mesa' => $r->mesa ? [
+                                'numero' => $r->mesa->numero,
+                                'nombre' => $r->mesa->nombre,
+                            ] : null,
+                        ];
+                    })->values()->all(),
+                ],
             ],
         ]);
     }

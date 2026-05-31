@@ -45,17 +45,31 @@ class ClienteReservaController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $items = Reserva::query()
-            ->with([
-                'mesa:idMesa,numero,nombre,capacidad',
-            ])
-            ->where('cliente_idUsuario', $request->user()->getAuthIdentifier())
+        $clienteId = (int) $request->user()->getAuthIdentifier();
+
+        $activa = Reserva::query()
+            ->with(['mesa:idMesa,numero,nombre,capacidad'])
+            ->where('cliente_idUsuario', $clienteId)
+            ->whereIn('estado', ['CONFIRMADA', 'SOLICITADA'])
+            ->where('fecha_hora', '>=', now())
+            ->orderBy('fecha_hora')
+            ->first();
+
+        $ultima = Reserva::query()
+            ->with(['mesa:idMesa,numero,nombre,capacidad'])
+            ->where('cliente_idUsuario', $clienteId)
+            ->orderByDesc('creado_en')
             ->orderByDesc('fecha_hora')
-            ->limit(80)
-            ->get();
+            ->first();
+
+        if ($activa && $ultima && $ultima->idReserva === $activa->idReserva) {
+            $ultima = null;
+        }
 
         return response()->json([
-            'data' => $items->map(fn (Reserva $r) => $this->serializeReserva($r)),
+            'reserva_activa' => $activa ? $this->serializeReserva($activa) : null,
+            'ultima_reserva' => $ultima ? $this->serializeReserva($ultima) : null,
+            'puede_reservar' => $activa === null,
         ]);
     }
 
@@ -74,6 +88,20 @@ class ClienteReservaController extends Controller
         if (! in_array($data['hora'], self::SLOT_STARTS, true)) {
             return response()->json([
                 'message' => 'El horario elegido no está disponible. Elige una franja de 1 h 30 min entre 10:00 a. m. y 8:30 p. m.',
+            ], 422);
+        }
+
+        $clienteId = (int) $request->user()->getAuthIdentifier();
+
+        $yaTieneActiva = Reserva::query()
+            ->where('cliente_idUsuario', $clienteId)
+            ->whereIn('estado', ['CONFIRMADA', 'SOLICITADA'])
+            ->where('fecha_hora', '>=', now())
+            ->exists();
+
+        if ($yaTieneActiva) {
+            return response()->json([
+                'message' => 'Ya tienes una reserva activa. Solo puedes tener una a la vez.',
             ], 422);
         }
 
@@ -121,7 +149,7 @@ class ClienteReservaController extends Controller
             'mesa_idMesa' => $data['mesa_idMesa'] ?? null,
             'fecha_hora' => $fechaHora,
             'num_personas' => $data['num_personas'],
-            'estado' => 'SOLICITADA',
+            'estado' => 'CONFIRMADA',
             'notas' => $data['notas'] ?: null,
             'creado_en' => now(),
         ]);
@@ -129,9 +157,43 @@ class ClienteReservaController extends Controller
         $reserva->load('mesa:idMesa,numero,nombre,capacidad');
 
         return response()->json([
-            'message' => 'Tu reserva fue procesada exitosamente. El restaurante revisará tu solicitud y te confirmará pronto.',
+            'message' => 'Tu reserva quedó registrada. Te esperamos en la fecha y horario elegidos.',
             'data' => $this->serializeReserva($reserva),
+            'puede_reservar' => false,
         ], 201);
+    }
+
+    public function cancelar(Request $request, Reserva $reserva): JsonResponse
+    {
+        $clienteId = (int) $request->user()->getAuthIdentifier();
+
+        if ((int) $reserva->cliente_idUsuario !== $clienteId) {
+            abort(403, 'No autorizado para esta reserva.');
+        }
+
+        if ($reserva->estado === 'CANCELADA') {
+            return response()->json(['message' => 'Esta reserva ya está cancelada.'], 422);
+        }
+
+        if (! in_array($reserva->estado, ['CONFIRMADA', 'SOLICITADA'], true)) {
+            return response()->json(['message' => 'Esta reserva ya no puede cancelarse.'], 422);
+        }
+
+        $data = $request->validate([
+            'motivo' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $reserva->estado = 'CANCELADA';
+        $reserva->motivo_cancelacion = trim($data['motivo']);
+        $reserva->save();
+
+        $reserva->load('mesa:idMesa,numero,nombre,capacidad');
+
+        return response()->json([
+            'message' => 'Tu reserva fue cancelada correctamente.',
+            'data' => $this->serializeReserva($reserva),
+            'puede_reservar' => true,
+        ]);
     }
 
     private function serializeReserva(Reserva $r): array
@@ -148,6 +210,7 @@ class ClienteReservaController extends Controller
             'num_personas' => $r->num_personas,
             'estado' => $r->estado,
             'notas' => $r->notas,
+            'motivo_cancelacion' => $r->motivo_cancelacion,
             'creado_en' => $creado ? $creado->timezone(config('app.timezone'))->format(\DateTime::ATOM) : null,
             'mesa' => $r->mesa ? [
                 'idMesa' => $r->mesa->idMesa,

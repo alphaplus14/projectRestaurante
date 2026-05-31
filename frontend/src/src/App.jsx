@@ -13,6 +13,7 @@ import { AdminMeserosPage } from './pages/AdminMeserosPage';
 import { AdminCocinerosPage } from './pages/AdminCocinerosPage';
 import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
+import { AdminReservasPage } from './pages/AdminReservasPage';
 import { AdminReportesPage } from './pages/AdminReportesPage';
 import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
@@ -78,6 +79,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminMesasPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/reservas"
+                element={
+                    <RequireAdmin>
+                        <AdminReservasPage />
                     </RequireAdmin>
                 }
             />

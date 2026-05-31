@@ -96,14 +96,251 @@ function formatFechaLarga(yyyyMmDd) {
 
 function estadoStyle(estado) {
     const e = String(estado || '').toUpperCase();
-    if (e === 'CONFIRMADA') {
+    if (e === 'CONFIRMADA' || e === 'SOLICITADA') {
         return 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30';
     }
-    if (e === 'SOLICITADA') return 'bg-amber-500/15 text-amber-900 dark:text-amber-200 border-amber-500/30';
-    if (e === 'CANCELADA' || e === 'RECHAZADA') {
+    if (e === 'CANCELADA' || e === 'RECHAZADA' || e === 'NO_ASISTIO') {
         return 'bg-stone-200 text-stone-700 dark:bg-white/10 dark:text-neutral-300 border-stone-300 dark:border-white/15';
     }
     return 'bg-stone-100 text-stone-800 dark:bg-white/10 dark:text-neutral-200 border-stone-200 dark:border-white/10';
+}
+
+function etiquetaEstadoReserva(estado) {
+    const e = String(estado || '').toUpperCase();
+    if (e === 'CONFIRMADA' || e === 'SOLICITADA') return 'Reservada';
+    if (e === 'COMPLETADA') return 'Completada';
+    if (e === 'CANCELADA') return 'Cancelada';
+    if (e === 'NO_ASISTIO') return 'No asistió';
+    return estado;
+}
+
+function franjaDesdeReserva(reserva) {
+    if (!reserva?.fecha_hora) return null;
+    const inicio = new Date(reserva.fecha_hora);
+    const fin = new Date(inicio.getTime() + SLOT_MINUTES * 60 * 1000);
+    const fmt = (d) =>
+        d.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return `${fmt(inicio)} – ${fmt(fin)}`;
+}
+
+function filaResumen(label, value, pendiente) {
+    return (
+        <div className="flex justify-between gap-3 py-2.5 border-b border-stone-200/80 dark:border-white/10 last:border-0">
+            <span className="text-xs font-medium text-stone-500 dark:text-neutral-500 shrink-0">{label}</span>
+            <span
+                className={classNames(
+                    'text-sm text-right font-medium min-w-0 break-words',
+                    pendiente ? 'text-stone-400 dark:text-neutral-500 italic' : 'text-stone-900 dark:text-neutral-100',
+                )}
+            >
+                {value}
+            </span>
+        </div>
+    );
+}
+
+function CancelarReservaModal({ open, onClose, onConfirm, busy }) {
+    const [motivo, setMotivo] = useState('');
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!open) {
+            setMotivo('');
+            setError('');
+        }
+    }, [open]);
+
+    if (!open) return null;
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        const t = motivo.trim();
+        if (t.length < 3) {
+            setError('Escribe al menos 3 caracteres con el motivo.');
+            return;
+        }
+        setError('');
+        onConfirm(t);
+    }
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} aria-hidden />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cancelar-reserva-titulo"
+                className="relative z-10 w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-neutral-900 shadow-2xl p-5 sm:p-6"
+            >
+                <h2 id="cancelar-reserva-titulo" className="text-lg font-semibold text-stone-900 dark:text-neutral-50">
+                    Cancelar reserva
+                </h2>
+                <p className="mt-2 text-sm text-stone-600 dark:text-neutral-400">
+                    Indica el motivo de la cancelación. Recuerda avisar con al menos 2 horas de antelación cuando sea posible.
+                </p>
+                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                    <label className="block">
+                        <span className="text-xs font-medium text-stone-600 dark:text-neutral-400">Motivo</span>
+                        <textarea
+                            value={motivo}
+                            onChange={(e) => setMotivo(e.target.value)}
+                            rows={4}
+                            maxLength={500}
+                            placeholder="Ej.: Cambio de planes, no podré asistir…"
+                            className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-neutral-950 px-3 py-2.5 text-sm text-stone-900 dark:text-neutral-50 placeholder:text-stone-500 focus-visible:ring-2 focus-visible:ring-red-500"
+                            autoFocus
+                        />
+                    </label>
+                    {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={busy}
+                            className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium disabled:opacity-50"
+                        >
+                            Volver
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={busy}
+                            className="flex-1 rounded-xl bg-red-600 hover:bg-red-500 text-white py-3 text-sm font-semibold disabled:opacity-50"
+                        >
+                            {busy ? 'Cancelando…' : 'Confirmar cancelación'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/** Panel unificado: reserva activa, vista previa del wizard o última reserva. */
+function ResumenReservaPanel({ modo, reserva, preview, onCancelar }) {
+    const esPreview = modo === 'preview';
+    const esUltima = modo === 'ultima';
+    const esActiva = modo === 'activa';
+
+    const titulo = esPreview
+        ? 'Vista previa'
+        : esActiva
+          ? 'Tu reserva'
+          : esUltima
+            ? 'Última reserva'
+            : 'Resumen';
+
+    const slot = preview?.slot ?? (reserva?.fecha_hora ? null : null);
+    const slotFromHora = preview?.hora ? TIME_SLOTS.find((s) => s.value === preview.hora) : null;
+    const slotLabel = slot
+        ? formatSlotLabel(slot)
+        : slotFromHora
+          ? formatSlotLabel(slotFromHora)
+          : reserva?.fecha_hora
+            ? franjaDesdeReserva(reserva)
+            : null;
+
+    const fechaTexto = preview?.fecha
+        ? formatFechaLarga(preview.fecha)
+        : reserva?.fecha_hora
+          ? formatFechaLarga(String(reserva.fecha_hora).slice(0, 10))
+          : null;
+
+    const fechaCompleta = reserva?.fecha_hora ? formatFechaHora(reserva.fecha_hora) : null;
+    const personas = preview?.numPersonas ?? reserva?.num_personas;
+    const notas = (preview?.notas?.trim?.() || reserva?.notas || '').trim();
+
+    const cardClass = esPreview
+        ? 'border-amber-500/35 bg-amber-50/50 dark:bg-amber-950/20'
+        : esActiva
+          ? 'border-teal-500/30 bg-teal-50/60 dark:bg-teal-950/25'
+          : esUltima
+            ? 'border-stone-200 dark:border-white/10 bg-stone-50/80 dark:bg-neutral-900/40'
+            : 'border-dashed border-stone-300 dark:border-white/15';
+
+    return (
+        <article className={classNames('rounded-2xl border p-4 sm:p-5 shadow-sm', cardClass)}>
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <h3
+                    className={classNames(
+                        'text-base font-semibold',
+                        esPreview
+                            ? 'text-amber-900 dark:text-amber-100'
+                            : esActiva
+                              ? 'text-teal-900 dark:text-teal-100'
+                              : 'text-stone-900 dark:text-neutral-50',
+                    )}
+                >
+                    {titulo}
+                </h3>
+                {esPreview ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border border-amber-500/40 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100">
+                        En proceso
+                    </span>
+                ) : reserva?.estado ? (
+                    <span
+                        className={classNames(
+                            'text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md border',
+                            estadoStyle(reserva.estado),
+                        )}
+                    >
+                        {etiquetaEstadoReserva(reserva.estado)}
+                    </span>
+                ) : null}
+            </div>
+
+            {fechaCompleta && !esPreview ? (
+                <p className="text-lg font-semibold text-stone-900 dark:text-neutral-50 mb-3">{fechaCompleta}</p>
+            ) : null}
+
+            <div className="rounded-xl bg-white/60 dark:bg-neutral-950/40 px-3 border border-stone-200/60 dark:border-white/10">
+                {filaResumen('Fecha', fechaTexto || 'Por elegir', !fechaTexto)}
+                {filaResumen('Franja horaria', slotLabel || 'Por elegir', !slotLabel)}
+                {filaResumen(
+                    'Personas',
+                    personas ? `${personas} persona${Number(personas) === 1 ? '' : 's'}` : 'Por elegir',
+                    !personas,
+                )}
+                {filaResumen('Mesa', reserva?.mesa ? `Mesa ${reserva.mesa.numero}` : 'Asignará el restaurante', !reserva?.mesa)}
+                {notas
+                    ? filaResumen('Notas', notas.length > 48 ? `${notas.slice(0, 45)}…` : notas, false)
+                    : esPreview && preview?.paso >= 4
+                      ? filaResumen('Notas', 'Sin notas', false)
+                      : null}
+            </div>
+
+            {esPreview ? (
+                <p className="mt-3 text-xs text-amber-800/90 dark:text-amber-200/80 leading-relaxed">
+                    Este resumen se actualiza mientras completas los pasos. Al confirmar, quedará guardado así.
+                </p>
+            ) : esActiva ? (
+                <>
+                    <p className="mt-3 text-xs text-stone-600 dark:text-neutral-500 leading-relaxed">
+                        Solo puedes tener una reserva activa. Cuando termine esta visita podrás reservar de nuevo.
+                    </p>
+                    {onCancelar ? (
+                        <button
+                            type="button"
+                            onClick={onCancelar}
+                            className="mt-4 w-full min-h-[44px] rounded-xl border-2 border-red-600 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors"
+                        >
+                            Cancelar reserva
+                        </button>
+                    ) : null}
+                </>
+            ) : esUltima ? (
+                <>
+                    <p className="mt-3 text-xs text-stone-600 dark:text-neutral-500 leading-relaxed">
+                        Datos de la última reserva que registraste en el sistema.
+                    </p>
+                    {reserva?.estado === 'CANCELADA' && reserva?.motivo_cancelacion ? (
+                        <p className="mt-2 text-xs text-stone-500 dark:text-neutral-500">
+                            <span className="font-medium">Motivo de cancelación:</span> {reserva.motivo_cancelacion}
+                        </p>
+                    ) : null}
+                </>
+            ) : null}
+        </article>
+    );
 }
 
 function PasoIndicador({ pasoActual }) {
@@ -166,7 +403,9 @@ function PasoIndicador({ pasoActual }) {
 export function ClienteReservasPage() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [lista, setLista] = useState([]);
+    const [reservaActiva, setReservaActiva] = useState(null);
+    const [ultimaReserva, setUltimaReserva] = useState(null);
+    const [puedeReservar, setPuedeReservar] = useState(true);
     const [loading, setLoading] = useState(true);
     const [enviando, setEnviando] = useState(false);
 
@@ -176,6 +415,9 @@ export function ClienteReservasPage() {
     const [fecha, setFecha] = useState('');
     const [notas, setNotas] = useState('');
     const [resultado, setResultado] = useState(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelando, setCancelando] = useState(false);
+    const [banner, setBanner] = useState('');
 
     const minFecha = useMemo(() => minDateLocal(), []);
     const maxFecha = useMemo(() => maxDateLocal(), []);
@@ -187,9 +429,13 @@ export function ClienteReservasPage() {
         try {
             const [me, r] = await Promise.all([apiFetch('/api/auth/me'), apiFetch('/api/cliente/reservas')]);
             setUser(me?.user ?? null);
-            setLista(Array.isArray(r?.data) ? r.data : []);
+            setReservaActiva(r?.reserva_activa ?? null);
+            setUltimaReserva(r?.ultima_reserva ?? null);
+            setPuedeReservar(r?.puede_reservar !== false);
         } catch {
-            setLista([]);
+            setReservaActiva(null);
+            setUltimaReserva(null);
+            setPuedeReservar(true);
         } finally {
             setLoading(false);
         }
@@ -208,6 +454,29 @@ export function ClienteReservasPage() {
         setResultado(null);
     }
 
+    async function cancelarReserva(motivo) {
+        if (!reservaActiva?.idReserva) return;
+        setCancelando(true);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/cliente/reservas/${reservaActiva.idReserva}/cancelar`, {
+                method: 'POST',
+                body: JSON.stringify({ motivo }),
+            });
+            setShowCancelModal(false);
+            setReservaActiva(null);
+            setPuedeReservar(true);
+            setUltimaReserva(res?.data ?? null);
+            setBanner(res?.message || 'Reserva cancelada.');
+            reiniciarWizard();
+            await loadAll();
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo cancelar la reserva.');
+        } finally {
+            setCancelando(false);
+        }
+    }
+
     async function enviarReserva() {
         setEnviando(true);
         setResultado(null);
@@ -221,7 +490,9 @@ export function ClienteReservasPage() {
                     notas: notas.trim() || null,
                 }),
             });
-            setResultado({ ok: true, message: res?.message || 'Tu reserva fue procesada exitosamente.' });
+            setResultado({ ok: true, message: res?.message || 'Tu reserva quedó registrada.' });
+            setReservaActiva(res?.data ?? null);
+            setPuedeReservar(false);
             setPaso(5);
             await loadAll();
         } catch (e) {
@@ -245,6 +516,58 @@ export function ClienteReservasPage() {
     const puedeAvanzarPaso2 = Boolean(hora);
     const puedeAvanzarPaso3 = Number(numPersonas) >= 1 && Number(numPersonas) <= MAX_PERSONAS;
     const puedeAvanzarPaso4 = Boolean(fecha) && fecha >= minFecha && fecha <= maxFecha;
+
+    const mostrarResultado = paso === 5 && resultado;
+    const mostrarFormulario = puedeReservar && paso < 5;
+    const mostrarWizard = mostrarFormulario || mostrarResultado;
+
+    const resumenPanel = useMemo(() => {
+        if (reservaActiva && !mostrarFormulario) {
+            return { modo: 'activa', reserva: reservaActiva, preview: null };
+        }
+        if (mostrarWizard && (mostrarFormulario || (mostrarResultado && resultado?.ok))) {
+            return {
+                modo: 'preview',
+                reserva: resultado?.ok ? reservaActiva : null,
+                preview: {
+                    hora: hora || null,
+                    slot: slotElegido,
+                    fecha: fecha || null,
+                    numPersonas: numPersonas || null,
+                    notas,
+                    paso,
+                },
+            };
+        }
+        if (ultimaReserva) {
+            return { modo: 'ultima', reserva: ultimaReserva, preview: null };
+        }
+        return { modo: 'empty', reserva: null, preview: null };
+    }, [
+        reservaActiva,
+        ultimaReserva,
+        mostrarWizard,
+        mostrarFormulario,
+        mostrarResultado,
+        resultado,
+        hora,
+        slotElegido,
+        fecha,
+        numPersonas,
+        notas,
+        paso,
+    ]);
+
+    const subtituloResumen =
+        resumenPanel.modo === 'preview'
+            ? mostrarResultado && resultado?.ok
+                ? 'Así quedó tu reserva registrada'
+                : 'Así va quedando tu reserva'
+            : resumenPanel.modo === 'activa'
+              ? 'Tu próxima visita al restaurante'
+              : resumenPanel.modo === 'ultima'
+                ? 'Referencia de tu última visita reservada'
+                : 'Completa el formulario para ver el resumen';
 
     return (
         <div className="relative min-h-screen overflow-x-clip bg-stone-100 dark:bg-neutral-950 text-stone-900 dark:text-neutral-100">
@@ -287,16 +610,43 @@ export function ClienteReservasPage() {
                 </div>
             </header>
 
+            <CancelarReservaModal
+                open={showCancelModal}
+                busy={cancelando}
+                onClose={() => !cancelando && setShowCancelModal(false)}
+                onConfirm={cancelarReserva}
+            />
+
             <main className="relative mx-auto max-w-6xl px-3 min-[375px]:px-4 sm:px-5 md:px-6 py-6 sm:py-8 md:py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start pb-[max(2rem,calc(env(safe-area-inset-bottom)+1.5rem))]">
+                {banner ? (
+                    <div className="lg:col-span-2 rounded-xl border border-teal-500/30 bg-teal-50 dark:bg-teal-950/30 px-4 py-3 text-sm text-teal-900 dark:text-teal-100">
+                        {banner}
+                    </div>
+                ) : null}
                 <section className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white/90 dark:bg-neutral-900/50 p-4 min-[375px]:p-5 sm:p-6 shadow-sm min-w-0">
-                    <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50">Nueva reserva</h2>
-                    <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-neutral-400">
-                        Completa los pasos para solicitar tu mesa.
-                    </p>
+                    {mostrarWizard ? (
+                        <>
+                            <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50">
+                                Nueva reserva
+                            </h2>
+                            <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-neutral-400">
+                                Completa los pasos. Solo puedes tener una reserva activa a la vez.
+                            </p>
 
-                    <PasoIndicador pasoActual={paso} />
+                            <PasoIndicador pasoActual={paso} />
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50">
+                                Reservar mesa
+                            </h2>
+                            <p className="mt-1 text-xs sm:text-sm text-stone-600 dark:text-neutral-400">
+                                Ya tienes una reserva registrada para tu próxima visita.
+                            </p>
+                        </>
+                    )}
 
-                    {paso === 1 ? (
+                    {mostrarWizard && paso === 1 ? (
                         <div className="space-y-5">
                             <div className="rounded-xl border border-teal-500/25 bg-teal-50/80 dark:bg-teal-950/25 px-4 py-4 sm:px-5 sm:py-5">
                                 <h3 className="text-base font-semibold text-teal-900 dark:text-teal-100">
@@ -313,6 +663,10 @@ export function ClienteReservasPage() {
                                     </li>
                                     <li>
                                         Puedes reservar con hasta <strong>{MAX_DIAS} días de anticipación</strong>.
+                                    </li>
+                                    <li>
+                                        Solo puedes tener <strong>una reserva activa</strong> a la vez; al guardarla queda
+                                        registrada de inmediato.
                                     </li>
                                 </ul>
                             </div>
@@ -334,7 +688,7 @@ export function ClienteReservasPage() {
                         </div>
                     ) : null}
 
-                    {paso === 2 ? (
+                    {mostrarWizard && paso === 2 ? (
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-base font-semibold text-stone-900 dark:text-neutral-50">
@@ -387,7 +741,7 @@ export function ClienteReservasPage() {
                         </div>
                     ) : null}
 
-                    {paso === 3 ? (
+                    {mostrarWizard && paso === 3 ? (
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-base font-semibold text-stone-900 dark:text-neutral-50">
@@ -463,7 +817,7 @@ export function ClienteReservasPage() {
                         </div>
                     ) : null}
 
-                    {paso === 4 ? (
+                    {mostrarWizard && paso === 4 ? (
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-base font-semibold text-stone-900 dark:text-neutral-50">
@@ -535,7 +889,7 @@ export function ClienteReservasPage() {
                         </div>
                     ) : null}
 
-                    {paso === 5 && resultado ? (
+                    {mostrarWizard && paso === 5 && resultado ? (
                         <div className="space-y-5 text-center py-4">
                             {resultado.ok ? (
                                 <>
@@ -543,7 +897,7 @@ export function ClienteReservasPage() {
                                         ✓
                                     </div>
                                     <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">
-                                        Reserva procesada exitosamente
+                                        Reserva registrada
                                     </h3>
                                     <p className="text-sm text-stone-600 dark:text-neutral-400 leading-relaxed max-w-sm mx-auto">
                                         {resultado.message}
@@ -569,13 +923,26 @@ export function ClienteReservasPage() {
                                 </>
                             )}
                             <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-                                <button
-                                    type="button"
-                                    onClick={reiniciarWizard}
-                                    className="min-h-[44px] rounded-xl px-6 bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500"
-                                >
-                                    Hacer otra reserva
-                                </button>
+                                {resultado.ok ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPaso(1);
+                                            setResultado(null);
+                                        }}
+                                        className="min-h-[44px] rounded-xl px-6 bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500"
+                                    >
+                                        Ver mi reserva
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={reiniciarWizard}
+                                        className="min-h-[44px] rounded-xl px-6 bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500"
+                                    >
+                                        Intentar de nuevo
+                                    </button>
+                                )}
                                 {!resultado.ok ? (
                                     <button
                                         type="button"
@@ -590,49 +957,28 @@ export function ClienteReservasPage() {
                     ) : null}
                 </section>
 
-                <section className="min-w-0">
-                    <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50">Mis solicitudes</h2>
-                    <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-neutral-400">Historial reciente.</p>
+                <section className="min-w-0 lg:sticky lg:top-24">
+                    <h2 className="text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50">Mi reserva</h2>
+                    <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-neutral-400">{subtituloResumen}</p>
 
-                    <div className="mt-5 sm:mt-6 space-y-3">
+                    <div className="mt-5 sm:mt-6">
                         {loading ? (
                             <p className="text-stone-500 dark:text-neutral-500 py-8">Cargando…</p>
-                        ) : lista.length === 0 ? (
-                            <p className="text-stone-600 dark:text-neutral-400 rounded-2xl border border-dashed border-stone-300 dark:border-white/15 px-4 py-8 text-center">
-                                Aún no tienes reservas registradas desde la web.
+                        ) : resumenPanel.modo === 'empty' ? (
+                            <p className="text-stone-600 dark:text-neutral-400 rounded-2xl border border-dashed border-stone-300 dark:border-white/15 px-4 py-8 text-center text-sm leading-relaxed">
+                                Aún no hay datos que mostrar. Elige horario, personas y fecha en el formulario.
                             </p>
                         ) : (
-                            lista.map((r) => (
-                                <article
-                                    key={r.idReserva}
-                                    className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white/80 dark:bg-neutral-900/40 p-3.5 sm:p-4 shadow-sm min-w-0"
-                                >
-                                    <div className="flex flex-wrap items-start justify-between gap-2">
-                                        <div className="font-medium text-stone-900 dark:text-neutral-50 text-sm sm:text-base min-w-0 break-words pr-2">
-                                            {formatFechaHora(r.fecha_hora)}
-                                        </div>
-                                        <span
-                                            className={classNames(
-                                                'text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md border shrink-0',
-                                                estadoStyle(r.estado),
-                                            )}
-                                        >
-                                            {r.estado}
-                                        </span>
-                                    </div>
-                                    <p className="mt-2 text-xs sm:text-sm text-stone-600 dark:text-neutral-400 break-words">
-                                        {r.num_personas} persona{r.num_personas === 1 ? '' : 's'}
-                                        {r.mesa
-                                            ? ` · ${r.mesa.nombre ? `Mesa ${r.mesa.numero} (${r.mesa.nombre})` : `Mesa ${r.mesa.numero}`}`
-                                            : ' · Mesa por asignar'}
-                                    </p>
-                                    {r.notas ? (
-                                        <p className="mt-2 text-sm text-stone-500 dark:text-neutral-500 italic">
-                                            &ldquo;{r.notas}&rdquo;
-                                        </p>
-                                    ) : null}
-                                </article>
-                            ))
+                            <ResumenReservaPanel
+                                modo={resumenPanel.modo}
+                                reserva={resumenPanel.reserva}
+                                preview={resumenPanel.preview}
+                                onCancelar={
+                                    resumenPanel.modo === 'activa' && reservaActiva?.idReserva
+                                        ? () => setShowCancelModal(true)
+                                        : undefined
+                                }
+                            />
                         )}
                     </div>
                 </section>

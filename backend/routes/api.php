@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminMesaController;
 use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
+use App\Http\Controllers\Api\AdminReservaController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
@@ -36,10 +37,13 @@ Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(fu
     Route::get('mesas', [ClienteReservaController::class, 'mesas']);
     Route::get('reservas', [ClienteReservaController::class, 'index']);
     Route::post('reservas', [ClienteReservaController::class, 'store']);
+    Route::post('reservas/{reserva:idReserva}/cancelar', [ClienteReservaController::class, 'cancelar']);
 });
 
 Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(function () {
     Route::get('mesas', [MeseroController::class, 'mesas']);
+    Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
+    Route::post('pedidos/{pedido:idPedido}/recibir', [MeseroController::class, 'recibirPedido']);
     Route::get('categorias', [ProductoController::class, 'categoriasMesero']);
     Route::get('productos', [ProductoController::class, 'indexMesero']);
     Route::post('pedidos', [MeseroController::class, 'storePedido']);
@@ -56,6 +60,8 @@ Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(fu
 
 Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
     Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
+    Route::get('reservas', [AdminReservaController::class, 'index']);
 
     Route::get('mesas', [AdminMesaController::class, 'index']);
     Route::post('mesas', [AdminMesaController::class, 'store']);
