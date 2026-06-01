@@ -73,6 +73,42 @@ class ClienteReservaController extends Controller
         ]);
     }
 
+    /**
+     * Disponibilidad por franja para un día (máximo = mesas activas en el local).
+     */
+    public function disponibilidad(Request $request): JsonResponse
+    {
+        $maxFecha = now()->startOfDay()->addDays(self::MAX_DIAS_ANTICIPACION)->format('Y-m-d');
+
+        $data = $request->validate([
+            'fecha' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.$maxFecha],
+        ]);
+
+        $capacidad = $this->countMesasActivas();
+        $franjas = [];
+
+        foreach (self::SLOT_STARTS as $hora) {
+            $inicio = Carbon::parse($data['fecha'].' '.$hora.':00');
+            $ocupadas = $this->countReservasEnFranja($inicio);
+            $pasada = $inicio->isPast();
+            $disponible = ! $pasada && $capacidad > 0 && $ocupadas < $capacidad;
+
+            $franjas[] = [
+                'hora' => $hora,
+                'ocupadas' => $ocupadas,
+                'capacidad' => $capacidad,
+                'restantes' => max(0, $capacidad - $ocupadas),
+                'disponible' => $disponible,
+            ];
+        }
+
+        return response()->json([
+            'fecha' => $data['fecha'],
+            'mesas_activas' => $capacidad,
+            'franjas' => $franjas,
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $maxFecha = now()->startOfDay()->addDays(self::MAX_DIAS_ANTICIPACION)->format('Y-m-d');
@@ -112,18 +148,17 @@ class ClienteReservaController extends Controller
             ], 422);
         }
 
-        $slotFin = $fechaHora->copy()->addMinutes(self::SLOT_MINUTES);
-
-        $hayChoqueFranja = Reserva::query()
-            ->whereIn('estado', ['SOLICITADA', 'CONFIRMADA'])
-            ->whereDate('fecha_hora', $fechaHora->toDateString())
-            ->where('fecha_hora', '<', $slotFin)
-            ->whereRaw('DATE_ADD(fecha_hora, INTERVAL ? MINUTE) > ?', [self::SLOT_MINUTES, $fechaHora->format('Y-m-d H:i:s')])
-            ->exists();
-
-        if ($hayChoqueFranja) {
+        $capacidad = $this->countMesasActivas();
+        if ($capacidad < 1) {
             return response()->json([
-                'message' => 'Esa franja horaria ya no está disponible para ese día. Elige otro horario.',
+                'message' => 'No hay mesas disponibles para reservas en este momento.',
+            ], 422);
+        }
+
+        $ocupadas = $this->countReservasEnFranja($fechaHora);
+        if ($ocupadas >= $capacidad) {
+            return response()->json([
+                'message' => 'No hay disponibilidad en esa franja horaria. Elige otro horario.',
             ], 422);
         }
 
@@ -194,6 +229,29 @@ class ClienteReservaController extends Controller
             'data' => $this->serializeReserva($reserva),
             'puede_reservar' => true,
         ]);
+    }
+
+    private function countMesasActivas(): int
+    {
+        return (int) Mesa::query()->where('activa', true)->count();
+    }
+
+    /**
+     * Reservas activas que solapan la franja de 90 min que inicia en $slotInicio.
+     */
+    private function countReservasEnFranja(Carbon $slotInicio): int
+    {
+        $slotFin = $slotInicio->copy()->addMinutes(self::SLOT_MINUTES);
+
+        return (int) Reserva::query()
+            ->whereIn('estado', ['SOLICITADA', 'CONFIRMADA'])
+            ->whereDate('fecha_hora', $slotInicio->toDateString())
+            ->where('fecha_hora', '<', $slotFin)
+            ->whereRaw('DATE_ADD(fecha_hora, INTERVAL ? MINUTE) > ?', [
+                self::SLOT_MINUTES,
+                $slotInicio->format('Y-m-d H:i:s'),
+            ])
+            ->count();
     }
 
     private function serializeReserva(Reserva $r): array
