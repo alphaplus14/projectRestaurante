@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CocinaLlamadaMesero;
 use App\Models\Pedido;
+use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,25 +32,85 @@ class CocinaPedidoController extends Controller
             ->orderBy('creado_en')
             ->get();
 
-        $cancelados = Pedido::query()
+        return response()->json([
+            'data' => $pedidos->map(fn (Pedido $p) => $this->serializePedido($p)),
+        ]);
+    }
+
+    /**
+     * Historial y filtros para el panel de ajustes en cocina.
+     */
+    public function historial(Request $request): JsonResponse
+    {
+        $filtro = $request->query('filtro', 'todas');
+
+        $query = Pedido::query()
             ->with([
                 'mesa:idMesa,numero,nombre',
                 'mesero:idUsuario,nombre,apellido',
                 'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
                     'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
                 ]),
-            ])
-            ->where('estado', 'CANCELADO')
-            ->whereNotNull('cancelado_en')
-            ->where('cancelado_en', '>=', now()->subHours(48))
-            ->orderByDesc('cancelado_en')
-            ->limit(30)
-            ->get();
+            ]);
+
+        match ($filtro) {
+            'activos' => $query->whereIn('estado', ['PENDIENTE', 'EN_PREPARACION', 'LISTO']),
+            'cancelados' => $query->where('estado', 'CANCELADO'),
+            'cerrados' => $query->where('estado', 'CERRADO'),
+            'entregados' => $query->where('estado', 'ENTREGADO'),
+            'listos' => $query->where('estado', 'LISTO'),
+            default => null,
+        };
+
+        $items = $query->orderByDesc('creado_en')->limit(150)->get();
+
+        $conteos = [
+            'todas' => (int) Pedido::query()->count(),
+            'activos' => (int) Pedido::query()->whereIn('estado', ['PENDIENTE', 'EN_PREPARACION', 'LISTO'])->count(),
+            'cancelados' => (int) Pedido::query()->where('estado', 'CANCELADO')->count(),
+            'cerrados' => (int) Pedido::query()->where('estado', 'CERRADO')->count(),
+            'entregados' => (int) Pedido::query()->where('estado', 'ENTREGADO')->count(),
+            'listos' => (int) Pedido::query()->where('estado', 'LISTO')->count(),
+        ];
 
         return response()->json([
-            'data' => $pedidos->map(fn (Pedido $p) => $this->serializePedido($p)),
-            'cancelados' => $cancelados->map(fn (Pedido $p) => $this->serializePedido($p)),
+            'data' => $items->map(fn (Pedido $p) => $this->serializePedido($p)),
+            'conteos' => $conteos,
+            'filtro' => $filtro,
         ]);
+    }
+
+    public function llamarMesero(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        $pendiente = CocinaLlamadaMesero::query()
+            ->whereNull('atendida_en')
+            ->where('creado_en', '>=', now()->subMinutes(10))
+            ->exists();
+
+        if ($pendiente) {
+            return response()->json([
+                'message' => 'Ya hay una llamada activa al mesero. Espera a que atiendan.',
+            ], 422);
+        }
+
+        $llamada = CocinaLlamadaMesero::create([
+            'cocinero_idUsuario' => (int) $user->getAuthIdentifier(),
+            'creado_en' => now(),
+            'atendida_en' => null,
+            'mesero_idUsuario' => null,
+        ]);
+
+        $llamada->load('cocinero:idUsuario,nombre,apellido');
+
+        return response()->json([
+            'message' => 'Llamada enviada al mesero.',
+            'data' => $this->serializeLlamada($llamada),
+        ], 201);
     }
 
     public function updateEstado(Request $request, Pedido $pedido): JsonResponse
@@ -119,6 +181,7 @@ class CocinaPedidoController extends Controller
             'notas' => $p->notas,
             'motivo_cancelacion' => $p->motivo_cancelacion,
             'cancelado_en' => $p->cancelado_en?->toIso8601String(),
+            'cerrado_en' => $p->cerrado_en?->toIso8601String(),
             'creado_en' => $p->creado_en?->toIso8601String(),
             'actualizado_en' => $p->actualizado_en?->toIso8601String(),
             'mesa' => $p->mesa ? [
@@ -145,6 +208,24 @@ class CocinaPedidoController extends Controller
                         : null,
                 ] : null,
             ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeLlamada(CocinaLlamadaMesero $l): array
+    {
+        $cocinero = $l->cocinero;
+        $nombreCocinero = $cocinero
+            ? trim(($cocinero->nombre ?? '').' '.($cocinero->apellido ?? ''))
+            : 'Cocina';
+
+        return [
+            'id' => $l->id,
+            'creado_en' => $l->creado_en?->toIso8601String(),
+            'atendida_en' => $l->atendida_en?->toIso8601String(),
+            'cocinero_nombre' => $nombreCocinero ?: 'Cocina',
         ];
     }
 }

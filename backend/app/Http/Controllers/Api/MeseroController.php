@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CocinaLlamadaMesero;
 use App\Models\Mesa;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class MeseroController extends Controller
 {
-    private const ABIERTOS = ['PENDIENTE', 'EN_PREPARACION', 'LISTO'];
+    private const ABIERTOS = ['PENDIENTE', 'EN_PREPARACION', 'LISTO', 'ENTREGADO'];
 
     /**
      * Mesas activas con resumen del pedido abierto (si existe).
@@ -98,6 +99,90 @@ class MeseroController extends Controller
                 ];
             }),
         ]);
+    }
+
+    /**
+     * Alertas: pedidos listos + llamadas de cocina.
+     */
+    public function alertas(Request $request): JsonResponse
+    {
+        $listos = $this->pedidosListosData($request);
+
+        $llamadas = CocinaLlamadaMesero::query()
+            ->with('cocinero:idUsuario,nombre,apellido')
+            ->whereNull('atendida_en')
+            ->where('creado_en', '>=', now()->subHours(4))
+            ->orderByDesc('creado_en')
+            ->get();
+
+        return response()->json([
+            'pedidos_listos' => $listos,
+            'llamadas_cocina' => $llamadas->map(fn (CocinaLlamadaMesero $l) => [
+                'id' => $l->id,
+                'creado_en' => $l->creado_en?->toIso8601String(),
+                'cocinero_nombre' => trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina',
+            ]),
+        ]);
+    }
+
+    public function atenderLlamadaCocina(Request $request, CocinaLlamadaMesero $llamada): JsonResponse
+    {
+        $meseroId = (int) $request->user()->getAuthIdentifier();
+
+        if ($llamada->atendida_en) {
+            return response()->json(['message' => 'Esta llamada ya fue atendida.'], 422);
+        }
+
+        $llamada->atendida_en = now();
+        $llamada->mesero_idUsuario = $meseroId;
+        $llamada->save();
+
+        return response()->json([
+            'message' => 'Llamada de cocina atendida.',
+        ]);
+    }
+
+    /**
+     * Pedidos marcados listos en cocina, pendientes de retirar por el mesero.
+     */
+    public function pedidosListos(Request $request): JsonResponse
+    {
+        return response()->json($this->pedidosListosData($request));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pedidosListosData(Request $request): array
+    {
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        $authId = (int) $user->getAuthIdentifier();
+
+        $pedidos = Pedido::query()
+            ->with(['mesa:idMesa,numero,nombre'])
+            ->where('mesero_idUsuario', $authId)
+            ->where('estado', 'LISTO')
+            ->orderBy('actualizado_en')
+            ->get();
+
+        return [
+            'total' => $pedidos->count(),
+            'data' => $pedidos->map(fn (Pedido $p) => [
+                'idPedido' => $p->idPedido,
+                'estado' => $p->estado,
+                'actualizado_en' => $p->actualizado_en?->toIso8601String(),
+                'creado_en' => $p->creado_en?->toIso8601String(),
+                'mesa' => $p->mesa ? [
+                    'idMesa' => $p->mesa->idMesa,
+                    'numero' => $p->mesa->numero,
+                    'nombre' => $p->mesa->nombre,
+                ] : null,
+            ]),
+        ];
     }
 
     public function showPedido(Request $request, Pedido $pedido): JsonResponse
@@ -211,8 +296,8 @@ class MeseroController extends Controller
             'creado_en' => now(),
         ]);
 
-        // Nuevos ítems en una cuenta ya marcada lista → vuelven a cocina como pedido pendiente.
-        if ($pedido->estado === 'LISTO') {
+        // Nuevos ítems en una cuenta ya lista o recibida → vuelven a cocina como pedido pendiente.
+        if (in_array($pedido->estado, ['LISTO', 'ENTREGADO'], true)) {
             $pedido->estado = 'PENDIENTE';
             $pedido->save();
         } else {
@@ -268,9 +353,9 @@ class MeseroController extends Controller
             ], 422);
         }
 
-        if ($pedido->estado !== 'LISTO') {
+        if (! in_array($pedido->estado, ['LISTO', 'ENTREGADO'], true)) {
             return response()->json([
-                'message' => 'Solo puedes cerrar cuenta cuando cocina marque el pedido como listo.',
+                'message' => 'Solo puedes cerrar cuenta cuando el pedido esté listo o ya recibido de cocina.',
             ], 422);
         }
 
@@ -294,6 +379,33 @@ class MeseroController extends Controller
         return response()->json([
             'data' => $this->serializePedidoCompleto($pedido),
             'message' => 'Cuenta cerrada. La mesa quedó libre.',
+        ]);
+    }
+
+    /**
+     * Mesero retira el pedido de cocina: deja de aparecer en cola del cocinero.
+     */
+    public function recibirPedido(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizeMesero($request, $pedido);
+
+        if ($pedido->estado !== 'LISTO') {
+            return response()->json([
+                'message' => 'Este pedido no está en espera de retiro en cocina.',
+            ], 422);
+        }
+
+        $pedido->estado = 'ENTREGADO';
+        $pedido->save();
+
+        $pedido->load([
+            'mesa:idMesa,numero,nombre',
+            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
+        ]);
+
+        return response()->json([
+            'message' => 'Pedido recibido. Ya puedes servirlo en la mesa.',
+            'data' => $this->serializePedidoCompleto($pedido),
         ]);
     }
 

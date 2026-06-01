@@ -21,6 +21,7 @@ class Reserva extends Model
         'num_personas',
         'estado',
         'notas',
+        'motivo_cancelacion',
         'creado_en',
     ];
 
