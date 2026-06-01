@@ -5,6 +5,25 @@ import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const PAGE_SIZE = 8;
+const CANCELADOS_VISTOS_KEY = 'cocina_pedidos_cancelados_vistos';
+
+function leerCanceladosVistos() {
+    try {
+        const raw = localStorage.getItem(CANCELADOS_VISTOS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr.map(Number).filter(Boolean) : []);
+    } catch {
+        return new Set();
+    }
+}
+
+function guardarCanceladosVistos(ids) {
+    try {
+        localStorage.setItem(CANCELADOS_VISTOS_KEY, JSON.stringify([...ids]));
+    } catch {
+        /* ignore */
+    }
+}
 
 const SEMAFORO = [
     {
@@ -24,6 +43,12 @@ const SEMAFORO = [
         label: 'Listos',
         dotClass: 'bg-[#4d7c6f] ring-[#4d7c6f]/40',
         activeTab: 'border-[#4d7c6f] bg-[#4d7c6f]/10 text-stone-900 dark:text-stone-100',
+    },
+    {
+        key: 'CANCELADO',
+        label: 'Cancelados',
+        dotClass: 'bg-red-700 ring-red-700/40',
+        activeTab: 'border-red-600 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100',
     },
 ];
 
@@ -79,33 +104,52 @@ function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
     const busy = busyId === pedido.idPedido;
     const { lineas, unidades } = pedidoTamano(pedido);
     const tieneNotasMesero = (pedido.detalles ?? []).some((l) => l.nota?.trim());
+    const esCancelado = pedido.estado === 'CANCELADO';
 
     let action = null;
-    if (pedido.estado === 'PENDIENTE') {
+    if (!esCancelado && pedido.estado === 'PENDIENTE') {
         action = { label: 'Tomar pedido', next: 'EN_PREPARACION', className: 'bg-red-700 hover:bg-red-600' };
-    } else if (pedido.estado === 'EN_PREPARACION') {
+    } else if (!esCancelado && pedido.estado === 'EN_PREPARACION') {
         action = { label: 'Marcar listo', next: 'LISTO', className: 'bg-yellow-600 hover:bg-yellow-500 text-stone-950' };
     }
 
     return (
         <article
-            className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 shadow-sm"
+            className={classNames(
+                'rounded-2xl border p-4 shadow-sm',
+                esCancelado
+                    ? 'border-red-500/60 dark:border-red-700/60 bg-red-50/50 dark:bg-red-950/20'
+                    : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900',
+            )}
             aria-label={`Pedido ${pedido.idPedido}`}
         >
             <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                        Pedido
+                <div className="flex gap-3 min-w-0 flex-1">
+                    <div
+                        className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/30 dark:border-orange-400/25 flex items-center justify-center shadow-sm"
+                        aria-hidden
+                    >
+                        <img
+                            src="/mesa cocineros icon.png"
+                            alt=""
+                            className="h-7 w-7 sm:h-8 sm:w-8 object-contain dark:invert"
+                            draggable={false}
+                        />
                     </div>
-                    <div className="text-2xl font-bold text-stone-900 dark:text-stone-50 tabular-nums">
-                        #{pedido.idPedido}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-orange-700 dark:text-orange-300">
-                        {formatMesa(pedido.mesa)}
-                    </div>
-                    <div className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
-                        {formatTime(pedido.creado_en)} · {lineas} línea{lineas !== 1 ? 's' : ''} · {unidades}{' '}
-                        u.
+                    <div className="min-w-0">
+                        <div className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                            Pedido
+                        </div>
+                        <div className="text-2xl font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+                            #{pedido.idPedido}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-orange-700 dark:text-orange-300">
+                            {formatMesa(pedido.mesa)}
+                        </div>
+                        <div className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+                            {formatTime(pedido.creado_en)} · {lineas} línea{lineas !== 1 ? 's' : ''} · {unidades}{' '}
+                            u.
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto sm:min-w-[140px]">
@@ -114,13 +158,22 @@ function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
                         onClick={() => onVerDetalle(pedido)}
                         className={classNames(
                             'rounded-xl border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
-                            tieneNotasMesero
-                                ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-950 dark:text-yellow-100 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
-                                : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800',
+                            esCancelado
+                                ? 'border-red-600 bg-red-600 text-white hover:bg-red-500 dark:border-red-500 dark:bg-red-700 dark:hover:bg-red-600'
+                                : tieneNotasMesero
+                                  ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-950 dark:text-yellow-100 hover:bg-yellow-200 dark:hover:bg-yellow-900/50'
+                                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800',
                         )}
                     >
                         Ver detalles
-                        {tieneNotasMesero ? (
+                        {esCancelado ? (
+                            <img
+                                src="/advertencia icon.png"
+                                alt=""
+                                className="inline-block ml-1.5 h-4 w-4 align-[-2px] dark:invert"
+                                aria-hidden
+                            />
+                        ) : tieneNotasMesero ? (
                             <img
                                 src="/advertencia.png"
                                 alt=""
@@ -129,7 +182,11 @@ function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
                             />
                         ) : null}
                     </button>
-                    {action ? (
+                    {esCancelado ? (
+                        <span className="text-center text-xs font-semibold text-red-700 dark:text-red-300 py-2 px-1 line-clamp-2">
+                            {pedido.motivo_cancelacion || 'Pedido cancelado por el mesero'}
+                        </span>
+                    ) : action ? (
                         <button
                             type="button"
                             disabled={busy}
@@ -200,10 +257,94 @@ function PlatoDetalleCard({ linea }) {
     );
 }
 
+function ModalAlertasCancelados({ pedidos, onClose, onVerDetalle, onMarcarVistos }) {
+    if (!pedidos) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="alertas-cancelados-titulo"
+                className="relative z-10 w-full max-w-lg max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-2xl border border-red-300 dark:border-red-800 bg-white dark:bg-stone-900 shadow-2xl"
+            >
+                <div className="shrink-0 flex items-start justify-between gap-3 p-4 border-b border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30">
+                    <div className="flex gap-3 min-w-0">
+                        <img src="/advertencia icon.png" alt="" className="h-8 w-8 shrink-0 dark:invert" />
+                        <div>
+                            <h2 id="alertas-cancelados-titulo" className="text-lg font-semibold text-red-900 dark:text-red-100">
+                                Pedidos cancelados
+                            </h2>
+                            <p className="text-sm text-red-800/80 dark:text-red-200/80">
+                                Deja de preparar estos platos. Revisa el motivo del mesero.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm shrink-0"
+                    >
+                        Cerrar
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {pedidos.length === 0 ? (
+                        <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
+                            No hay cancelaciones recientes.
+                        </p>
+                    ) : (
+                        pedidos.map((p) => (
+                            <button
+                                key={p.idPedido}
+                                type="button"
+                                onClick={() => {
+                                    onMarcarVistos([p.idPedido]);
+                                    onVerDetalle(p);
+                                }}
+                                className="w-full text-left rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+                            >
+                                <div className="flex justify-between gap-2">
+                                    <span className="font-bold text-red-900 dark:text-red-100">Pedido #{p.idPedido}</span>
+                                    <span className="text-xs text-red-700 dark:text-red-300 tabular-nums">
+                                        {formatTime(p.cancelado_en || p.actualizado_en)}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-stone-800 dark:text-stone-200 mt-1">
+                                    {formatMesa(p.mesa)}
+                                </p>
+                                <p className="text-sm text-red-800 dark:text-red-200 mt-2 line-clamp-3">
+                                    {p.motivo_cancelacion || 'Sin motivo registrado'}
+                                </p>
+                            </button>
+                        ))
+                    )}
+                </div>
+                {pedidos.length > 0 ? (
+                    <div className="shrink-0 p-4 border-t border-stone-200 dark:border-stone-800">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onMarcarVistos(pedidos.map((p) => p.idPedido));
+                                onClose();
+                            }}
+                            className="w-full rounded-xl bg-stone-800 dark:bg-stone-700 text-stone-50 py-2.5 text-sm font-medium"
+                        >
+                            Marcar todos como vistos
+                        </button>
+                    </div>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
 function ModalDetallePedido({ pedido, onClose }) {
     if (!pedido) return null;
 
     const tieneNotas = (pedido.detalles ?? []).some((l) => l.nota?.trim());
+    const esCancelado = pedido.estado === 'CANCELADO';
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -236,6 +377,25 @@ function ModalDetallePedido({ pedido, onClose }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {esCancelado ? (
+                        <div className="rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3">
+                            <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-red-800 dark:text-red-200">
+                                <img src="/advertencia icon.png" alt="" className="h-5 w-5 dark:invert" />
+                                Pedido cancelado por el mesero
+                            </div>
+                            <p className="mt-2 text-sm text-red-950 dark:text-red-100 leading-snug">
+                                {pedido.motivo_cancelacion || 'No se indicó motivo.'}
+                            </p>
+                            {pedido.cancelado_en ? (
+                                <p className="mt-2 text-xs text-red-700 dark:text-red-300">
+                                    Cancelado a las {formatTime(pedido.cancelado_en)}
+                                </p>
+                            ) : null}
+                            <p className="mt-2 text-xs font-medium text-red-800 dark:text-red-300">
+                                No prepares más platos de este pedido.
+                            </p>
+                        </div>
+                    ) : null}
                     {pedido.notas ? (
                         <p className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
                             Nota de mesa: {pedido.notas}
@@ -258,17 +418,32 @@ function ModalDetallePedido({ pedido, onClose }) {
 
 export function CocinaPedidosPage() {
     const [pedidos, setPedidos] = useState([]);
+    const [pedidosCancelados, setPedidosCancelados] = useState([]);
+    const [canceladosVistos, setCanceladosVistos] = useState(() => leerCanceladosVistos());
     const [loadError, setLoadError] = useState('');
     const [busyId, setBusyId] = useState(null);
     const [tabActiva, setTabActiva] = useState('PENDIENTE');
     const [sortBy, setSortBy] = useState('fecha_asc');
     const [pagina, setPagina] = useState(1);
     const [detallePedido, setDetallePedido] = useState(null);
+    const [modalAlertasAbierto, setModalAlertasAbierto] = useState(false);
+
+    const marcarCanceladosVistos = useCallback((ids) => {
+        if (!ids?.length) return;
+        setCanceladosVistos((prev) => {
+            const next = new Set(prev);
+            for (const id of ids) next.add(Number(id));
+            guardarCanceladosVistos(next);
+            return next;
+        });
+    }, []);
 
     const fetchPedidos = useCallback(async () => {
         try {
             const res = await apiFetch('/api/cocina/pedidos');
+            const cancelados = Array.isArray(res?.cancelados) ? res.cancelados : [];
             setPedidos(Array.isArray(res?.data) ? res.data : []);
+            setPedidosCancelados(cancelados);
             setLoadError('');
         } catch (e) {
             setLoadError(e?.message || 'No se pudo cargar la cola de cocina.');
@@ -283,20 +458,39 @@ export function CocinaPedidosPage() {
         return () => clearInterval(id);
     }, [fetchPedidos]);
 
+    const alertasSinLeer = useMemo(
+        () => pedidosCancelados.filter((p) => !canceladosVistos.has(p.idPedido)).length,
+        [pedidosCancelados, canceladosVistos],
+    );
+
     const conteos = useMemo(() => {
-        const c = { PENDIENTE: 0, EN_PREPARACION: 0, LISTO: 0 };
+        const c = { PENDIENTE: 0, EN_PREPARACION: 0, LISTO: 0, CANCELADO: pedidosCancelados.length };
         for (const p of pedidos) {
             if (c[p.estado] != null) c[p.estado]++;
         }
         return c;
-    }, [pedidos]);
+    }, [pedidos, pedidosCancelados.length]);
 
     const pedidosTab = useMemo(() => {
+        if (tabActiva === 'CANCELADO') {
+            return sortPedidos(pedidosCancelados, sortBy);
+        }
         return sortPedidos(
             pedidos.filter((p) => p.estado === tabActiva),
             sortBy,
         );
-    }, [pedidos, tabActiva, sortBy]);
+    }, [pedidos, pedidosCancelados, tabActiva, sortBy]);
+
+    function abrirDetalle(pedido) {
+        if (pedido?.estado === 'CANCELADO') {
+            marcarCanceladosVistos([pedido.idPedido]);
+        }
+        setDetallePedido(pedido);
+    }
+
+    function abrirAlertas() {
+        setModalAlertasAbierto(true);
+    }
 
     const totalPaginas = Math.max(1, Math.ceil(pedidosTab.length / PAGE_SIZE));
 
@@ -346,6 +540,25 @@ export function CocinaPedidosPage() {
                         <p className="text-sm text-stone-600 dark:text-stone-500">Cola por estado · actualización cada 6 s</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={abrirAlertas}
+                            aria-label={
+                                alertasSinLeer > 0
+                                    ? `${alertasSinLeer} pedidos cancelados sin leer`
+                                    : 'Ver pedidos cancelados'
+                            }
+                            className="relative rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-2.5 hover:bg-red-50 dark:hover:bg-red-950/30 focus-visible:ring-2 focus-visible:ring-red-500"
+                        >
+                            <img src="/advertencia icon.png" alt="" className="h-5 w-5 dark:invert" />
+                            {alertasSinLeer > 0 ? (
+                                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-stone-50 dark:ring-stone-950">
+                                    {alertasSinLeer > 9 ? '9+' : alertasSinLeer}
+                                </span>
+                            ) : pedidosCancelados.length > 0 ? (
+                                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-stone-50 dark:ring-stone-950" />
+                            ) : null}
+                        </button>
                         <ThemeToggle />
                         <button
                             type="button"
@@ -372,7 +585,7 @@ export function CocinaPedidosPage() {
                     </div>
                 ) : null}
 
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     {SEMAFORO.map((s) => {
                         const activo = tabActiva === s.key;
                         const count = conteos[s.key] ?? 0;
@@ -436,7 +649,7 @@ export function CocinaPedidosPage() {
                                 key={p.idPedido}
                                 pedido={p}
                                 onAdvance={onAdvance}
-                                onVerDetalle={setDetallePedido}
+                                onVerDetalle={abrirDetalle}
                                 busyId={busyId}
                             />
                         ))
@@ -475,6 +688,17 @@ export function CocinaPedidosPage() {
             </div>
 
             <ModalDetallePedido pedido={detallePedido} onClose={() => setDetallePedido(null)} />
+            {modalAlertasAbierto ? (
+                <ModalAlertasCancelados
+                    pedidos={pedidosCancelados}
+                    onClose={() => setModalAlertasAbierto(false)}
+                    onVerDetalle={(p) => {
+                        setModalAlertasAbierto(false);
+                        abrirDetalle(p);
+                    }}
+                    onMarcarVistos={marcarCanceladosVistos}
+                />
+            ) : null}
         </div>
     );
 }
