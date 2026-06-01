@@ -144,7 +144,7 @@ CREATE TABLE `pedido` (
   `mesa_idMesa` int(11) NOT NULL,
   `mesero_idUsuario` int(11) NOT NULL,
   `reserva_idReserva` int(11) DEFAULT NULL,
-  `estado` enum('PENDIENTE','EN_PREPARACION','LISTO','CERRADO','CANCELADO') NOT NULL DEFAULT 'PENDIENTE',
+  `estado` enum('PENDIENTE','EN_PREPARACION','LISTO','ENTREGADO','CERRADO','CANCELADO') NOT NULL DEFAULT 'PENDIENTE',
   `notas` varchar(500) DEFAULT NULL,
   `motivo_cancelacion` varchar(500) DEFAULT NULL,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
@@ -226,6 +226,7 @@ CREATE TABLE `reserva` (
   `num_personas` int(11) NOT NULL DEFAULT 2,
   `estado` enum('SOLICITADA','CONFIRMADA','CANCELADA','COMPLETADA','NO_ASISTIO') NOT NULL DEFAULT 'SOLICITADA',
   `notas` varchar(500) DEFAULT NULL,
+  `motivo_cancelacion` varchar(500) DEFAULT NULL,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

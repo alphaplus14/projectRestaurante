@@ -38,6 +38,7 @@ function marcaInicial(nombre) {
 
 function sidebarDotClass(to) {
     if (to.includes('/configuracion')) return 'bg-stone-500';
+    if (to.includes('/reservas')) return 'bg-teal-600';
     if (to.includes('/productos') || to.includes('/cocineros')) return 'bg-orange-600';
     if (to.includes('/usuarios') || to.includes('/reportes') || to.includes('/inventario') || to.includes('/finanzas')) {
         return 'bg-amber-500';
@@ -182,6 +183,7 @@ export function AdminLayout({ title, children }) {
 
                         <SidebarItem to="/admin/dashboard" label="Dashboard" collapsed={collapsed} />
                         <SidebarItem to="/admin/mesas" label="Mesas" collapsed={collapsed} />
+                        <SidebarItem to="/admin/reservas" label="Reservas" collapsed={collapsed} />
                         <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
                         <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
                         <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />

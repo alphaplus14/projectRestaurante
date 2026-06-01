@@ -44,7 +44,8 @@ function normalizarBusqueda(s) {
 const ESTADO_LABEL = {
     PENDIENTE: 'Enviado a cocina',
     EN_PREPARACION: 'En preparación',
-    LISTO: 'Listo',
+    LISTO: 'Listo en cocina',
+    ENTREGADO: 'Recibido',
     CERRADO: 'Cerrado',
     CANCELADO: 'Cancelado',
 };
@@ -55,6 +56,190 @@ const ESTADO_ITEM_LABEL = {
     LISTO: 'Listo',
     CANCELADO: 'Cancelado',
 };
+
+const PEDIDOS_LISTOS_VISTOS_KEY = 'mesero_pedidos_listos_vistos';
+
+function leerPedidosListosVistos() {
+    try {
+        const raw = localStorage.getItem(PEDIDOS_LISTOS_VISTOS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr.map(Number).filter(Boolean) : []);
+    } catch {
+        return new Set();
+    }
+}
+
+function guardarPedidosListosVistos(ids) {
+    try {
+        localStorage.setItem(PEDIDOS_LISTOS_VISTOS_KEY, JSON.stringify([...ids]));
+    } catch {
+        /* ignore */
+    }
+}
+
+function formatMesaLabel(mesa) {
+    if (!mesa) return 'Sin mesa';
+    if (mesa.nombre) return mesa.nombre;
+    if (mesa.numero != null) return `Mesa ${mesa.numero}`;
+    return `Mesa #${mesa.idMesa}`;
+}
+
+function ModalPedidosListos({
+    pedidos,
+    llamadasCocina,
+    onClose,
+    onRecibir,
+    onIrMesa,
+    onAtenderLlamada,
+    busyRecibirId,
+    busyLlamadaId,
+}) {
+    const hayLlamadas = llamadasCocina.length > 0;
+    const hayListos = pedidos.length > 0;
+    const vacio = !hayLlamadas && !hayListos;
+
+    return (
+        <div className="fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pedidos-listos-titulo"
+                className="relative z-10 w-full max-w-md max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-2xl border border-emerald-400/40 dark:border-emerald-700 bg-white dark:bg-stone-900 shadow-2xl"
+            >
+                <div className="shrink-0 flex items-start justify-between gap-3 p-4 border-b border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40">
+                    <div className="flex gap-3 min-w-0">
+                        <img src="/cara feliz.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
+                        <div>
+                            <h2 id="pedidos-listos-titulo" className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                                Notificaciones
+                            </h2>
+                            <p className="text-sm text-emerald-800/80 dark:text-emerald-200/80">
+                                Pedidos listos y avisos de cocina.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm shrink-0"
+                    >
+                        Cerrar
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {hayLlamadas ? (
+                        <section aria-label="Llamadas de cocina">
+                            <h3 className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200 mb-2">
+                                Cocina te necesita
+                            </h3>
+                            <div className="space-y-2">
+                                {llamadasCocina.map((l) => {
+                                    const busy = busyLlamadaId === l.id;
+                                    return (
+                                        <div
+                                            key={l.id}
+                                            className="rounded-xl border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-4"
+                                        >
+                                            <p className="font-semibold text-amber-950 dark:text-amber-100">
+                                                Te llaman desde cocina
+                                            </p>
+                                            <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
+                                                {l.cocinero_nombre || 'Cocina'} necesita ayuda en cocina.
+                                            </p>
+                                            {l.creado_en ? (
+                                                <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                                                    {new Date(l.creado_en).toLocaleTimeString('es-CO', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })}
+                                                </p>
+                                            ) : null}
+                                            <button
+                                                type="button"
+                                                disabled={Boolean(busyLlamadaId)}
+                                                onClick={() => onAtenderLlamada(l)}
+                                                className="mt-3 w-full min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold"
+                                            >
+                                                {busy ? 'Atendiendo…' : 'Voy a cocina'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {hayListos ? (
+                        <section aria-label="Pedidos listos">
+                            {hayLlamadas ? (
+                                <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-200 mb-2">
+                                    Pedidos listos
+                                </h3>
+                            ) : null}
+                            <div className="space-y-2">
+                                {pedidos.map((p) => {
+                            const busy = busyRecibirId === p.idPedido;
+                            return (
+                                <div
+                                    key={p.idPedido}
+                                    className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/30 p-4"
+                                >
+                                    <div className="flex justify-between gap-2">
+                                        <span className="font-bold text-emerald-900 dark:text-emerald-100">
+                                            Pedido #{p.idPedido}
+                                        </span>
+                                        <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">
+                                            Listo
+                                        </span>
+                                    </div>
+                                    <p className="mt-1 text-sm font-medium text-stone-800 dark:text-stone-200">
+                                        {formatMesaLabel(p.mesa)}
+                                    </p>
+                                    {p.actualizado_en ? (
+                                        <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                                            Listo en cocina{' '}
+                                            {new Date(p.actualizado_en).toLocaleTimeString('es-CO', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </p>
+                                    ) : null}
+                                    <div className="mt-3 flex gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={Boolean(busyRecibirId)}
+                                            onClick={() => onRecibir(p)}
+                                            className="flex-1 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold"
+                                        >
+                                            {busy ? 'Recibiendo…' : 'Recibido'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={Boolean(busyRecibirId)}
+                                            onClick={() => onIrMesa(p)}
+                                            className="shrink-0 rounded-xl border border-stone-200 dark:border-stone-700 px-3 py-2 text-sm font-medium disabled:opacity-50"
+                                        >
+                                            Ver mesa
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {vacio ? (
+                        <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
+                            No hay notificaciones pendientes.
+                        </p>
+                    ) : null}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function CancelarPedidoModal({ open, onClose, onConfirm, busy }) {
     const [paso, setPaso] = useState('motivo');
@@ -379,6 +564,12 @@ export function MeseroSalonPage() {
     const [cerrando, setCerrando] = useState(false);
     const [cancelando, setCancelando] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [pedidosListos, setPedidosListos] = useState([]);
+    const [llamadasCocina, setLlamadasCocina] = useState([]);
+    const [pedidosListosVistos, setPedidosListosVistos] = useState(() => leerPedidosListosVistos());
+    const [modalListosAbierto, setModalListosAbierto] = useState(false);
+    const [recibiendoId, setRecibiendoId] = useState(null);
+    const [atendiendoLlamadaId, setAtendiendoLlamadaId] = useState(null);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
 
@@ -395,6 +586,110 @@ export function MeseroSalonPage() {
             setLoadingMesas(false);
         }
     }, []);
+
+    const fetchAlertas = useCallback(async () => {
+        try {
+            const res = await apiFetch('/api/mesero/alertas');
+            const listos = res?.pedidos_listos;
+            setPedidosListos(Array.isArray(listos?.data) ? listos.data : []);
+            setLlamadasCocina(Array.isArray(res?.llamadas_cocina) ? res.llamadas_cocina : []);
+        } catch {
+            setPedidosListos([]);
+            setLlamadasCocina([]);
+        }
+    }, []);
+
+    const marcarPedidosListosVistos = useCallback((ids) => {
+        if (!ids?.length) return;
+        setPedidosListosVistos((prev) => {
+            const next = new Set(prev);
+            for (const id of ids) next.add(Number(id));
+            guardarPedidosListosVistos(next);
+            return next;
+        });
+    }, []);
+
+    const pedidosListosSinLeer = useMemo(
+        () => pedidosListos.filter((p) => !pedidosListosVistos.has(p.idPedido)).length,
+        [pedidosListos, pedidosListosVistos],
+    );
+
+    const notificacionesPendientes = pedidosListosSinLeer + llamadasCocina.length;
+
+    function abrirModalListos() {
+        setModalListosAbierto(true);
+    }
+
+    function irAMesaPedidoListo(p) {
+        if (!p?.mesa?.idMesa) return;
+        marcarPedidosListosVistos([p.idPedido]);
+        setModalListosAbierto(false);
+        setSelectedId(p.mesa.idMesa);
+        setMesaTab('cuenta');
+    }
+
+    async function recibirPedidoListo(p) {
+        if (!p?.idPedido) return;
+        setRecibiendoId(p.idPedido);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/pedidos/${p.idPedido}/recibir`, {
+                method: 'POST',
+            });
+            marcarPedidosListosVistos([p.idPedido]);
+            setBanner(res?.message || 'Pedido recibido.');
+            await fetchMesas();
+            try {
+                const alertRes = await apiFetch('/api/mesero/alertas');
+                const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
+                const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+                setPedidosListos(remaining);
+                setLlamadasCocina(llamadas);
+                if (remaining.length === 0 && llamadas.length === 0) {
+                    setModalListosAbierto(false);
+                }
+            } catch {
+                await fetchAlertas();
+            }
+            if (p.mesa?.idMesa) {
+                setSelectedId(p.mesa.idMesa);
+                setMesaTab('cuenta');
+                if (res?.data?.idPedido) {
+                    setPedido(res.data);
+                } else {
+                    await loadPedido(p.idPedido);
+                }
+            }
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo marcar como recibido.');
+        } finally {
+            setRecibiendoId(null);
+        }
+    }
+
+    async function atenderLlamadaCocina(llamada) {
+        if (!llamada?.id) return;
+        setAtendiendoLlamadaId(llamada.id);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/alertas/llamada-cocina/${llamada.id}/atender`, {
+                method: 'POST',
+            });
+            setBanner(res?.message || 'Llamada de cocina atendida.');
+            const alertRes = await apiFetch('/api/mesero/alertas');
+            const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
+            const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+            setPedidosListos(remaining);
+            setLlamadasCocina(llamadas);
+            if (remaining.length === 0 && llamadas.length === 0) {
+                setModalListosAbierto(false);
+            }
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo atender la llamada.');
+        } finally {
+            setAtendiendoLlamadaId(null);
+        }
+    }
 
     const fetchCategorias = useCallback(async () => {
         setLoadingCategorias(true);
@@ -442,14 +737,18 @@ export function MeseroSalonPage() {
 
     useEffect(() => {
         fetchMesas();
-    }, [fetchMesas]);
+        fetchAlertas();
+    }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         const id = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchMesas();
-        }, 8000);
+            if (document.visibilityState === 'visible') {
+                fetchMesas();
+                fetchAlertas();
+            }
+        }, 6000);
         return () => clearInterval(id);
-    }, [fetchMesas]);
+    }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         if (!selectedId) {
@@ -574,6 +873,7 @@ export function MeseroSalonPage() {
             setPedido(null);
             setBanner(res?.message || 'Pedido cancelado.');
             await fetchMesas();
+            await fetchAlertas();
             cerrarMesa();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cancelar el pedido.');
@@ -594,6 +894,7 @@ export function MeseroSalonPage() {
             setPedido(null);
             setBanner(res?.message || 'Cuenta cerrada.');
             await fetchMesas();
+            await fetchAlertas();
             cerrarMesa();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cerrar la cuenta.');
@@ -624,7 +925,7 @@ export function MeseroSalonPage() {
     );
     const puedeCerrarCuenta =
         pedido &&
-        pedido.estado === 'LISTO' &&
+        ['LISTO', 'ENTREGADO'].includes(pedido.estado) &&
         (pedido.detalles?.length ?? 0) > 0 &&
         !hayItemsPendientesCocina;
     const puedeCancelarPedido = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
@@ -644,10 +945,47 @@ export function MeseroSalonPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+                        <button
+                            type="button"
+                            onClick={abrirModalListos}
+                            aria-label={
+                                notificacionesPendientes > 0
+                                    ? `${notificacionesPendientes} notificación${notificacionesPendientes !== 1 ? 'es' : ''} pendiente${notificacionesPendientes !== 1 ? 's' : ''}`
+                                    : 'Ver notificaciones de cocina'
+                            }
+                            className="relative rounded-lg border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
+                        >
+                            <img
+                                src="/cara feliz.png"
+                                alt=""
+                                className="h-5 w-5 object-contain"
+                                draggable={false}
+                            />
+                            {notificacionesPendientes > 0 ? (
+                                <span
+                                    className={classNames(
+                                        'absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ring-2 ring-stone-50 dark:ring-stone-950',
+                                        llamadasCocina.length > 0 ? 'bg-amber-600' : 'bg-emerald-600',
+                                    )}
+                                >
+                                    {notificacionesPendientes > 9 ? '9+' : notificacionesPendientes}
+                                </span>
+                            ) : pedidosListos.length > 0 || llamadasCocina.length > 0 ? (
+                                <span
+                                    className={classNames(
+                                        'absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-stone-50 dark:ring-stone-950',
+                                        llamadasCocina.length > 0 ? 'bg-amber-500' : 'bg-emerald-500',
+                                    )}
+                                />
+                            ) : null}
+                        </button>
                         <ThemeToggle />
                         <button
                             type="button"
-                            onClick={() => fetchMesas()}
+                            onClick={() => {
+                                fetchMesas();
+                                fetchAlertas();
+                            }}
                             className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
                             Actualizar
@@ -709,6 +1047,19 @@ export function MeseroSalonPage() {
                 onClose={() => !cancelando && setShowCancelModal(false)}
                 onConfirm={cancelarPedido}
             />
+
+            {modalListosAbierto ? (
+                <ModalPedidosListos
+                    pedidos={pedidosListos}
+                    llamadasCocina={llamadasCocina}
+                    busyRecibirId={recibiendoId}
+                    busyLlamadaId={atendiendoLlamadaId}
+                    onClose={() => !recibiendoId && !atendiendoLlamadaId && setModalListosAbierto(false)}
+                    onRecibir={recibirPedidoListo}
+                    onIrMesa={irAMesaPedidoListo}
+                    onAtenderLlamada={atenderLlamadaCocina}
+                />
+            ) : null}
 
             {selectedId && selectedMesa ? (
                 <div
@@ -814,7 +1165,7 @@ export function MeseroSalonPage() {
                                                     Nota: {pedido.notas}
                                                 </p>
                                             ) : null}
-                                            {pedido.estado === 'LISTO' && puedeAgregar ? (
+                                            {['LISTO', 'ENTREGADO'].includes(pedido.estado) && puedeAgregar ? (
                                                 <p className="mt-3 text-xs text-stone-600 dark:text-stone-400">
                                                     Puedes seguir agregando platos; lo nuevo se envía a cocina y se suma al
                                                     total de la mesa.
@@ -875,7 +1226,7 @@ export function MeseroSalonPage() {
                                                 onClick={() => setMesaTab('menu')}
                                                 className="w-full rounded-xl bg-orange-700 hover:bg-orange-600 text-stone-50 font-semibold py-3.5 text-sm focus-visible:ring-2 focus-visible:ring-amber-500 touch-manipulation"
                                             >
-                                                {pedido.estado === 'LISTO'
+                                                {['LISTO', 'ENTREGADO'].includes(pedido.estado)
                                                     ? 'Agregar más platos a la mesa'
                                                     : 'Agregar platos al pedido'}
                                             </button>
@@ -901,7 +1252,7 @@ export function MeseroSalonPage() {
                                             >
                                                 {cerrando ? 'Cerrando…' : 'Cerrar cuenta y liberar mesa'}
                                             </button>
-                                        ) : pedido.estado === 'LISTO' && hayItemsPendientesCocina ? (
+                                        ) : ['LISTO', 'ENTREGADO'].includes(pedido.estado) && hayItemsPendientesCocina ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">
                                                 Hay platos nuevos en cocina. Cierra la cuenta cuando todo esté listo.
                                             </p>
