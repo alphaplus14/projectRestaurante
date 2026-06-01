@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(fu
     Route::get('productos', [ProductoController::class, 'indexCliente']);
     Route::get('mesas', [ClienteReservaController::class, 'mesas']);
     Route::get('reservas', [ClienteReservaController::class, 'index']);
+    Route::get('reservas/disponibilidad', [ClienteReservaController::class, 'disponibilidad']);
     Route::post('reservas', [ClienteReservaController::class, 'store']);
     Route::post('reservas/{reserva:idReserva}/cancelar', [ClienteReservaController::class, 'cancelar']);
 });
