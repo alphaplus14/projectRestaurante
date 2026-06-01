@@ -53,11 +53,124 @@ const ESTADO_ITEM_LABEL = {
     PENDIENTE: 'En cocina',
     EN_PREPARACION: 'Preparando',
     LISTO: 'Listo',
+    CANCELADO: 'Cancelado',
 };
+
+function CancelarPedidoModal({ open, onClose, onConfirm, busy }) {
+    const [paso, setPaso] = useState('motivo');
+    const [motivo, setMotivo] = useState('');
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!open) {
+            setPaso('motivo');
+            setMotivo('');
+            setError('');
+        }
+    }, [open]);
+
+    if (!open) return null;
+
+    function irAConfirmacion(e) {
+        e.preventDefault();
+        const t = motivo.trim();
+        if (t.length < 3) {
+            setError('Escribe al menos 3 caracteres con el motivo.');
+            return;
+        }
+        setError('');
+        setPaso('confirmar');
+    }
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} aria-hidden />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cancelar-pedido-titulo"
+                className="relative z-10 w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-2xl p-5 sm:p-6"
+            >
+                <h2 id="cancelar-pedido-titulo" className="text-lg font-semibold text-stone-900 dark:text-stone-50">
+                    {paso === 'motivo' ? 'Cancelar pedido' : '¿Confirmar cancelación?'}
+                </h2>
+                {paso === 'motivo' ? (
+                    <form onSubmit={irAConfirmacion} className="mt-4 space-y-4">
+                        <p className="text-sm text-stone-600 dark:text-stone-400">
+                            Indica por qué se cancela (cliente se fue, error, etc.). Cocina dejará de preparar los platos
+                            pendientes.
+                        </p>
+                        <label className="block">
+                            <span className="text-xs font-medium text-stone-600 dark:text-stone-400">Motivo</span>
+                            <textarea
+                                value={motivo}
+                                onChange={(e) => setMotivo(e.target.value)}
+                                rows={4}
+                                maxLength={500}
+                                placeholder="Ej.: El cliente se retiró sin consumir…"
+                                className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 px-3 py-2.5 text-sm text-stone-900 dark:text-stone-50 placeholder:text-stone-500 focus-visible:ring-2 focus-visible:ring-red-500"
+                                autoFocus
+                            />
+                        </label>
+                        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={busy}
+                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-50"
+                            >
+                                Volver
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={busy}
+                                className="flex-1 rounded-xl bg-red-700 hover:bg-red-600 text-white py-3 text-sm font-semibold disabled:opacity-50"
+                            >
+                                Continuar
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="mt-4 space-y-4">
+                        <p className="text-sm text-stone-600 dark:text-stone-400">
+                            Se liberará la mesa y cocina verá la cancelación con este motivo:
+                        </p>
+                        <p className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 text-sm text-red-950 dark:text-red-100">
+                            {motivo.trim()}
+                        </p>
+                        <p className="text-xs text-stone-500 dark:text-stone-500">¿Estás seguro?</p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPaso('motivo')}
+                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium disabled:opacity-50"
+                            >
+                                No
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => onConfirm(motivo.trim())}
+                                className="flex-1 rounded-xl bg-red-700 hover:bg-red-600 text-white py-3 text-sm font-semibold disabled:opacity-50"
+                            >
+                                {busy ? 'Cancelando…' : 'Sí, cancelar'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function badgeItemEstado(estado) {
     if (estado === 'LISTO') {
         return 'bg-[#4d7c6f]/20 text-[#4d7c6f] border-[#4d7c6f]/30';
+    }
+    if (estado === 'CANCELADO') {
+        return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/50';
     }
     if (estado === 'EN_PREPARACION') {
         return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700/50';
@@ -115,18 +228,31 @@ function MesaCard({ mesa, onSelect }) {
                 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-amber-500/50 hover:shadow-md',
             )}
         >
-            <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
-                        Mesa {mesa.numero}
-                    </div>
-                    <div className="mt-0.5 text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-50 leading-snug truncate">
-                        {mesa.nombre || `Mesa ${mesa.numero}`}
-                    </div>
+            <div className="flex items-start gap-3">
+                <div
+                    className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/30 dark:border-orange-400/25 flex items-center justify-center shadow-sm"
+                    aria-hidden
+                >
+                    <img
+                        src="/mesa cocineros icon.png"
+                        alt=""
+                        className="h-6 w-6 sm:h-7 sm:w-7 object-contain dark:invert"
+                        draggable={false}
+                    />
                 </div>
-                <span className="shrink-0 rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 px-2.5 py-1 text-[10px] font-medium text-stone-600 dark:text-stone-400">
-                    {mesa.capacidad ?? '—'} pers.
-                </span>
+                <div className="flex items-start justify-between gap-2 min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                            Mesa {mesa.numero}
+                        </div>
+                        <div className="mt-0.5 text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-50 leading-snug truncate">
+                            {mesa.nombre || `Mesa ${mesa.numero}`}
+                        </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 px-2.5 py-1 text-[10px] font-medium text-stone-600 dark:text-stone-400">
+                        {mesa.capacidad ?? '—'} pers.
+                    </span>
+                </div>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -251,6 +377,8 @@ export function MeseroSalonPage() {
     const [loadingCatalogo, setLoadingCatalogo] = useState(false);
     const [addingId, setAddingId] = useState(null);
     const [cerrando, setCerrando] = useState(false);
+    const [cancelando, setCancelando] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
 
@@ -433,6 +561,27 @@ export function MeseroSalonPage() {
         }
     }
 
+    async function cancelarPedido(motivo) {
+        if (!pedido?.idPedido) return;
+        setCancelando(true);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/pedidos/${pedido.idPedido}/cancelar`, {
+                method: 'POST',
+                body: JSON.stringify({ motivo }),
+            });
+            setShowCancelModal(false);
+            setPedido(null);
+            setBanner(res?.message || 'Pedido cancelado.');
+            await fetchMesas();
+            cerrarMesa();
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo cancelar el pedido.');
+        } finally {
+            setCancelando(false);
+        }
+    }
+
     async function cerrarCuenta() {
         if (!pedido?.idPedido || pedido.estado !== 'LISTO') return;
         if (!window.confirm('¿Cerrar la cuenta? La mesa quedará libre para un nuevo servicio.')) return;
@@ -478,6 +627,7 @@ export function MeseroSalonPage() {
         pedido.estado === 'LISTO' &&
         (pedido.detalles?.length ?? 0) > 0 &&
         !hayItemsPendientesCocina;
+    const puedeCancelarPedido = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
     const menuSinSeleccion = !categoriaActiva && !busquedaAplicada && !loadingCatalogo;
     const bloqueado = selectedMesa?.pedido_activo?.bloqueado;
 
@@ -552,6 +702,13 @@ export function MeseroSalonPage() {
                     </div>
                 )}
             </main>
+
+            <CancelarPedidoModal
+                open={showCancelModal}
+                busy={cancelando}
+                onClose={() => !cancelando && setShowCancelModal(false)}
+                onConfirm={cancelarPedido}
+            />
 
             {selectedId && selectedMesa ? (
                 <div
@@ -721,6 +878,17 @@ export function MeseroSalonPage() {
                                                 {pedido.estado === 'LISTO'
                                                     ? 'Agregar más platos a la mesa'
                                                     : 'Agregar platos al pedido'}
+                                            </button>
+                                        ) : null}
+
+                                        {puedeCancelarPedido ? (
+                                            <button
+                                                type="button"
+                                                disabled={cancelando}
+                                                onClick={() => setShowCancelModal(true)}
+                                                className="w-full rounded-xl border-2 border-red-600 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 text-sm disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-red-500 touch-manipulation"
+                                            >
+                                                Cancelar pedido
                                             </button>
                                         ) : null}
 

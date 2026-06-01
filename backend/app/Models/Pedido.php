@@ -23,9 +23,11 @@ class Pedido extends Model
         'reserva_idReserva',
         'estado',
         'notas',
+        'motivo_cancelacion',
         'creado_en',
         'actualizado_en',
         'cerrado_en',
+        'cancelado_en',
     ];
 
     protected function casts(): array
@@ -34,6 +36,7 @@ class Pedido extends Model
             'creado_en' => 'datetime',
             'actualizado_en' => 'datetime',
             'cerrado_en' => 'datetime',
+            'cancelado_en' => 'datetime',
         ];
     }
 

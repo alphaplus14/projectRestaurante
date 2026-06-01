@@ -30,8 +30,24 @@ class CocinaPedidoController extends Controller
             ->orderBy('creado_en')
             ->get();
 
+        $cancelados = Pedido::query()
+            ->with([
+                'mesa:idMesa,numero,nombre',
+                'mesero:idUsuario,nombre,apellido',
+                'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
+                    'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
+                ]),
+            ])
+            ->where('estado', 'CANCELADO')
+            ->whereNotNull('cancelado_en')
+            ->where('cancelado_en', '>=', now()->subHours(48))
+            ->orderByDesc('cancelado_en')
+            ->limit(30)
+            ->get();
+
         return response()->json([
             'data' => $pedidos->map(fn (Pedido $p) => $this->serializePedido($p)),
+            'cancelados' => $cancelados->map(fn (Pedido $p) => $this->serializePedido($p)),
         ]);
     }
 
@@ -101,6 +117,8 @@ class CocinaPedidoController extends Controller
             'idPedido' => $p->idPedido,
             'estado' => $p->estado,
             'notas' => $p->notas,
+            'motivo_cancelacion' => $p->motivo_cancelacion,
+            'cancelado_en' => $p->cancelado_en?->toIso8601String(),
             'creado_en' => $p->creado_en?->toIso8601String(),
             'actualizado_en' => $p->actualizado_en?->toIso8601String(),
             'mesa' => $p->mesa ? [

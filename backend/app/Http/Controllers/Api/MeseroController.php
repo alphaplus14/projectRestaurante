@@ -297,6 +297,51 @@ class MeseroController extends Controller
         ]);
     }
 
+    /**
+     * Cancelar pedido abierto (cliente se va, error, etc.) y liberar la mesa.
+     */
+    public function cancelarPedido(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizeMesero($request, $pedido);
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json([
+                'message' => 'Este pedido ya está cerrado o cancelado.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'motivo' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($pedido, $data): void {
+            $pedido->estado = 'CANCELADO';
+            $pedido->motivo_cancelacion = trim($data['motivo']);
+            $pedido->cancelado_en = now();
+            $pedido->save();
+
+            $pedido->detalles()
+                ->whereIn('estado_item', ['PENDIENTE', 'EN_PREPARACION'])
+                ->update(['estado_item' => 'CANCELADO']);
+
+            $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
+            if ($mesa) {
+                $mesa->estado = 'LIBRE';
+                $mesa->save();
+            }
+        });
+
+        $pedido->refresh()->load([
+            'mesa:idMesa,numero,nombre',
+            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
+        ]);
+
+        return response()->json([
+            'data' => $this->serializePedidoCompleto($pedido),
+            'message' => 'Pedido cancelado. Cocina fue notificada y la mesa quedó libre.',
+        ]);
+    }
+
     private function authorizeMesero(Request $request, Pedido $pedido): void
     {
         $user = $request->user();
@@ -318,6 +363,8 @@ class MeseroController extends Controller
             'idPedido' => $pedido->idPedido,
             'estado' => $pedido->estado,
             'notas' => $pedido->notas,
+            'motivo_cancelacion' => $pedido->motivo_cancelacion,
+            'cancelado_en' => $pedido->cancelado_en?->toIso8601String(),
             'creado_en' => $pedido->creado_en?->toIso8601String(),
             'actualizado_en' => $pedido->actualizado_en?->toIso8601String(),
             'mesa' => $pedido->mesa ? [

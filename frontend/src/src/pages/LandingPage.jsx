@@ -62,6 +62,51 @@ const DESTACADOS = [
     },
 ];
 
+const DESTACADOS_BG_IMAGES = [
+    '/comidas carrousel.jpg',
+    '/evento de familia carrousel.jpeg',
+    '/familia carrousel.jpg',
+    '/mesero.jpeg',
+];
+
+const DESTACADOS_BG_MASK = {
+    WebkitMaskImage:
+        'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+    WebkitMaskComposite: 'source-in',
+    maskImage:
+        'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%), linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 95%)',
+    maskComposite: 'intersect',
+};
+
+function DestacadosBackgroundCarousel({ activeIndex }) {
+    return (
+        <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-3/4 lg:w-2/3 overflow-hidden transition-transform duration-700 ease-out group-hover:scale-105"
+            style={{
+                ...DESTACADOS_BG_MASK,
+                transformOrigin: 'right center',
+            }}
+            aria-hidden
+        >
+            <div
+                className="flex h-full transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+            >
+                {DESTACADOS_BG_IMAGES.map((src) => (
+                    <div
+                        key={src}
+                        className="min-w-full w-full h-full shrink-0 bg-cover bg-no-repeat"
+                        style={{
+                            backgroundImage: `url('${src}')`,
+                            backgroundPosition: 'right center',
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function TarjetaServicioDestacado({ item, className }) {
     const cardCls = classNames(
         'group relative rounded-2xl border border-stone-200 dark:border-white/10 bg-stone-50/80 dark:bg-neutral-950/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-amber-300/40 dark:hover:border-amber-500/30 transition-all min-h-[340px] sm:min-h-[380px] flex flex-col',
@@ -191,10 +236,14 @@ const NOVEDADES = [
     },
 ];
 
+const DESTACADOS_BG_INTERVAL_MS = 1500;
+
 export function LandingPage() {
     const [sesionCliente, setSesionCliente] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [loginEsquinaAbierto, setLoginEsquinaAbierto] = useState(false);
+    const [destacadosBgHover, setDestacadosBgHover] = useState(false);
+    const [destacadosBgIndex, setDestacadosBgIndex] = useState(0);
 
     const destacadosLista = useMemo(
         () => [
@@ -233,6 +282,19 @@ export function LandingPage() {
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        if (!destacadosBgHover) {
+            setDestacadosBgIndex(0);
+            return;
+        }
+
+        const id = window.setInterval(() => {
+            setDestacadosBgIndex((i) => (i + 1) % DESTACADOS_BG_IMAGES.length);
+        }, DESTACADOS_BG_INTERVAL_MS);
+
+        return () => window.clearInterval(id);
+    }, [destacadosBgHover]);
 
     useEffect(() => {
         function syncLoginHash() {
@@ -404,11 +466,13 @@ export function LandingPage() {
                                         type="button"
                                         onClick={() => (loginEsquinaAbierto ? cerrarLoginEsquina() : abrirLoginEsquina())}
                                         className={classNames(
-                                            'rounded-lg sm:rounded-xl border px-2 py-2 min-[375px]:px-3 font-semibold transition-colors whitespace-nowrap text-[11px] sm:text-xs md:text-sm',
-                                            'border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 text-stone-800 dark:text-neutral-100',
-                                            'hover:border-amber-400/60 dark:hover:border-amber-500/40',
-                                            'active:bg-stone-50 dark:active:bg-white/10',
-                                            loginEsquinaAbierto && 'ring-2 ring-amber-400/70 border-amber-400/40',
+                                            'inline-flex items-center justify-center gap-1.5 rounded-lg sm:rounded-xl border px-2.5 py-2 min-[375px]:px-3 font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs md:text-sm shadow-sm',
+                                            'border-amber-600/70 dark:border-amber-500/55 bg-amber-500 text-stone-950 dark:bg-amber-400 dark:text-neutral-950',
+                                            'hover:bg-amber-400 hover:border-amber-500 dark:hover:bg-amber-300 dark:hover:border-amber-400',
+                                            'active:scale-[0.98]',
+                                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-neutral-950',
+                                            loginEsquinaAbierto &&
+                                                'ring-2 ring-amber-600/50 border-amber-700/80 bg-amber-600/90 text-white dark:bg-amber-500 dark:text-neutral-950',
                                         )}
                                         aria-expanded={loginEsquinaAbierto}
                                         aria-haspopup="dialog"
@@ -417,6 +481,12 @@ export function LandingPage() {
                                             'Cerrar'
                                         ) : (
                                             <>
+                                                <img
+                                                    src="/iniciar sesion.png"
+                                                    alt=""
+                                                    className="h-4 w-4 sm:h-[18px] sm:w-[18px] object-contain shrink-0"
+                                                    draggable={false}
+                                                />
                                                 <span className="inline sm:hidden">Entrar</span>
                                                 <span className="hidden sm:inline">Iniciar sesión</span>
                                             </>
@@ -540,8 +610,14 @@ export function LandingPage() {
                 </section>
 
                 {/* Grid tipo “Lo más buscado” */}
-                <section id="destacados" className="scroll-mt-28 py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
+                <section
+                    id="destacados"
+                    className="group scroll-mt-28 relative overflow-hidden py-16 lg:py-24 bg-white dark:bg-neutral-900/35 border-b border-stone-200/80 dark:border-white/10"
+                    onMouseEnter={() => setDestacadosBgHover(true)}
+                    onMouseLeave={() => setDestacadosBgHover(false)}
+                >
+                    <DestacadosBackgroundCarousel activeIndex={destacadosBgIndex} />
+                    <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
                         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
                             <div>
                                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-neutral-50">
@@ -723,6 +799,10 @@ export function LandingPage() {
                                 </span>
                                 Proyecto Restaurante
                             </div>
+                            <p className="mt-4 text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
+                                Cocina marina con pescados y mariscos frescos, preparados al momento y servidos en un ambiente
+                                cálido para disfrutar en familia o con amigos el sabor del mar.
+                            </p>
                         </div>
                         <div>
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Enlaces</h4>
