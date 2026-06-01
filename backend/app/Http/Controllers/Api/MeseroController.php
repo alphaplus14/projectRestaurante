@@ -50,6 +50,12 @@ class MeseroController extends Controller
                 /** @var Pedido|null $p */
                 $p = $pedidos->get($mesa->idMesa);
 
+                // Mantener mesa alineada con pedidos abiertos (evita "Libre" con cuenta activa).
+                if ($p && $mesa->estado !== 'OCUPADA') {
+                    $mesa->estado = 'OCUPADA';
+                    $mesa->save();
+                }
+
                 $pedidoActivo = null;
                 if ($p) {
                     $lineas = $p->detalles;
@@ -94,7 +100,7 @@ class MeseroController extends Controller
                     'numero' => $mesa->numero,
                     'nombre' => $mesa->nombre,
                     'capacidad' => $mesa->capacidad,
-                    'estado' => $mesa->estado,
+                    'estado' => $p ? 'OCUPADA' : $mesa->estado,
                     'pedido_activo' => $pedidoActivo,
                 ];
             }),
@@ -304,6 +310,12 @@ class MeseroController extends Controller
             $pedido->touch();
         }
 
+        $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
+        if ($mesa && $mesa->estado !== 'OCUPADA') {
+            $mesa->estado = 'OCUPADA';
+            $mesa->save();
+        }
+
         $detalle->load('producto:idProducto,nombreProducto,tipo');
 
         return response()->json([
@@ -398,6 +410,12 @@ class MeseroController extends Controller
         $pedido->estado = 'ENTREGADO';
         $pedido->save();
 
+        $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
+        if ($mesa && $mesa->estado !== 'OCUPADA') {
+            $mesa->estado = 'OCUPADA';
+            $mesa->save();
+        }
+
         $pedido->load([
             'mesa:idMesa,numero,nombre',
             'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
@@ -430,10 +448,11 @@ class MeseroController extends Controller
             $pedido->estado = 'CANCELADO';
             $pedido->motivo_cancelacion = trim($data['motivo']);
             $pedido->cancelado_en = now();
+            $pedido->actualizado_en = now();
             $pedido->save();
 
             $pedido->detalles()
-                ->whereIn('estado_item', ['PENDIENTE', 'EN_PREPARACION'])
+                ->where('estado_item', '!=', 'CANCELADO')
                 ->update(['estado_item' => 'CANCELADO']);
 
             $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
