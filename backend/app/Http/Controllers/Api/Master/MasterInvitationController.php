@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Http\Controllers\Api\Master;
+
+use App\Http\Controllers\Controller;
+use App\Models\Master\OnboardingInvitation;
+use App\Models\Master\Tenant;
+use App\Services\Tenancy\OnboardingInvitationMailer;
+use App\Support\Tenancy\TenantUrl;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class MasterInvitationController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        $tenants = Tenant::query()
+            ->with(['invitations' => fn ($q) => $q->latest()->limit(1)])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'data' => $tenants->map(fn (Tenant $t) => [
+                'id' => $t->id,
+                'slug' => $t->slug,
+                'contact_email' => $t->contact_email,
+                'nombre_comercial' => $t->nombre_comercial,
+                'status' => $t->status,
+                'provision_error' => $t->provision_error,
+                'tenant_url' => $t->status === 'active' ? $t->tenantAppUrl() : null,
+                'created_at' => $t->created_at?->toIso8601String(),
+                'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),
+                'last_invitation' => $t->invitations->first() ? [
+                    'email' => $t->invitations->first()->email,
+                    'expires_at' => $t->invitations->first()->expires_at->toIso8601String(),
+                    'used_at' => $t->invitations->first()->used_at?->toIso8601String(),
+                ] : null,
+            ]),
+        ]);
+    }
+
+    public function store(Request $request, OnboardingInvitationMailer $mailer): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:190'],
+            'slug' => [
+                'required',
+                'string',
+                'min:2',
+                'max:40',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique(Tenant::class, 'slug'),
+                Rule::notIn(array_merge(
+                    [(string) config('tenancy.master_subdomain', 'master')],
+                    config('tenancy.reserved_subdomains', [])
+                )),
+            ],
+        ]);
+
+        $plainToken = Str::random(48);
+        $ttlHours = (int) config('tenancy.onboarding_token_ttl_hours', 72);
+
+        $result = DB::connection('master')->transaction(function () use ($data, $request, $plainToken, $ttlHours) {
+            $dbName = (string) config('tenancy.database_prefix', 'rest_').str_replace('-', '_', $data['slug']);
+
+            $tenant = Tenant::query()->create([
+                'slug' => $data['slug'],
+                'db_name' => $dbName,
+                'contact_email' => $data['email'],
+                'status' => 'pending',
+            ]);
+
+            $invitation = OnboardingInvitation::query()->create([
+                'tenant_id' => $tenant->id,
+                'email' => $data['email'],
+                'token_hash' => hash('sha256', $plainToken),
+                'expires_at' => now()->addHours($ttlHours),
+                'created_by' => $request->user()?->id,
+            ]);
+
+            return [$tenant, $invitation];
+        });
+
+        [$tenant, $invitation] = $result;
+
+        $onboardingUrl = TenantUrl::onboarding($plainToken);
+        $emailResult = $mailer->send($tenant, $invitation, $plainToken);
+
+        $message = $emailResult['sent']
+            ? 'Invitación creada y correo enviado al cliente.'
+            : ($mailer->isConfigured()
+                ? 'Invitación creada, pero no se pudo enviar el correo. Copia el enlace manualmente.'
+                : 'Invitación creada. Configura SMTP en .env o copia el enlace manualmente.');
+
+        return response()->json([
+            'message' => $message,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'slug' => $tenant->slug,
+                'onboarding_url' => $onboardingUrl,
+                'subdomain_preview' => $tenant->slug.'.'.TenantUrl::baseDomain(),
+                'email_sent' => $emailResult['sent'],
+                'email_error' => $emailResult['error'],
+            ],
+        ], 201);
+    }
+}
