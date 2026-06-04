@@ -1,0 +1,203 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { masterApiFetch } from '../auth/masterApiClient';
+import { clearMasterToken, getMasterToken } from '../auth/masterAuthStorage';
+import { ThemeToggle } from '../theme/ThemeToggle';
+import { getBaseDomain } from '../tenancy/tenantContext';
+
+export function MasterDashboardPage() {
+    const navigate = useNavigate();
+    const [tenants, setTenants] = useState([]);
+    const [email, setEmail] = useState('');
+    const [slug, setSlug] = useState('');
+    const [banner, setBanner] = useState('');
+    const [lastLink, setLastLink] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const load = useCallback(async () => {
+        try {
+            const res = await masterApiFetch('/api/master/tenants');
+            setTenants(Array.isArray(res?.data) ? res.data : []);
+        } catch (e) {
+            if (e?.status === 401) {
+                clearMasterToken();
+                navigate('/master/login', { replace: true });
+                return;
+            }
+            setBanner(e?.message || 'No se pudo cargar la lista.');
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate]);
+
+    useEffect(() => {
+        if (!getMasterToken()) {
+            navigate('/master/login', { replace: true });
+            return;
+        }
+        void load();
+    }, [load, navigate]);
+
+    async function crearInvitacion(e) {
+        e.preventDefault();
+        setBusy(true);
+        setBanner('');
+        setLastLink('');
+        try {
+            const res = await masterApiFetch('/api/master/invitations', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: email.trim(),
+                    slug: slug.trim().toLowerCase(),
+                }),
+            });
+            setLastLink(res?.data?.onboarding_url || '');
+            let msg = res?.message || 'Invitación creada.';
+            if (res?.data?.email_sent === false && res?.data?.email_error) {
+                msg += ` (${res.data.email_error})`;
+            }
+            setBanner(msg);
+            setEmail('');
+            setSlug('');
+            await load();
+        } catch (err) {
+            setBanner(err?.message || 'No se pudo crear la invitación.');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function copiarEnlace() {
+        if (!lastLink) return;
+        void navigator.clipboard?.writeText(lastLink);
+        setBanner('Enlace copiado. Envíalo al cliente por WhatsApp o correo manual.');
+    }
+
+    function salir() {
+        clearMasterToken();
+        navigate('/master/login', { replace: true });
+    }
+
+    return (
+        <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
+            <header className="border-b border-stone-200 dark:border-stone-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-lg font-semibold">Master — clientes</h1>
+                    <p className="text-xs text-stone-500">
+                        Subdominio: <code className="text-violet-600 dark:text-violet-400">{'{slug}.'}{getBaseDomain()}</code>
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <button
+                        type="button"
+                        onClick={salir}
+                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 text-sm"
+                    >
+                        Salir
+                    </button>
+                </div>
+            </header>
+
+            <main className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+                {banner ? (
+                    <div className="rounded-xl border border-violet-500/30 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-sm">
+                        {banner}
+                    </div>
+                ) : null}
+
+                <section className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 space-y-4">
+                    <h2 className="font-semibold">Nueva invitación</h2>
+                    <p className="text-sm text-stone-600 dark:text-stone-400">
+                        Al crear la invitación se envía un correo al cliente (si SMTP está en .env). Si falla,
+                        puedes copiar el enlace abajo.
+                    </p>
+                    <form onSubmit={crearInvitacion} className="grid gap-3 sm:grid-cols-2">
+                        <label className="text-sm sm:col-span-2">
+                            <span className="text-stone-500">Correo del cliente</span>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950"
+                            />
+                        </label>
+                        <label className="text-sm">
+                            <span className="text-stone-500">Subdominio (slug)</span>
+                            <input
+                                type="text"
+                                required
+                                pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                                placeholder="mi-restaurante"
+                                value={slug}
+                                onChange={(e) => setSlug(e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950"
+                            />
+                        </label>
+                        <div className="flex items-end">
+                            <button
+                                type="submit"
+                                disabled={busy}
+                                className="w-full rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-semibold py-2.5 text-sm disabled:opacity-50"
+                            >
+                                {busy ? 'Creando…' : 'Generar enlace'}
+                            </button>
+                        </div>
+                    </form>
+                    {lastLink ? (
+                        <div className="rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 p-3 space-y-2">
+                            <p className="text-xs text-stone-500 break-all">{lastLink}</p>
+                            <button
+                                type="button"
+                                onClick={copiarEnlace}
+                                className="text-sm font-medium text-violet-700 dark:text-violet-400"
+                            >
+                                Copiar enlace de configuración
+                            </button>
+                        </div>
+                    ) : null}
+                </section>
+
+                <section className="space-y-3">
+                    <h2 className="font-semibold">Restaurantes</h2>
+                    {loading ? (
+                        <p className="text-sm text-stone-500">Cargando…</p>
+                    ) : tenants.length === 0 ? (
+                        <p className="text-sm text-stone-500">Aún no hay clientes registrados.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {tenants.map((t) => (
+                                <li
+                                    key={t.id}
+                                    className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 flex flex-wrap justify-between gap-2"
+                                >
+                                    <div>
+                                        <p className="font-medium">{t.nombre_comercial || t.slug}</p>
+                                        <p className="text-xs text-stone-500">{t.contact_email}</p>
+                                        <p className="text-xs text-stone-500">
+                                            {t.slug}.{getBaseDomain()} —{' '}
+                                            <span className="font-medium">{t.status}</span>
+                                        </p>
+                                        {t.provision_error ? (
+                                            <p className="text-xs text-red-600 mt-1">{t.provision_error}</p>
+                                        ) : null}
+                                    </div>
+                                    {t.tenant_url ? (
+                                        <a
+                                            href={t.tenant_url}
+                                            className="text-sm text-violet-700 dark:text-violet-400 self-center"
+                                        >
+                                            Abrir app
+                                        </a>
+                                    ) : null}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </main>
+        </div>
+    );
+}
