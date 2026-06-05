@@ -491,7 +491,7 @@ export function LandingPage() {
                                     </button>
                                     {loginEsquinaAbierto ? (
                                         <div
-                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-[min(22rem,calc(100vw-1.25rem))] max-sm:right-1 max-sm:w-[calc(100vw-1rem)] rounded-2xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 shadow-2xl p-4 pt-11 pb-5 max-h-[min(28rem,min(72vh,calc(100dvh-10rem)))] overflow-y-auto overscroll-contain"
+                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-[min(22rem,calc(100vw-1.25rem))] max-sm:right-1 max-sm:w-[calc(100vw-1rem)] rounded-2xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 shadow-2xl p-4 pt-11 pb-5 max-h-[min(36rem,min(85vh,calc(100dvh-6rem)))] overflow-y-auto overscroll-contain"
                                             role="dialog"
                                             aria-label="Iniciar sesión cliente"
                                         >
@@ -505,7 +505,14 @@ export function LandingPage() {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
-                                            <ClienteLoginPanel subtitle="Ingresa para ver la carta" />
+                                            <ClienteLoginPanel
+                                                redirectPath={null}
+                                                subtitle="Entra o crea tu cuenta"
+                                                onSuccess={() => {
+                                                    setSesionCliente(true);
+                                                    cerrarLoginEsquina();
+                                                }}
+                                            />
                                         </div>
                                     ) : null}
                                 </>

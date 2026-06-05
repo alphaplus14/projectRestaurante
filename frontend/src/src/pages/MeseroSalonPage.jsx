@@ -915,12 +915,19 @@ export function MeseroSalonPage() {
 
     const totalPedido = useMemo(() => {
         if (!pedido?.detalles?.length) return 0;
-        return pedido.detalles.reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
+        return pedido.detalles
+            .filter((l) => l.estado_item !== 'CANCELADO')
+            .reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
     }, [pedido]);
 
     const puedeAgregar = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
     const hayItemsPendientesCocina = useMemo(
-        () => (pedido?.detalles ?? []).some((l) => l.estado_item && l.estado_item !== 'LISTO'),
+        () =>
+            (pedido?.detalles ?? []).some(
+                (l) =>
+                    l.estado_item &&
+                    !['LISTO', 'CANCELADO'].includes(l.estado_item),
+            ),
         [pedido],
     );
     const puedeCerrarCuenta =
@@ -1205,11 +1212,29 @@ export function MeseroSalonPage() {
                                                                     {l.nota}
                                                                 </div>
                                                             ) : null}
+                                                            {l.estado_item === 'CANCELADO' && l.motivo_cancelacion ? (
+                                                                <p className="mt-1 text-xs text-red-800 dark:text-red-200 leading-snug">
+                                                                    Cocina: {l.motivo_cancelacion}
+                                                                    {l.cancelado_en
+                                                                        ? ` · ${formatHora(l.cancelado_en)}`
+                                                                        : ''}
+                                                                </p>
+                                                            ) : null}
                                                         </div>
-                                                        <span className="text-stone-600 dark:text-stone-400 tabular-nums shrink-0">
-                                                            {formatMoney(
-                                                                Number(l.precio_unitario) * Number(l.cantidad),
+                                                        <span
+                                                            className={classNames(
+                                                                'tabular-nums shrink-0',
+                                                                l.estado_item === 'CANCELADO'
+                                                                    ? 'text-stone-400 line-through text-sm'
+                                                                    : 'text-stone-600 dark:text-stone-400',
                                                             )}
+                                                        >
+                                                            {l.estado_item === 'CANCELADO'
+                                                                ? '—'
+                                                                : formatMoney(
+                                                                      Number(l.precio_unitario) *
+                                                                          Number(l.cantidad),
+                                                                  )}
                                                         </span>
                                                     </li>
                                                 ))

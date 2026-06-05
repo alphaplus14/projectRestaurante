@@ -14,6 +14,7 @@ import { AdminCocinerosPage } from './pages/AdminCocinerosPage';
 import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
 import { AdminReservasPage } from './pages/AdminReservasPage';
+import { AdminPlatosCanceladosPage } from './pages/AdminPlatosCanceladosPage';
 import { AdminReportesPage } from './pages/AdminReportesPage';
 import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
@@ -21,6 +22,7 @@ import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
 import { LandingPage } from './pages/LandingPage';
 import { ClienteCartaPage } from './pages/ClienteCartaPage';
 import { ClienteReservasPage } from './pages/ClienteReservasPage';
+import { ClienteOAuthCallbackPage } from './pages/ClienteOAuthCallbackPage';
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireAdmin } from './auth/RequireAdmin';
@@ -33,6 +35,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/cliente" replace />} />
             <Route path="/cliente" element={<LandingPage />} />
             <Route path="/cliente/login" element={<LoginClientePage />} />
+            <Route path="/cliente/oauth-callback" element={<ClienteOAuthCallbackPage />} />
             <Route path="/login" element={<Navigate to="/cliente/login" replace />} />
             <Route path="/blank" element={<Navigate to="/cliente/carta" replace />} />
             <Route path="/cliente/carta" element={<ClienteCartaPage />} />
@@ -87,6 +90,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminReservasPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/platos-cancelados"
+                element={
+                    <RequireAdmin>
+                        <AdminPlatosCanceladosPage />
                     </RequireAdmin>
                 }
             />

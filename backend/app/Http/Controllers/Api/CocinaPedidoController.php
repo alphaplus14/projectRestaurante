@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CocinaLlamadaMesero;
 use App\Models\Pedido;
+use App\Models\PedidoDetalle;
 use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,9 +26,11 @@ class CocinaPedidoController extends Controller
                 'mesero:idUsuario,nombre,apellido',
                 'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
                     'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
+                    'canceladoPor:idUsuario,nombre,apellido',
                 ]),
             ])
             ->whereIn('estado', ['PENDIENTE', 'EN_PREPARACION', 'LISTO'])
+            ->whereHas('detalles', fn ($q) => $q->where('estado_item', '!=', 'CANCELADO'))
             ->orderByRaw("FIELD(estado, 'PENDIENTE', 'EN_PREPARACION', 'LISTO')")
             ->orderBy('creado_en')
             ->get();
@@ -44,12 +47,17 @@ class CocinaPedidoController extends Controller
     {
         $filtro = $request->query('filtro', 'todas');
 
+        if ($filtro === 'platos_cancelados') {
+            return $this->historialPlatosCancelados();
+        }
+
         $query = Pedido::query()
             ->with([
                 'mesa:idMesa,numero,nombre',
                 'mesero:idUsuario,nombre,apellido',
                 'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
                     'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
+                    'canceladoPor:idUsuario,nombre,apellido',
                 ]),
             ]);
 
@@ -71,12 +79,113 @@ class CocinaPedidoController extends Controller
             'cerrados' => (int) Pedido::query()->where('estado', 'CERRADO')->count(),
             'entregados' => (int) Pedido::query()->where('estado', 'ENTREGADO')->count(),
             'listos' => (int) Pedido::query()->where('estado', 'LISTO')->count(),
+            'platos_cancelados' => (int) PedidoDetalle::query()
+                ->where('estado_item', 'CANCELADO')
+                ->whereNotNull('motivo_cancelacion')
+                ->count(),
         ];
 
         return response()->json([
             'data' => $items->map(fn (Pedido $p) => $this->serializePedido($p)),
             'conteos' => $conteos,
             'filtro' => $filtro,
+        ]);
+    }
+
+    public function cancelarDetalle(Request $request, Pedido $pedido, PedidoDetalle $detalle): JsonResponse
+    {
+        if ((int) $detalle->pedido_idPedido !== (int) $pedido->idPedido) {
+            abort(404, 'Ítem no pertenece a este pedido.');
+        }
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json(['message' => 'Este pedido ya no puede modificarse en cocina.'], 422);
+        }
+
+        if ($detalle->estado_item === 'CANCELADO') {
+            return response()->json(['message' => 'Este plato ya está cancelado.'], 422);
+        }
+
+        $data = $request->validate([
+            'motivo' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        DB::transaction(function () use ($detalle, $data, $user): void {
+            $detalle->estado_item = 'CANCELADO';
+            $detalle->motivo_cancelacion = trim($data['motivo']);
+            $detalle->cancelado_en = now();
+            $detalle->cancelado_por_idUsuario = (int) $user->getAuthIdentifier();
+            $detalle->save();
+        });
+
+        $pedido->load([
+            'mesa:idMesa,numero,nombre',
+            'mesero:idUsuario,nombre,apellido',
+            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
+                'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
+                'canceladoPor:idUsuario,nombre,apellido',
+            ]),
+        ]);
+
+        $activos = $pedido->detalles->where('estado_item', '!=', 'CANCELADO')->count();
+        if ($activos === 0 && in_array($pedido->estado, ['PENDIENTE', 'EN_PREPARACION'], true)) {
+            $pedido->estado = 'LISTO';
+            $pedido->save();
+        }
+
+        return response()->json([
+            'message' => 'Plato cancelado. El mesero verá el motivo en la cuenta.',
+            'data' => $this->serializePedido($pedido),
+        ]);
+    }
+
+    private function historialPlatosCancelados(): JsonResponse
+    {
+        $items = PedidoDetalle::query()
+            ->with([
+                'producto:idProducto,nombreProducto,tipo',
+                'canceladoPor:idUsuario,nombre,apellido',
+                'pedido' => fn ($q) => $q->with([
+                    'mesa:idMesa,numero,nombre',
+                    'mesero:idUsuario,nombre,apellido',
+                ]),
+            ])
+            ->where('estado_item', 'CANCELADO')
+            ->whereNotNull('motivo_cancelacion')
+            ->orderByDesc('cancelado_en')
+            ->limit(150)
+            ->get();
+
+        return response()->json([
+            'data' => $items->map(fn (PedidoDetalle $d) => [
+                'tipo' => 'plato_cancelado',
+                'idPedidoDetalle' => $d->idPedidoDetalle,
+                'idPedido' => $d->pedido_idPedido,
+                'cantidad' => $d->cantidad,
+                'motivo_cancelacion' => $d->motivo_cancelacion,
+                'cancelado_en' => $d->cancelado_en?->toIso8601String(),
+                'cancelado_por_nombre' => $d->canceladoPor
+                    ? trim(($d->canceladoPor->nombre ?? '').' '.($d->canceladoPor->apellido ?? ''))
+                    : 'Cocina',
+                'producto' => $d->producto ? [
+                    'nombreProducto' => $d->producto->nombreProducto,
+                    'tipo' => $d->producto->tipo,
+                ] : null,
+                'mesa' => $d->pedido?->mesa ? [
+                    'numero' => $d->pedido->mesa->numero,
+                    'nombre' => $d->pedido->mesa->nombre,
+                ] : null,
+                'pedido_estado' => $d->pedido?->estado,
+            ]),
+            'conteos' => [
+                'platos_cancelados' => $items->count(),
+            ],
+            'filtro' => 'platos_cancelados',
         ]);
     }
 
@@ -162,6 +271,7 @@ class CocinaPedidoController extends Controller
             'mesero:idUsuario,nombre,apellido',
             'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with([
                 'producto:idProducto,nombreProducto,tipo,descripcion,imagen',
+                'canceladoPor:idUsuario,nombre,apellido',
             ]),
         ]);
 
@@ -193,21 +303,36 @@ class CocinaPedidoController extends Controller
                 'idUsuario' => $p->mesero->idUsuario,
                 'nombre' => trim(($p->mesero->nombre ?? '').' '.($p->mesero->apellido ?? '')) ?: null,
             ] : null,
-            'detalles' => $p->detalles->map(fn ($d) => [
-                'idPedidoDetalle' => $d->idPedidoDetalle,
-                'cantidad' => $d->cantidad,
-                'precio_unitario' => $d->precio_unitario,
-                'nota' => $d->nota,
-                'estado_item' => $d->estado_item,
-                'producto' => $d->producto ? [
-                    'nombreProducto' => $d->producto->nombreProducto,
-                    'tipo' => $d->producto->tipo,
-                    'descripcion' => $d->producto->descripcion,
-                    'imagenUrl' => $d->producto->imagen
-                        ? asset('storage/'.$d->producto->imagen)
-                        : null,
-                ] : null,
-            ]),
+            'detalles' => $p->detalles->map(fn ($d) => $this->serializeDetalle($d)),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeDetalle(PedidoDetalle $d): array
+    {
+        $cocinero = $d->canceladoPor;
+
+        return [
+            'idPedidoDetalle' => $d->idPedidoDetalle,
+            'cantidad' => $d->cantidad,
+            'precio_unitario' => $d->precio_unitario,
+            'nota' => $d->nota,
+            'estado_item' => $d->estado_item,
+            'motivo_cancelacion' => $d->motivo_cancelacion,
+            'cancelado_en' => $d->cancelado_en?->toIso8601String(),
+            'cancelado_por_nombre' => $cocinero
+                ? trim(($cocinero->nombre ?? '').' '.($cocinero->apellido ?? ''))
+                : null,
+            'producto' => $d->producto ? [
+                'nombreProducto' => $d->producto->nombreProducto,
+                'tipo' => $d->producto->tipo,
+                'descripcion' => $d->producto->descripcion,
+                'imagenUrl' => $d->producto->imagen
+                    ? asset('storage/'.$d->producto->imagen)
+                    : null,
+            ] : null,
         ];
     }
 
