@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminMesaController;
+use App\Http\Controllers\Api\AdminPedidoCancelacionController;
 use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminReservaController;
@@ -23,6 +24,7 @@ Route::get('public/productos-carta', [ProductoController::class, 'catalogoPublic
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('login-cliente', [AuthController::class, 'loginCliente']);
+    Route::post('register-cliente', [AuthController::class, 'registerCliente']);
     Route::post('login-cocina', [AuthController::class, 'loginCocina']);
     Route::post('login-mesero', [AuthController::class, 'loginMesero']);
 
@@ -61,12 +63,14 @@ Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(fu
     Route::get('pedidos/historial', [CocinaPedidoController::class, 'historial']);
     Route::post('llamar-mesero', [CocinaPedidoController::class, 'llamarMesero']);
     Route::patch('pedidos/{pedido:idPedido}/estado', [CocinaPedidoController::class, 'updateEstado']);
+    Route::post('pedidos/{pedido:idPedido}/detalles/{detalle:idPedidoDetalle}/cancelar', [CocinaPedidoController::class, 'cancelarDetalle']);
 });
 
 Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
     Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
     Route::get('reservas', [AdminReservaController::class, 'index']);
+    Route::get('pedidos-platos-cancelados', [AdminPedidoCancelacionController::class, 'index']);
 
     Route::get('mesas', [AdminMesaController::class, 'index']);
     Route::post('mesas', [AdminMesaController::class, 'store']);

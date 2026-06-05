@@ -9,7 +9,8 @@ const PAGE_SIZE = 8;
 const FILTROS_HISTORIAL = [
     { value: 'todas', label: 'Todos' },
     { value: 'activos', label: 'Activos' },
-    { value: 'cancelados', label: 'Cancelados' },
+    { value: 'cancelados', label: 'Pedidos cancelados' },
+    { value: 'platos_cancelados', label: 'Platos cancelados' },
     { value: 'listos', label: 'Listos' },
     { value: 'entregados', label: 'Entregados' },
     { value: 'cerrados', label: 'Cerrados' },
@@ -70,9 +71,11 @@ function formatTime(iso) {
 }
 
 function pedidoTamano(pedido) {
-    const lineas = pedido.detalles?.length ?? 0;
-    const unidades = (pedido.detalles ?? []).reduce((s, l) => s + Number(l.cantidad || 0), 0);
-    return { lineas, unidades };
+    const activos = (pedido.detalles ?? []).filter((l) => l.estado_item !== 'CANCELADO');
+    const lineas = activos.length;
+    const unidades = activos.reduce((s, l) => s + Number(l.cantidad || 0), 0);
+    const platosCancelados = (pedido.detalles ?? []).filter((l) => l.estado_item === 'CANCELADO').length;
+    return { lineas, unidades, platosCancelados };
 }
 
 function sortPedidos(list, sortBy) {
@@ -95,7 +98,7 @@ function sortPedidos(list, sortBy) {
 
 function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
     const busy = busyId === pedido.idPedido;
-    const { lineas, unidades } = pedidoTamano(pedido);
+    const { lineas, unidades, platosCancelados } = pedidoTamano(pedido);
     const tieneNotasMesero = (pedido.detalles ?? []).some((l) => l.nota?.trim());
     const esCancelado = pedido.estado === 'CANCELADO';
 
@@ -140,8 +143,13 @@ function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
                             {formatMesa(pedido.mesa)}
                         </div>
                         <div className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
-                            {formatTime(pedido.creado_en)} · {lineas} línea{lineas !== 1 ? 's' : ''} · {unidades}{' '}
-                            u.
+                            {formatTime(pedido.creado_en)} · {lineas} línea{lineas !== 1 ? 's' : ''} · {unidades} u.
+                            {platosCancelados > 0 ? (
+                                <span className="text-red-700 dark:text-red-300 font-medium">
+                                    {' '}
+                                    · {platosCancelados} cancelado{platosCancelados !== 1 ? 's' : ''}
+                                </span>
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -202,7 +210,7 @@ function PedidoResumenCard({ pedido, onAdvance, onVerDetalle, busyId }) {
     );
 }
 
-function ListaDetallePlatos({ detalles }) {
+function ListaDetallePlatos({ detalles, puedeCancelar, onCancelar, busyCancelId }) {
     const lineas = detalles ?? [];
     if (lineas.length === 0) {
         return <p className="text-sm text-stone-500 dark:text-stone-400 py-2">Sin platos en este pedido.</p>;
@@ -213,24 +221,46 @@ function ListaDetallePlatos({ detalles }) {
             {lineas.map((linea) => {
                 const p = linea.producto;
                 const tieneNota = Boolean(linea.nota?.trim());
+                const esCancelado = linea.estado_item === 'CANCELADO';
+                const busy = busyCancelId === linea.idPedidoDetalle;
+
                 return (
                     <li
                         key={linea.idPedidoDetalle}
                         className={classNames(
                             'px-3 py-2 border-b border-stone-200 dark:border-stone-800 last:border-b-0',
-                            tieneNota && 'bg-amber-50/90 dark:bg-amber-950/30',
+                            esCancelado && 'bg-red-50/90 dark:bg-red-950/30',
+                            !esCancelado && tieneNota && 'bg-amber-50/90 dark:bg-amber-950/30',
                         )}
                     >
                         <div className="flex items-start gap-2 min-w-0">
-                            <span className="shrink-0 w-7 tabular-nums font-bold text-amber-700 dark:text-amber-400 text-sm leading-snug">
+                            <span
+                                className={classNames(
+                                    'shrink-0 w-7 tabular-nums font-bold text-sm leading-snug',
+                                    esCancelado
+                                        ? 'text-red-700 dark:text-red-400 line-through'
+                                        : 'text-amber-700 dark:text-amber-400',
+                                )}
+                            >
                                 {linea.cantidad}×
                             </span>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
-                                    <span className="font-medium text-stone-900 dark:text-stone-50 text-sm leading-snug">
+                                    <span
+                                        className={classNames(
+                                            'font-medium text-sm leading-snug',
+                                            esCancelado
+                                                ? 'text-red-800 dark:text-red-200 line-through'
+                                                : 'text-stone-900 dark:text-stone-50',
+                                        )}
+                                    >
                                         {p?.nombreProducto ?? 'Producto'}
                                     </span>
-                                    {tieneNota ? (
+                                    {esCancelado ? (
+                                        <span className="shrink-0 text-[10px] font-semibold uppercase text-red-800 dark:text-red-200">
+                                            Cancelado
+                                        </span>
+                                    ) : tieneNota ? (
                                         <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:text-amber-200">
                                             <img src="/advertencia.png" alt="" className="h-3 w-3" aria-hidden />
                                             Con detalle
@@ -241,10 +271,29 @@ function ListaDetallePlatos({ detalles }) {
                                         </span>
                                     )}
                                 </div>
-                                {tieneNota ? (
+                                {tieneNota && !esCancelado ? (
                                     <p className="mt-0.5 text-xs text-amber-950 dark:text-amber-100 leading-snug">
                                         {linea.nota}
                                     </p>
+                                ) : null}
+                                {esCancelado ? (
+                                    <p className="mt-1 text-xs text-red-900 dark:text-red-100 leading-snug">
+                                        {linea.motivo_cancelacion || 'Sin motivo registrado.'}
+                                        {linea.cancelado_por_nombre
+                                            ? ` · ${linea.cancelado_por_nombre}`
+                                            : ''}
+                                        {linea.cancelado_en ? ` · ${formatTime(linea.cancelado_en)}` : ''}
+                                    </p>
+                                ) : null}
+                                {puedeCancelar && !esCancelado ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={() => onCancelar(linea)}
+                                        className="mt-2 rounded-lg border border-red-500/60 px-2.5 py-1 text-xs font-semibold text-red-800 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-950/50 disabled:opacity-50"
+                                    >
+                                        {busy ? 'Cancelando…' : 'No se puede preparar'}
+                                    </button>
                                 ) : null}
                             </div>
                         </div>
@@ -255,6 +304,71 @@ function ListaDetallePlatos({ detalles }) {
     );
 }
 
+function ModalCancelarPlato({ linea, pedido, onClose, onConfirm, busy, error }) {
+    const [motivo, setMotivo] = useState('');
+    if (!linea || !pedido) return null;
+
+    const nombre = linea.producto?.nombreProducto ?? 'este plato';
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={busy ? undefined : onClose}
+                aria-hidden
+            />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cancelar-plato-titulo"
+                className="relative z-10 w-full max-w-sm rounded-t-2xl sm:rounded-2xl border border-red-300 dark:border-red-800 bg-white dark:bg-stone-900 shadow-2xl p-5"
+            >
+                <h2 id="cancelar-plato-titulo" className="text-lg font-semibold text-stone-900 dark:text-stone-50">
+                    Cancelar plato
+                </h2>
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                    Pedido #{pedido.idPedido} · {linea.cantidad}× {nombre}
+                </p>
+                <p className="mt-2 text-xs text-stone-600 dark:text-stone-400">
+                    El mesero verá el motivo en la cuenta. No se cobrará este ítem.
+                </p>
+                <label className="block mt-4 text-sm font-medium text-stone-800 dark:text-stone-200">
+                    Motivo (obligatorio)
+                    <textarea
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        placeholder="Ej.: sin stock, equipo averiado, ingrediente agotado…"
+                        className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 px-3 py-2 text-sm resize-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    />
+                </label>
+                {error ? (
+                    <p className="mt-2 text-sm text-red-700 dark:text-red-300">{error}</p>
+                ) : null}
+                <div className="mt-4 flex gap-2">
+                    <button
+                        type="button"
+                        disabled={busy}
+                        onClick={onClose}
+                        className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium disabled:opacity-50"
+                    >
+                        Volver
+                    </button>
+                    <button
+                        type="button"
+                        disabled={busy || motivo.trim().length < 3}
+                        onClick={() => onConfirm(motivo.trim())}
+                        className="flex-1 rounded-xl bg-red-700 hover:bg-red-600 text-white py-3 text-sm font-semibold disabled:opacity-50"
+                    >
+                        {busy ? 'Guardando…' : 'Confirmar cancelación'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ModalHistorialCocina({
     abierto,
     onClose,
@@ -262,12 +376,14 @@ function ModalHistorialCocina({
     onFiltroChange,
     conteos,
     pedidos,
+    platosCancelados,
     loading,
     error,
     onVerDetalle,
     onRefresh,
 }) {
     if (!abierto) return null;
+    const esPlatosCancelados = filtro === 'platos_cancelados';
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -304,7 +420,8 @@ function ModalHistorialCocina({
                         {FILTROS_HISTORIAL.map((f) => {
                             const activo = filtro === f.value;
                             const count = conteos?.[f.value];
-                            const esCancelados = f.value === 'cancelados';
+                            const esCancelados =
+                                f.value === 'cancelados' || f.value === 'platos_cancelados';
                             return (
                                 <button
                                     key={f.value}
@@ -343,12 +460,44 @@ function ModalHistorialCocina({
                             {error}
                         </p>
                     ) : null}
-                    {!loading && pedidos.length === 0 ? (
+                    {!loading && esPlatosCancelados && platosCancelados.length === 0 ? (
+                        <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
+                            No hay platos cancelados registrados.
+                        </p>
+                    ) : null}
+                    {!loading && esPlatosCancelados
+                        ? platosCancelados.map((it) => (
+                              <div
+                                  key={it.idPedidoDetalle}
+                                  className="rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4"
+                              >
+                                  <div className="flex flex-wrap justify-between gap-2">
+                                      <span className="font-bold text-stone-900 dark:text-stone-50">
+                                          {it.cantidad}× {it.producto?.nombreProducto ?? 'Producto'}
+                                      </span>
+                                      <span className="text-xs text-stone-600 dark:text-stone-400">
+                                          {formatTime(it.cancelado_en)}
+                                      </span>
+                                  </div>
+                                  <p className="text-sm font-medium text-stone-800 dark:text-stone-200 mt-1">
+                                      Pedido #{it.idPedido} · {formatMesa(it.mesa)}
+                                  </p>
+                                  <p className="text-sm text-red-900 dark:text-red-100 mt-2 leading-snug">
+                                      {it.motivo_cancelacion}
+                                  </p>
+                                  <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+                                      {it.cancelado_por_nombre}
+                                  </p>
+                              </div>
+                          ))
+                        : null}
+                    {!loading && !esPlatosCancelados && pedidos.length === 0 ? (
                         <p className="text-sm text-center text-stone-600 dark:text-stone-400 py-8">
                             No hay pedidos con este filtro.
                         </p>
-                    ) : (
-                        pedidos.map((p) => {
+                    ) : null}
+                    {!esPlatosCancelados
+                        ? pedidos.map((p) => {
                             const esCancelado = p.estado === 'CANCELADO';
                             const { lineas, unidades } = pedidoTamano(p);
                             return (
@@ -393,14 +542,14 @@ function ModalHistorialCocina({
                                 </button>
                             );
                         })
-                    )}
+                        : null}
                 </div>
             </div>
         </div>
     );
 }
 
-function ModalDetallePedido({ pedido, onClose }) {
+function ModalDetallePedido({ pedido, onClose, puedeCancelarPlatos, onCancelarLinea, busyCancelId }) {
     if (!pedido) return null;
 
     const lineas = pedido.detalles ?? [];
@@ -461,7 +610,12 @@ function ModalDetallePedido({ pedido, onClose }) {
                             ? ` · ${conNotaMesero} con detalle del mesero`
                             : ' · sin detalles del mesero'}
                     </p>
-                    <ListaDetallePlatos detalles={lineas} />
+                    <ListaDetallePlatos
+                        detalles={lineas}
+                        puedeCancelar={puedeCancelarPlatos}
+                        onCancelar={onCancelarLinea}
+                        busyCancelId={busyCancelId}
+                    />
                 </div>
             </div>
         </div>
@@ -529,12 +683,16 @@ export function CocinaPedidosPage() {
     const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
     const [filtroHistorial, setFiltroHistorial] = useState('todas');
     const [historialPedidos, setHistorialPedidos] = useState([]);
+    const [historialPlatosCancelados, setHistorialPlatosCancelados] = useState([]);
     const [historialConteos, setHistorialConteos] = useState(null);
     const [historialLoading, setHistorialLoading] = useState(false);
     const [historialError, setHistorialError] = useState('');
     const [llamandoMesero, setLlamandoMesero] = useState(false);
     const [llamadaOk, setLlamadaOk] = useState('');
     const [modalConfirmarLlamada, setModalConfirmarLlamada] = useState(false);
+    const [lineaCancelar, setLineaCancelar] = useState(null);
+    const [busyCancelId, setBusyCancelId] = useState(null);
+    const [cancelError, setCancelError] = useState('');
 
     const fetchPedidos = useCallback(async () => {
         try {
@@ -551,11 +709,18 @@ export function CocinaPedidosPage() {
         setHistorialError('');
         try {
             const res = await apiFetch(`/api/cocina/pedidos/historial?filtro=${encodeURIComponent(filtro)}`);
-            setHistorialPedidos(Array.isArray(res?.data) ? res.data : []);
+            if (filtro === 'platos_cancelados') {
+                setHistorialPedidos([]);
+                setHistorialPlatosCancelados(Array.isArray(res?.data) ? res.data : []);
+            } else {
+                setHistorialPedidos(Array.isArray(res?.data) ? res.data : []);
+                setHistorialPlatosCancelados([]);
+            }
             setHistorialConteos(res?.conteos ?? null);
         } catch (e) {
             setHistorialError(e?.message || 'No se pudo cargar el historial.');
             setHistorialPedidos([]);
+            setHistorialPlatosCancelados([]);
         } finally {
             setHistorialLoading(false);
         }
@@ -626,6 +791,44 @@ export function CocinaPedidosPage() {
     useEffect(() => {
         if (pagina > totalPaginas) setPagina(totalPaginas);
     }, [pagina, totalPaginas]);
+
+    const puedeCancelarPlatos =
+        detallePedido && !['CERRADO', 'CANCELADO'].includes(detallePedido.estado);
+
+    function onSolicitarCancelarLinea(linea) {
+        setCancelError('');
+        setLineaCancelar(linea);
+    }
+
+    async function onConfirmarCancelarPlato(motivo) {
+        if (!detallePedido || !lineaCancelar) return;
+        const idPedido = detallePedido.idPedido;
+        const idDetalle = lineaCancelar.idPedidoDetalle;
+        setBusyCancelId(idDetalle);
+        setCancelError('');
+        try {
+            const res = await apiFetch(
+                `/api/cocina/pedidos/${idPedido}/detalles/${idDetalle}/cancelar`,
+                { method: 'POST', body: JSON.stringify({ motivo }) },
+            );
+            const actualizado = res?.data;
+            if (actualizado) {
+                setDetallePedido(actualizado);
+                setPedidos((prev) =>
+                    prev.map((p) => (p.idPedido === actualizado.idPedido ? actualizado : p)),
+                );
+            }
+            setLineaCancelar(null);
+            await fetchPedidos();
+            if (modalHistorialAbierto) {
+                await fetchHistorial(filtroHistorial);
+            }
+        } catch (e) {
+            setCancelError(e?.message || 'No se pudo cancelar el plato.');
+        } finally {
+            setBusyCancelId(null);
+        }
+    }
 
     async function onAdvance(idPedido, estado) {
         setBusyId(idPedido);
@@ -812,7 +1015,21 @@ export function CocinaPedidosPage() {
                 </p>
             </div>
 
-            <ModalDetallePedido pedido={detallePedido} onClose={() => setDetallePedido(null)} />
+            <ModalDetallePedido
+                pedido={detallePedido}
+                onClose={() => setDetallePedido(null)}
+                puedeCancelarPlatos={puedeCancelarPlatos}
+                onCancelarLinea={onSolicitarCancelarLinea}
+                busyCancelId={busyCancelId}
+            />
+            <ModalCancelarPlato
+                linea={lineaCancelar}
+                pedido={detallePedido}
+                busy={busyCancelId != null}
+                error={cancelError}
+                onClose={() => !busyCancelId && setLineaCancelar(null)}
+                onConfirm={onConfirmarCancelarPlato}
+            />
             <ModalConfirmarLlamadaMesero
                 open={modalConfirmarLlamada}
                 busy={llamandoMesero}
@@ -826,6 +1043,7 @@ export function CocinaPedidosPage() {
                 onFiltroChange={setFiltroHistorial}
                 conteos={historialConteos}
                 pedidos={historialPedidos}
+                platosCancelados={historialPlatosCancelados}
                 loading={historialLoading}
                 error={historialError}
                 onVerDetalle={(p) => abrirDetalle(p)}

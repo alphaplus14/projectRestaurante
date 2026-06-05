@@ -57,7 +57,9 @@ class MeseroController extends Controller
                     $numLineas = $lineas->count();
 
                     if ((int) $p->mesero_idUsuario === $authId) {
-                        $subtotal = $lineas->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
+                        $subtotal = $lineas
+                            ->where('estado_item', '!=', 'CANCELADO')
+                            ->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
                         $previewParts = $lineas->take(2)->map(function ($d) {
                             $name = $d->producto?->nombreProducto ?? 'Ítem';
 
@@ -346,7 +348,9 @@ class MeseroController extends Controller
             ], 422);
         }
 
-        $pendientesCocina = $pedido->detalles()->where('estado_item', '!=', 'LISTO')->count();
+        $pendientesCocina = $pedido->detalles()
+            ->whereIn('estado_item', ['PENDIENTE', 'EN_PREPARACION'])
+            ->count();
         if ($pendientesCocina > 0) {
             return response()->json([
                 'message' => 'Aún hay platos en cocina. Espera a que estén listos o agrega solo cuando cocina termine.',
@@ -490,6 +494,8 @@ class MeseroController extends Controller
                 'precio_unitario' => $d->precio_unitario,
                 'nota' => $d->nota,
                 'estado_item' => $d->estado_item,
+                'motivo_cancelacion' => $d->motivo_cancelacion,
+                'cancelado_en' => $d->cancelado_en?->toIso8601String(),
                 'producto' => $d->producto ? [
                     'nombreProducto' => $d->producto->nombreProducto,
                     'tipo' => $d->producto->tipo,
