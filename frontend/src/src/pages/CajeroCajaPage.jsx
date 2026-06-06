@@ -10,6 +10,8 @@ const METODOS_PAGO = [
     { value: 'DAVIPLATA', label: 'Daviplata' },
 ];
 
+const BILLETES_COLOMBIA = [2000, 5000, 10000, 20000, 50000, 100000];
+
 const ESTADO_LABEL = {
     LISTO: 'Listo en cocina',
     ENTREGADO: 'Entregado al salón',
@@ -82,6 +84,11 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
         const otros = pagos.reduce((s, p, i) => (i === idx ? s : s + (Number(p.valor) || 0)), 0);
         const falta = Math.max(0, total - otros);
         updatePago(idx, 'valor', String(Math.round(falta)));
+    }
+
+    function sumarBillete(idx, monto) {
+        const actual = Number(pagos[idx]?.valor) || 0;
+        updatePago(idx, 'valor', String(Math.round(actual + monto)));
     }
 
     function handleConfirm() {
@@ -172,10 +179,6 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
                                 className="w-32 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1 text-right tabular-nums"
                             />
                         </div>
-                        <div className="flex justify-between pt-2 border-t border-stone-200 dark:border-stone-800">
-                            <span className="font-semibold text-stone-900 dark:text-stone-50">Total a cobrar</span>
-                            <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums">{formatMoney(total)}</span>
-                        </div>
                     </div>
 
                     <div className="space-y-3">
@@ -223,14 +226,30 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
                                         </button>
                                     ) : null}
                                 </div>
-                                {p.metodo !== 'EFECTIVO' ? (
+                                {p.metodo === 'EFECTIVO' ? (
+                                    <div className="space-y-1.5">
+                                        <p className="text-xs text-stone-500 dark:text-stone-400">Billetes</p>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            {BILLETES_COLOMBIA.map((billete) => (
+                                                <button
+                                                    key={billete}
+                                                    type="button"
+                                                    onClick={() => sumarBillete(idx, billete)}
+                                                    className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1.5 text-xs font-medium text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 tabular-nums"
+                                                >
+                                                    +{formatMoney(billete)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
                                     <input
                                         placeholder="Referencia (opcional)"
                                         value={p.referencia}
                                         onChange={(e) => updatePago(idx, 'referencia', e.target.value)}
                                         className="w-full rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-2 text-sm"
                                     />
-                                ) : null}
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => pagarTodo(idx)}
@@ -240,6 +259,11 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
                                 </button>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="flex justify-between items-center rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50 px-4 py-3 text-sm">
+                        <span className="font-semibold text-stone-900 dark:text-stone-50">Total a cobrar</span>
+                        <span className="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">{formatMoney(total)}</span>
                     </div>
 
                     <div
