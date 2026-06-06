@@ -13,6 +13,7 @@ use App\Models\Venta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class CajeroController extends Controller
 {
@@ -408,9 +409,8 @@ class CajeroController extends Controller
         /** @var Usuario $cajero */
         $cajero = $request->user();
 
-        if ((int) $venta->cajero_idUsuario !== (int) $cajero->idUsuario) {
-            return response()->json(['message' => 'No puedes cancelar una venta de otro cajero.'], 403);
-        }
+        // Autorización centralizada en VentaPolicy (cajero dueño de la venta).
+        Gate::forUser($cajero)->authorize('cancelar', $venta);
 
         if ($venta->estado === 'CANCELADA') {
             return response()->json(['message' => 'Esta venta ya fue cancelada.'], 422);

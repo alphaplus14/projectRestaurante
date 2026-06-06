@@ -8,6 +8,7 @@ use App\Models\Reserva;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ClienteReservaController extends Controller
 {
@@ -200,11 +201,7 @@ class ClienteReservaController extends Controller
 
     public function cancelar(Request $request, Reserva $reserva): JsonResponse
     {
-        $clienteId = (int) $request->user()->getAuthIdentifier();
-
-        if ((int) $reserva->cliente_idUsuario !== $clienteId) {
-            abort(403, 'No autorizado para esta reserva.');
-        }
+        Gate::forUser($request->user())->authorize('cancelar', $reserva);
 
         if ($reserva->estado === 'CANCELADA') {
             return response()->json(['message' => 'Esta reserva ya está cancelada.'], 422);
