@@ -4,6 +4,7 @@ import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginStaffPage } from './pages/LoginStaffPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
+import { MeseroAjustesPage } from './pages/MeseroAjustesPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminMeserosPage } from './pages/AdminMeserosPage';
@@ -73,6 +74,14 @@ export function App() {
                 element={
                     <RequireMesero>
                         <MeseroSalonPage />
+                    </RequireMesero>
+                }
+            />
+            <Route
+                path="/mesero/ajustes"
+                element={
+                    <RequireMesero>
+                        <MeseroAjustesPage />
                     </RequireMesero>
                 }
             />

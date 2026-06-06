@@ -275,7 +275,7 @@ export function AdminProductosPage() {
 
     if (loading) {
         return (
-            <AdminLayout title="Productos">
+            <AdminLayout title="Menú">
                 <div className="flex items-center justify-center text-stone-600 dark:text-stone-400 text-lg py-20">Cargando productos…</div>
             </AdminLayout>
         );
@@ -284,10 +284,10 @@ export function AdminProductosPage() {
     const coverSrc = localImagePreview || draft.imagenUrl;
 
     return (
-        <AdminLayout title="Productos">
+        <AdminLayout title="Menú">
             <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div>
-                    <div className="text-3xl font-semibold tracking-tight">Productos</div>
+                    <div className="text-3xl font-semibold tracking-tight">Menú</div>
                     <div className="mt-2 text-stone-600 dark:text-stone-400">
                         Administra el menú. Deshabilitar es preferido sobre eliminar.
                     </div>

@@ -4,6 +4,7 @@ import { apiFetch } from '../auth/apiClient';
 import { staffLoginUrl } from '../auth/staffLogin';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { confirmStaffLogout } from '../utils/confirmLogout';
 
 const PAGE_SIZE = 8;
 
@@ -853,6 +854,11 @@ export function CocinaPedidosPage() {
         window.location.href = staffLoginUrl('COCINERO');
     }
 
+    async function solicitarSalir() {
+        const ok = await confirmStaffLogout();
+        if (ok) onSalir();
+    }
+
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 pb-8">
             <header className="sticky top-0 z-20 border-b border-stone-200 dark:border-stone-800 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur">
@@ -885,17 +891,17 @@ export function CocinaPedidosPage() {
                         <ThemeToggle />
                         <button
                             type="button"
-                            onClick={() => fetchPedidos()}
-                            className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
+                            onClick={() => void solicitarSalir()}
+                            aria-label="Cerrar sesión"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-600/80 bg-red-600 hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
                         >
-                            Actualizar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onSalir}
-                            className="rounded-xl border border-stone-200 dark:border-stone-700 px-3 py-2 text-sm text-stone-600 dark:text-stone-400"
-                        >
-                            Salir
+                            <img
+                                src="/cerrar sesion icon.png"
+                                alt=""
+                                className="h-4 w-4 shrink-0 object-contain brightness-0 invert"
+                                aria-hidden
+                            />
+                            <span>Salir</span>
                         </button>
                     </div>
                 </div>

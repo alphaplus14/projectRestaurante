@@ -75,6 +75,8 @@ Route::middleware('tenant.identify')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:MESERO'])->prefix('mesero')->group(function () {
         Route::get('mesas', [MeseroController::class, 'mesas']);
+        Route::get('perfil', [MeseroController::class, 'perfil']);
+        Route::get('pedidos/historial', [MeseroController::class, 'historialPedidos']);
         Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
         Route::get('alertas', [MeseroController::class, 'alertas']);
         Route::post('alertas/llamada-cocina/{llamada}/atender', [MeseroController::class, 'atenderLlamadaCocina']);
