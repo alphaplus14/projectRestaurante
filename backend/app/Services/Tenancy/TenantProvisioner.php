@@ -36,6 +36,10 @@ class TenantProvisioner
         $tenant->update(['status' => 'provisioning', 'provision_error' => null]);
 
         try {
+            if (in_array($tenant->status, ['failed', 'provisioning'], true)) {
+                $this->dropDatabaseIfExists($tenant->db_name);
+            }
+
             $this->createDatabaseIfMissing($tenant->db_name);
             $this->cloneSchemaFromTemplate($tenant->db_name);
             TenantConnectionManager::connect($tenant);
@@ -66,6 +70,16 @@ class TenantProvisioner
         } finally {
             TenantConnectionManager::disconnect();
         }
+    }
+
+    public function dropDatabaseIfExists(string $dbName): void
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $dbName);
+        if ($safe !== $dbName) {
+            throw new \InvalidArgumentException('Nombre de base de datos inválido.');
+        }
+
+        DB::statement("DROP DATABASE IF EXISTS `{$safe}`");
     }
 
     public function createDatabaseIfMissing(string $dbName): void

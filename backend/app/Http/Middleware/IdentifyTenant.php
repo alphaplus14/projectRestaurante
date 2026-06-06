@@ -31,6 +31,13 @@ class IdentifyTenant
             $subdomain = SubdomainResolver::devSlugFromRequest($request);
         }
 
+        if (($subdomain === null || $subdomain === '') && app()->environment('local')) {
+            $fallback = trim((string) env('TENANT_DEFAULT_SLUG', ''));
+            if ($fallback !== '') {
+                $subdomain = strtolower($fallback);
+            }
+        }
+
         $masterSub = (string) config('tenancy.master_subdomain', 'master');
         $reserved = config('tenancy.reserved_subdomains', []);
 

@@ -31,6 +31,9 @@ return [
 
     'frontend_scheme' => env('TENANT_FRONTEND_SCHEME', 'http'),
 
+    /** Host del frontend en correos (127.0.0.1 o localhost; debe coincidir con npm run dev). */
+    'frontend_host' => env('TENANT_FRONTEND_HOST', '127.0.0.1'),
+
     'frontend_port' => env('TENANT_FRONTEND_PORT'),
 
 ];

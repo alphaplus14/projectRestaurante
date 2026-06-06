@@ -67,6 +67,11 @@ export function getTenantSlugForApi() {
         /* ignore */
     }
 
+    const envDefault = import.meta.env.VITE_TENANT_DEFAULT_SLUG;
+    if (envDefault) {
+        return String(envDefault).trim().toLowerCase();
+    }
+
     return null;
 }
 
