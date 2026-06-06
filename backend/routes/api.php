@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCajeroController;
 use App\Http\Controllers\Api\AdminCocineroController;
+use App\Http\Controllers\Api\CajeroController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminMesaController;
 use App\Http\Controllers\Api\AdminMeseroController;
@@ -55,6 +57,8 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('login-cliente', [AuthController::class, 'loginCliente']);
         Route::post('login-cocina', [AuthController::class, 'loginCocina']);
         Route::post('login-mesero', [AuthController::class, 'loginMesero']);
+        Route::post('login-cajero', [AuthController::class, 'loginCajero']);
+        Route::post('login-admin', [AuthController::class, 'loginAdmin']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -79,10 +83,16 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('categorias', [ProductoController::class, 'categoriasMesero']);
         Route::get('productos', [ProductoController::class, 'indexMesero']);
         Route::post('pedidos', [MeseroController::class, 'storePedido']);
-        Route::post('pedidos/{pedido:idPedido}/cerrar', [MeseroController::class, 'cerrarPedido']);
         Route::post('pedidos/{pedido:idPedido}/cancelar', [MeseroController::class, 'cancelarPedido']);
         Route::get('pedidos/{pedido:idPedido}', [MeseroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/detalles', [MeseroController::class, 'storeDetalle']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:CAJERO'])->prefix('cajero')->group(function () {
+        Route::get('cuentas-pendientes', [CajeroController::class, 'cuentasPendientes']);
+        Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+        Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
+        Route::post('pedidos/{pedido:idPedido}/cobrar', [CajeroController::class, 'cobrar']);
     });
 
     Route::middleware(['auth:sanctum', 'role:COCINERO'])->prefix('cocina')->group(function () {
@@ -120,6 +130,11 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('cocineros', [AdminCocineroController::class, 'store']);
         Route::put('cocineros/{usuario:idUsuario}', [AdminCocineroController::class, 'update']);
         Route::patch('cocineros/{usuario:idUsuario}/activo', [AdminCocineroController::class, 'setActivo']);
+
+        Route::get('cajeros', [AdminCajeroController::class, 'index']);
+        Route::post('cajeros', [AdminCajeroController::class, 'store']);
+        Route::put('cajeros/{usuario:idUsuario}', [AdminCajeroController::class, 'update']);
+        Route::patch('cajeros/{usuario:idUsuario}/activo', [AdminCajeroController::class, 'setActivo']);
 
         Route::get('restaurante-config', [AdminRestauranteConfigController::class, 'show']);
         Route::match(['put', 'post'], 'restaurante-config', [AdminRestauranteConfigController::class, 'update']);

@@ -53,6 +53,15 @@ export function StaffPortalPage() {
                             <span className="text-xs text-orange-700 dark:text-orange-400">Pedidos</span>
                         </Link>
                     </li>
+                    <li>
+                        <Link
+                            to="/login-cajero"
+                            className="flex items-center justify-between rounded-xl border border-stone-300 dark:border-white/10 bg-white dark:bg-neutral-900/60 px-4 py-4 hover:bg-stone-50 dark:hover:bg-neutral-800/80 transition-colors"
+                        >
+                            <span className="font-medium text-stone-900 dark:text-neutral-50">Caja</span>
+                            <span className="text-xs text-blue-700 dark:text-blue-400">Cobro</span>
+                        </Link>
+                    </li>
                 </ul>
 
                 <p className="mt-10 text-center text-sm text-stone-600 dark:text-neutral-500">

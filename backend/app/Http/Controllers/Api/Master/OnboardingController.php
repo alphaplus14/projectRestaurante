@@ -58,6 +58,13 @@ class OnboardingController extends Controller
         $invitation = $resolved['invitation'];
         $tenant = $invitation->tenant;
 
+        if ($tenant->status === 'provisioning') {
+            return response()->json([
+                'message' => 'La configuración ya está en curso. Espera unos segundos y recarga la página.',
+                'reason' => 'provisioning',
+            ], 409);
+        }
+
         $data = $request->validate([
             'nombre_comercial' => ['required', 'string', 'max:160'],
             'nit_o_documento' => ['nullable', 'string', 'max:40'],
@@ -88,12 +95,18 @@ class OnboardingController extends Controller
             $invitation->update(['used_at' => now()]);
             $tenant->refresh();
 
+            $appUrl = $tenant->tenantAppUrl();
+
             return response()->json([
                 'message' => 'Restaurante configurado correctamente.',
                 'data' => [
+                    'slug' => $tenant->slug,
                     'nombre_comercial' => $tenant->nombre_comercial,
-                    'tenant_url' => $tenant->tenantAppUrl(),
-                    'admin_login' => $tenant->tenantAppUrl().'/login-admin',
+                    'tenant_url' => $appUrl,
+                    'admin_login' => $appUrl.'/login-admin',
+                    'cliente_url' => $appUrl.'/cliente',
+                    'staff_url' => $appUrl.'/staff',
+                    'admin_correo' => $payload['admin_correo'],
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -144,6 +157,8 @@ class OnboardingController extends Controller
         $tenant = $invitation->tenant;
 
         if ($tenant->status === 'active') {
+            $appUrl = $tenant->tenantAppUrl();
+
             return [
                 'http_status' => 200,
                 'reason' => 'already_active',
@@ -151,9 +166,25 @@ class OnboardingController extends Controller
                 'data' => [
                     'email' => $invitation->email,
                     'slug' => $tenant->slug,
+                    'nombre_comercial' => $tenant->nombre_comercial,
                     'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
-                    'tenant_url' => $tenant->tenantAppUrl(),
-                    'admin_login' => $tenant->tenantAppUrl().'/login-admin',
+                    'tenant_url' => $appUrl,
+                    'admin_login' => $appUrl.'/login-admin',
+                    'cliente_url' => $appUrl.'/cliente',
+                    'staff_url' => $appUrl.'/staff',
+                ],
+            ];
+        }
+
+        if ($tenant->status === 'provisioning') {
+            return [
+                'http_status' => 200,
+                'reason' => 'provisioning',
+                'message' => 'Estamos creando la base de datos de tu restaurante…',
+                'data' => [
+                    'email' => $invitation->email,
+                    'slug' => $tenant->slug,
+                    'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
                 ],
             ];
         }
@@ -181,15 +212,21 @@ class OnboardingController extends Controller
             ];
         }
 
+        $reason = $tenant->status === 'failed' ? 'failed' : 'ready';
+        $message = $tenant->status === 'failed'
+            ? 'La configuración anterior falló. Puedes intentarlo de nuevo.'
+            : 'OK';
+
         return [
             'http_status' => 200,
-            'reason' => 'ready',
-            'message' => 'OK',
+            'reason' => $reason,
+            'message' => $message,
             'data' => [
                 'email' => $invitation->email,
                 'slug' => $tenant->slug,
                 'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
                 'expires_at' => $invitation->expires_at->toIso8601String(),
+                'provision_error' => $tenant->provision_error,
             ],
             'invitation' => $invitation,
         ];

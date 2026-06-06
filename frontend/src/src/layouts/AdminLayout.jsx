@@ -187,6 +187,7 @@ export function AdminLayout({ title, children }) {
                         <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
                         <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
                         <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />
+                        <SidebarItem to="/admin/cajeros" label="Cajeros" collapsed={collapsed} />
                         <SidebarItem to="/admin/reportes" label="Reportes" collapsed={collapsed} />
                         <SidebarItem to="/admin/inventario" label="Inventario" collapsed={collapsed} />
                         <SidebarItem to="/admin/finanzas" label="Finanzas" collapsed={collapsed} />

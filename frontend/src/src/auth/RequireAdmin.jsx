@@ -20,6 +20,16 @@ export function RequireAdmin({ children }) {
             .then((data) => {
                 if (cancelled) return;
                 if (data?.user?.rol !== 'ADMINISTRADOR') {
+                    try {
+                        sessionStorage.setItem(
+                            'admin_login_error',
+                            data?.user?.rol
+                                ? `Tu sesión es de rol ${data.user.rol}, no administrador. Cierra sesión e ingresa con el usuario admin.`
+                                : 'Tu sesión no es de administrador.',
+                        );
+                    } catch {
+                        /* ignore */
+                    }
                     clearToken();
                     setOk(false);
                     navigate('/login-admin', { replace: true });
@@ -27,8 +37,19 @@ export function RequireAdmin({ children }) {
                 }
                 setOk(true);
             })
-            .catch(() => {
+            .catch((err) => {
                 if (cancelled) return;
+                try {
+                    const msg =
+                        err?.status === 400
+                            ? 'No se identificó el restaurante. Abre el login desde tu subdominio (ej. mi-local.localhost:5173).'
+                            : err?.status === 401
+                              ? 'La sesión expiró o el token no coincide con este restaurante. Vuelve a iniciar sesión.'
+                              : 'No se pudo validar la sesión de administrador.';
+                    sessionStorage.setItem('admin_login_error', msg);
+                } catch {
+                    /* ignore */
+                }
                 clearToken();
                 setOk(false);
                 navigate('/login-admin', { replace: true });

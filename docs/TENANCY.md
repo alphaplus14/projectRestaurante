@@ -94,13 +94,14 @@ Si SMTP falla, Master sigue mostrando el enlace para copiarlo manualmente.
 - [ ] `TENANT_FRONTEND_PORT=5173` para enlaces correctos en el correo.
 - [ ] `TENANCY_MODE=multi` en backend `.env`.
 
-### B. Alta de un cliente
+### B. Alta de un cliente (flujo completo)
 
 1. **Master** → http://master.localhost:5173/master/login  
 2. Invitación: correo + slug (`mi-sushi`).  
 3. Cliente recibe correo → abre `/onboarding/{token}`.  
-4. Completa datos → se crea BD `rest_mi_sushi` + admin.  
-5. Cliente entra en http://mi-sushi.localhost:5173/login-admin  
+4. **Onboarding en 3 pasos:** datos del local → usuario administrador → confirmar.  
+5. Se crea BD `rest_mi_sushi` + admin; pantalla de éxito con checklist (panel, carta, personal, sitio público).  
+6. Cliente entra en http://mi-sushi.localhost:5173/login-admin con el correo y contraseña que definió.  
 
 ### C. Desarrollo sin subdominio (opcional)
 
@@ -115,7 +116,7 @@ Así `127.0.0.1:5173` envía el header `X-Tenant-Slug` al API.
 
 ### D. Reenviar invitación
 
-En Master, restaurantes en estado **pending** → botón **Reenviar correo**.
+En Master, restaurantes en estado **pending**, **failed** o **provisioning** → botón **Reenviar correo** (genera enlace nuevo).
 
 ## Flujo resumido
 

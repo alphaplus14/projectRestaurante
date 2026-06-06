@@ -8,6 +8,8 @@ export default defineConfig({
         proxy: {
             // Proxy para que el frontend consuma la API sin CORS
             '/api': 'http://127.0.0.1:8000',
+            // Logos e imágenes públicas (storage:link en el backend)
+            '/storage': 'http://127.0.0.1:8000',
         },
     },
 });

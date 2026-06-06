@@ -53,11 +53,6 @@ export function getTenantSlugForApi() {
         }
     }
 
-    const envSlug = import.meta.env.VITE_DEV_TENANT_SLUG;
-    if (envSlug) {
-        return String(envSlug).trim().toLowerCase();
-    }
-
     try {
         const stored = localStorage.getItem(DEV_SLUG_KEY);
         if (stored) {
@@ -65,6 +60,11 @@ export function getTenantSlugForApi() {
         }
     } catch {
         /* ignore */
+    }
+
+    const envSlug = import.meta.env.VITE_DEV_TENANT_SLUG;
+    if (envSlug) {
+        return String(envSlug).trim().toLowerCase();
     }
 
     const envDefault = import.meta.env.VITE_TENANT_DEFAULT_SLUG;

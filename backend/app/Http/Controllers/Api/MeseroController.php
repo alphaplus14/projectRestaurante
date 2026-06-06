@@ -340,61 +340,6 @@ class MeseroController extends Controller
     }
 
     /**
-     * Cerrar cuenta: pedido CERRADO y mesa LIBRE (tras retiro en cocina).
-     */
-    public function cerrarPedido(Request $request, Pedido $pedido): JsonResponse
-    {
-        $this->authorizeMesero($request, $pedido);
-
-        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
-            return response()->json([
-                'message' => 'Este pedido ya está cerrado o cancelado.',
-            ], 422);
-        }
-
-        if (! $pedido->detalles()->exists()) {
-            return response()->json([
-                'message' => 'El pedido no tiene ítems.',
-            ], 422);
-        }
-
-        $pendientesCocina = $pedido->detalles()->where('estado_item', '!=', 'LISTO')->count();
-        if ($pendientesCocina > 0) {
-            return response()->json([
-                'message' => 'Aún hay platos en cocina. Espera a que estén listos o agrega solo cuando cocina termine.',
-            ], 422);
-        }
-
-        if (! in_array($pedido->estado, ['LISTO', 'ENTREGADO'], true)) {
-            return response()->json([
-                'message' => 'Solo puedes cerrar cuenta cuando el pedido esté listo o ya recibido de cocina.',
-            ], 422);
-        }
-
-        DB::transaction(function () use ($pedido): void {
-            $pedido->estado = 'CERRADO';
-            $pedido->cerrado_en = now();
-            $pedido->save();
-
-            $mesa = Mesa::query()->where('idMesa', $pedido->mesa_idMesa)->first();
-            if ($mesa) {
-                $mesa->estado = 'LIBRE';
-                $mesa->save();
-            }
-        });
-
-        $pedido->refresh()->load([
-            'mesa:idMesa,numero,nombre',
-            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
-        ]);
-
-        return response()->json([
-            'data' => $this->serializePedidoCompleto($pedido),
-            'message' => 'Cuenta cerrada. La mesa quedó libre.',
-        ]);
-    }
-
-    /**
      * Mesero retira el pedido de cocina: deja de aparecer en cola del cocinero.
      */
     public function recibirPedido(Request $request, Pedido $pedido): JsonResponse

@@ -10,42 +10,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
-class UsuarioController extends Controller
+class AdminCajeroController extends Controller
 {
-    // Roles que el admin puede gestionar desde este endpoint
-    private const ROLES_PERMITIDOS = ['ADMINISTRADOR', 'MESERO', 'COCINERO', 'CAJERO'];
-
-    /**
-     * GET /admin/usuarios
-     * Lista todos los usuarios gestionables.
-     * Acepta ?rol=MESERO para filtrar por cargo.
-     */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        $rolFiltro = $request->query('rol');
-
-        $query = Usuario::query()
+        $cajeros = Usuario::query()
             ->with(['cargo:idCargo,nombre'])
-            ->whereHas('cargo', fn($q) => $q->whereIn('nombre', self::ROLES_PERMITIDOS))
+            ->whereHas('cargo', fn ($q) => $q->where('nombre', 'CAJERO'))
             ->orderByDesc('activo')
             ->orderBy('nombre')
-            ->orderBy('apellido');
-
-        if ($rolFiltro && in_array(strtoupper($rolFiltro), self::ROLES_PERMITIDOS, true)) {
-            $query->whereHas('cargo', fn($q) => $q->where('nombre', strtoupper($rolFiltro)));
-        }
-
-        $usuarios = $query->get();
+            ->orderBy('apellido')
+            ->get();
 
         return response()->json([
-            'data' => $usuarios->map(fn(Usuario $u) => $this->serialize($u)),
+            'data' => $cajeros->map(fn (Usuario $u) => $this->serializeUsuario($u)),
         ]);
     }
 
-    /**
-     * POST /admin/usuarios
-     * Crea un usuario con el rol indicado en el body.
-     */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -55,15 +36,16 @@ class UsuarioController extends Controller
             'telefono' => ['required', 'string', 'max:40'],
             'correo' => ['required', 'email', 'max:190', Rule::unique('usuario', 'correo')],
             'password' => ['required', 'string', 'min:6', 'max:120'],
-            'rol' => ['required', 'string', Rule::in(self::ROLES_PERMITIDOS)],
             'activo' => ['sometimes', 'boolean'],
         ]);
 
-        $cargo = Cargo::query()->where('nombre', strtoupper($data['rol']))->first();
+        $cargoId = Cargo::query()
+            ->where('nombre', 'CAJERO')
+            ->value('idCargo');
 
-        if (!$cargo) {
+        if (! $cargoId) {
             return response()->json([
-                'message' => "El rol '{$data['rol']}' no existe en el sistema.",
+                'message' => 'No existe el cargo CAJERO en el sistema.',
             ], 500);
         }
 
@@ -74,7 +56,7 @@ class UsuarioController extends Controller
             'telefono' => $data['telefono'],
             'correo' => $data['correo'],
             'password' => Hash::make((string) $data['password']),
-            'cargos_idCargo' => $cargo->idCargo,
+            'cargos_idCargo' => $cargoId,
             'activo' => array_key_exists('activo', $data) ? (bool) $data['activo'] : true,
             'creado_en' => now(),
         ]);
@@ -82,91 +64,57 @@ class UsuarioController extends Controller
         $usuario->loadMissing(['cargo:idCargo,nombre']);
 
         return response()->json([
-            'message' => 'Usuario creado.',
-            'data' => $this->serialize($usuario),
+            'message' => 'Cajero creado.',
+            'data' => $this->serializeUsuario($usuario),
         ], 201);
     }
 
-    /**
-     * PUT /admin/usuarios/{usuario}
-     * Edita datos del usuario. El rol también puede cambiarse.
-     */
     public function update(Request $request, Usuario $usuario): JsonResponse
     {
         $usuario->loadMissing('cargo');
-
-        // Solo se pueden editar usuarios gestionables
-        if (!in_array($usuario->cargo?->nombre, self::ROLES_PERMITIDOS, true)) {
+        if ($usuario->cargo?->nombre !== 'CAJERO') {
             return response()->json([
-                'message' => 'Este usuario no puede editarse desde este endpoint.',
+                'message' => 'Este endpoint solo permite editar usuarios CAJERO.',
             ], 409);
         }
 
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:120'],
             'apellido' => ['required', 'string', 'max:120'],
-            'cedula' => [
-                'required',
-                'string',
-                'max:32',
-                Rule::unique('usuario', 'cedula')->ignore($usuario->idUsuario, 'idUsuario')
-            ],
+            'cedula' => ['required', 'string', 'max:32', Rule::unique('usuario', 'cedula')->ignore($usuario->idUsuario, 'idUsuario')],
             'telefono' => ['required', 'string', 'max:40'],
-            'correo' => [
-                'required',
-                'email',
-                'max:190',
-                Rule::unique('usuario', 'correo')->ignore($usuario->idUsuario, 'idUsuario')
-            ],
+            'correo' => ['required', 'email', 'max:190', Rule::unique('usuario', 'correo')->ignore($usuario->idUsuario, 'idUsuario')],
             'password' => ['nullable', 'string', 'min:6', 'max:120'],
-            'rol' => ['required', 'string', Rule::in(self::ROLES_PERMITIDOS)],
             'activo' => ['sometimes', 'boolean'],
         ]);
-
-        // Resolver el cargo nuevo si cambió
-        $cargo = Cargo::query()->where('nombre', strtoupper($data['rol']))->first();
-
-        if (!$cargo) {
-            return response()->json([
-                'message' => "El rol '{$data['rol']}' no existe en el sistema.",
-            ], 500);
-        }
 
         $usuario->nombre = $data['nombre'];
         $usuario->apellido = $data['apellido'];
         $usuario->cedula = $data['cedula'];
         $usuario->telefono = $data['telefono'];
         $usuario->correo = $data['correo'];
-        $usuario->cargos_idCargo = $cargo->idCargo;
-
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $usuario->password = Hash::make((string) $data['password']);
         }
-
         if (array_key_exists('activo', $data)) {
             $usuario->activo = (bool) $data['activo'];
         }
-
         $usuario->save();
-        $usuario->load(['cargo:idCargo,nombre']);
+
+        $usuario->loadMissing(['cargo:idCargo,nombre']);
 
         return response()->json([
-            'message' => 'Usuario actualizado.',
-            'data' => $this->serialize($usuario),
+            'message' => 'Cajero actualizado.',
+            'data' => $this->serializeUsuario($usuario),
         ]);
     }
 
-    /**
-     * PATCH /admin/usuarios/{usuario}/activo
-     * Activa o desactiva sin eliminar.
-     */
     public function setActivo(Request $request, Usuario $usuario): JsonResponse
     {
         $usuario->loadMissing('cargo');
-
-        if (!in_array($usuario->cargo?->nombre, self::ROLES_PERMITIDOS, true)) {
+        if ($usuario->cargo?->nombre !== 'CAJERO') {
             return response()->json([
-                'message' => 'Este usuario no puede modificarse desde este endpoint.',
+                'message' => 'Este endpoint solo permite deshabilitar/habilitar usuarios CAJERO.',
             ], 409);
         }
 
@@ -178,14 +126,12 @@ class UsuarioController extends Controller
         $usuario->save();
 
         return response()->json([
-            'message' => $usuario->activo ? 'Usuario habilitado.' : 'Usuario deshabilitado.',
-            'data' => $this->serialize($usuario->fresh(['cargo:idCargo,nombre'])),
+            'message' => $usuario->activo ? 'Cajero habilitado.' : 'Cajero deshabilitado.',
+            'data' => $this->serializeUsuario($usuario->fresh(['cargo:idCargo,nombre'])),
         ]);
     }
 
-    // -------------------------------------------------------------------------
-
-    private function serialize(Usuario $u): array
+    private function serializeUsuario(Usuario $u): array
     {
         return [
             'idUsuario' => $u->idUsuario,
