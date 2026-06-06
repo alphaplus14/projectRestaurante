@@ -695,6 +695,7 @@ export function CocinaPedidosPage() {
     const [lineaCancelar, setLineaCancelar] = useState(null);
     const [busyCancelId, setBusyCancelId] = useState(null);
     const [cancelError, setCancelError] = useState('');
+    const [alertasInventario, setAlertasInventario] = useState(0);
 
     const fetchPedidos = useCallback(async () => {
         try {
@@ -703,6 +704,15 @@ export function CocinaPedidosPage() {
             setLoadError('');
         } catch (e) {
             setLoadError(e?.message || 'No se pudo cargar la cola de cocina.');
+        }
+    }, []);
+
+    const fetchAlertasInventario = useCallback(async () => {
+        try {
+            const res = await apiFetch('/api/cocina/inventario/alertas');
+            setAlertasInventario(Number(res?.total_alertas) || 0);
+        } catch {
+            setAlertasInventario(0);
         }
     }, []);
 
@@ -730,11 +740,15 @@ export function CocinaPedidosPage() {
 
     useEffect(() => {
         fetchPedidos();
+        void fetchAlertasInventario();
         const id = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchPedidos();
+            if (document.visibilityState === 'visible') {
+                fetchPedidos();
+                void fetchAlertasInventario();
+            }
         }, 6000);
         return () => clearInterval(id);
-    }, [fetchPedidos]);
+    }, [fetchPedidos, fetchAlertasInventario]);
 
     useEffect(() => {
         if (!modalHistorialAbierto) return;
@@ -870,6 +884,31 @@ export function CocinaPedidosPage() {
                         <p className="text-sm text-stone-600 dark:text-stone-500">Cola por estado · actualización cada 6 s</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <a
+                            href="/cocina/menu"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Menú del restaurante"
+                            title="Menú — habilitar o deshabilitar platos"
+                            className="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-2.5 hover:bg-stone-100 dark:hover:bg-stone-800 focus-visible:ring-2 focus-visible:ring-amber-500"
+                        >
+                            <img src="/admin navbar icons/menu.png" alt="" className="h-5 w-5 object-contain dark:invert" />
+                        </a>
+                        <a
+                            href="/cocina/inventario"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Inventario de ingredientes"
+                            title={alertasInventario > 0 ? `${alertasInventario} ingrediente(s) con stock bajo` : 'Inventario'}
+                            className="relative rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-2.5 hover:bg-stone-100 dark:hover:bg-stone-800 focus-visible:ring-2 focus-visible:ring-amber-500"
+                        >
+                            <img src="/inventario.png" alt="" className="h-5 w-5 object-contain dark:invert" />
+                            {alertasInventario > 0 ? (
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                    {alertasInventario}
+                                </span>
+                            ) : null}
+                        </a>
                         <button
                             type="button"
                             disabled={llamandoMesero}

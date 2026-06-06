@@ -211,21 +211,11 @@ class IngredienteController extends Controller
     public function movimientos(Ingrediente $ingrediente): JsonResponse
     {
         $movimientos = $ingrediente->movimientos()
-            ->with('usuario:idUsuario,nombre,apellido')
+            ->with(['usuario:idUsuario,nombre,apellido,cargos_idCargo', 'usuario.cargo:idCargo,nombre'])
             ->orderByDesc('fecha')
             ->limit(50)
             ->get()
-            ->map(fn(MovimientoIngrediente $m) => [
-                'idMovimiento' => $m->idMovimiento,
-                'tipo' => $m->tipo,
-                'cantidad' => (float) $m->cantidad,
-                'motivo' => $m->motivo,
-                'referencia' => $m->referencia,
-                'fecha' => $m->fecha?->toISOString(),
-                'usuario' => $m->usuario
-                    ? $m->usuario->nombre . ' ' . $m->usuario->apellido
-                    : '—',
-            ]);
+            ->map(fn (MovimientoIngrediente $m) => $this->serializeMovimiento($m));
 
         return response()->json([
             'ingrediente' => [
@@ -235,6 +225,98 @@ class IngredienteController extends Controller
             ],
             'data' => $movimientos,
         ]);
+    }
+
+    // ──────────────────────────────────────────────────────
+    //  Historial global (admin) — incluye cambios del cocinero
+    //  GET /admin/inventario/movimientos?solo_cocina=1
+    // ──────────────────────────────────────────────────────
+    public function historialGlobal(Request $request): JsonResponse
+    {
+        $filtros = $request->validate([
+            'solo_cocina' => ['sometimes', 'boolean'],
+            'ingrediente' => ['nullable', 'string', 'max:160'],
+            'usuario' => ['nullable', 'string', 'max:160'],
+            'fecha_desde' => ['nullable', 'date'],
+            'fecha_hasta' => ['nullable', 'date', 'after_or_equal:fecha_desde'],
+        ]);
+
+        $soloCocina = $request->boolean('solo_cocina');
+        $nombreIngrediente = trim((string) ($filtros['ingrediente'] ?? ''));
+        $nombreUsuario = trim((string) ($filtros['usuario'] ?? ''));
+
+        $query = MovimientoIngrediente::query()
+            ->with([
+                'ingrediente:idIngrediente,nombreIngrediente,unidad',
+                'usuario:idUsuario,nombre,apellido,cargos_idCargo',
+                'usuario.cargo:idCargo,nombre',
+            ])
+            ->orderByDesc('fecha')
+            ->limit(250);
+
+        if ($soloCocina) {
+            $query->whereHas('usuario.cargo', fn ($q) => $q->where('nombre', 'COCINERO'));
+        }
+
+        if ($nombreIngrediente !== '') {
+            $term = '%'.$nombreIngrediente.'%';
+            $query->whereHas('ingrediente', fn ($q) => $q->where('nombreIngrediente', 'like', $term));
+        }
+
+        if ($nombreUsuario !== '') {
+            $term = '%'.$nombreUsuario.'%';
+            $query->whereHas('usuario', function ($q) use ($term) {
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('nombre', 'like', $term)
+                        ->orWhere('apellido', 'like', $term)
+                        ->orWhereRaw("CONCAT(nombre, ' ', apellido) LIKE ?", [$term]);
+                });
+            });
+        }
+
+        if (! empty($filtros['fecha_desde'])) {
+            $query->whereDate('fecha', '>=', $filtros['fecha_desde']);
+        }
+
+        if (! empty($filtros['fecha_hasta'])) {
+            $query->whereDate('fecha', '<=', $filtros['fecha_hasta']);
+        }
+
+        $movimientos = $query->get()->map(fn (MovimientoIngrediente $m) => $this->serializeMovimiento($m, true));
+
+        return response()->json([
+            'total' => $movimientos->count(),
+            'data' => $movimientos,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeMovimiento(MovimientoIngrediente $m, bool $incluirIngrediente = false): array
+    {
+        $payload = [
+            'idMovimiento' => $m->idMovimiento,
+            'tipo' => $m->tipo,
+            'cantidad' => (float) $m->cantidad,
+            'motivo' => $m->motivo,
+            'referencia' => $m->referencia,
+            'fecha' => $m->fecha?->toISOString(),
+            'usuario' => $m->usuario
+                ? trim($m->usuario->nombre.' '.$m->usuario->apellido)
+                : '—',
+            'usuario_rol' => $m->usuario?->cargo?->nombre ?? null,
+        ];
+
+        if ($incluirIngrediente && $m->ingrediente) {
+            $payload['ingrediente'] = [
+                'idIngrediente' => $m->ingrediente->idIngrediente,
+                'nombreIngrediente' => $m->ingrediente->nombreIngrediente,
+                'unidad' => $m->ingrediente->unidad,
+            ];
+        }
+
+        return $payload;
     }
 
     // ──────────────────────────────────────────────────────

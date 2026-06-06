@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginStaffPage } from './pages/LoginStaffPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
+import { CocinaInventarioPage } from './pages/CocinaInventarioPage';
+import { CocinaMenuPage } from './pages/CocinaMenuPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
 import { MeseroAjustesPage } from './pages/MeseroAjustesPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
@@ -90,6 +92,22 @@ export function App() {
                 element={
                     <RequireCocina>
                         <CocinaPedidosPage />
+                    </RequireCocina>
+                }
+            />
+            <Route
+                path="/cocina/inventario"
+                element={
+                    <RequireCocina>
+                        <CocinaInventarioPage />
+                    </RequireCocina>
+                }
+            />
+            <Route
+                path="/cocina/menu"
+                element={
+                    <RequireCocina>
+                        <CocinaMenuPage />
                     </RequireCocina>
                 }
             />
