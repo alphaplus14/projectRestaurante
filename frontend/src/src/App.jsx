@@ -17,6 +17,10 @@ import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
 import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
 import { LandingPage } from './pages/LandingPage';
+import { MasterLoginPage } from './pages/MasterLoginPage';
+import { MasterDashboardPage } from './pages/MasterDashboardPage';
+import { OnboardingPage } from './pages/OnboardingPage';
+import { isMasterHost } from './tenancy/tenantContext';
 import { ClienteCartaPage } from './pages/ClienteCartaPage';
 import { ClienteReservasPage } from './pages/ClienteReservasPage';
 import { ClienteOAuthCallbackPage } from './pages/ClienteOAuthCallbackPage';
@@ -25,11 +29,25 @@ import { RequireMesero } from './auth/RequireMesero';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { RequireCliente } from './auth/RequireCliente';
 
+function RootRedirect() {
+    if (isMasterHost()) {
+        return <Navigate to="/master" replace />;
+    }
+    return <Navigate to="/cliente" replace />;
+}
+
 export function App() {
     return (
         <Routes>
+            <Route path="/" element={<RootRedirect />} />
+
+            {/* Plataforma Master + onboarding (sin subdominio de tenant) */}
+            <Route path="/master" element={<Navigate to="/master/login" replace />} />
+            <Route path="/master/login" element={<MasterLoginPage />} />
+            <Route path="/master/dashboard" element={<MasterDashboardPage />} />
+            <Route path="/onboarding/:token" element={<OnboardingPage />} />
+
             {/* Sitio clientes (público + sesión cliente) */}
-            <Route path="/" element={<Navigate to="/cliente" replace />} />
             <Route path="/cliente" element={<LandingPage />} />
             <Route path="/cliente/login" element={<LoginClientePage />} />
             <Route path="/cliente/oauth-callback" element={<ClienteOAuthCallbackPage />} />
