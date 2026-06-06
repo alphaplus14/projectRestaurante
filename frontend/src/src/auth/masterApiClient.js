@@ -1,8 +1,7 @@
-import { getToken } from './authStorage';
+import { getMasterToken } from './masterAuthStorage';
 import { formatApiErrorForUser } from '../utils/friendlyApiError';
-import { getTenantSlugForApi } from '../tenancy/tenantContext';
 
-export async function apiFetch(path, options = {}) {
+export async function masterApiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
     headers.set('Accept', 'application/json');
 
@@ -11,14 +10,9 @@ export async function apiFetch(path, options = {}) {
         headers.set('Content-Type', 'application/json');
     }
 
-    const token = getToken();
+    const token = getMasterToken();
     if (token && !headers.has('Authorization')) {
         headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    const tenantSlug = getTenantSlugForApi();
-    if (tenantSlug && !headers.has('X-Tenant-Slug')) {
-        headers.set('X-Tenant-Slug', tenantSlug);
     }
 
     const res = await fetch(path, { ...options, headers });
@@ -34,10 +28,9 @@ export async function apiFetch(path, options = {}) {
 
         const err = new Error(message);
         err.status = res.status;
-        err.data = dataObj ?? (typeof data === 'object' ? data : null);
+        err.data = dataObj;
         throw err;
     }
 
     return data;
 }
-

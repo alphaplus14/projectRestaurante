@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'tenant.identify' => \App\Http\Middleware\IdentifyTenant::class,
+            'auth.master' => \App\Http\Middleware\AuthenticateMaster::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

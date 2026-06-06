@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -13,25 +12,6 @@ function formatMoney(n) {
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
-}
-
-function IconChefHat({ className }) {
-    return (
-        <svg
-            className={className}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-        >
-            <path d="M4 17h16" />
-            <path d="M7 17v-1.5C7 12 9.5 9 12 9s5 3 5 6.5V17" />
-            <path d="M8.5 10.5c.7-1.8 2.3-3 3.5-3s2.8 1.2 3.5 3" />
-        </svg>
-    );
 }
 
 function normalizarBusqueda(s) {
@@ -350,6 +330,123 @@ function CancelarPedidoModal({ open, onClose, onConfirm, busy }) {
     );
 }
 
+function CerrarCuentaModal({ open, onClose, onConfirm, busy, pedido, mesa, total }) {
+    const [paso, setPaso] = useState('resumen');
+
+    useEffect(() => {
+        if (!open) setPaso('resumen');
+    }, [open]);
+
+    if (!open || !pedido) return null;
+
+    const numLineas = pedido.detalles?.length ?? 0;
+    const numUnidades =
+        pedido.detalles?.reduce((s, l) => s + Number(l.cantidad || 0), 0) ?? 0;
+    const mesaLabel = formatMesaLabel(mesa);
+    const estadoLabel = ESTADO_LABEL[pedido.estado] || pedido.estado;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} aria-hidden />
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cerrar-cuenta-titulo"
+                className="relative z-10 w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto"
+            >
+                <h2 id="cerrar-cuenta-titulo" className="text-lg font-semibold text-stone-900 dark:text-stone-50">
+                    {paso === 'resumen' ? 'Cerrar cuenta' : '¿Confirmar cierre?'}
+                </h2>
+                {paso === 'resumen' ? (
+                    <div className="mt-4 space-y-4">
+                        <p className="text-sm text-stone-600 dark:text-stone-400">
+                            Revisa el resumen antes de liberar la mesa para un nuevo servicio.
+                        </p>
+                        <dl className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50 divide-y divide-stone-200 dark:divide-stone-800 text-sm">
+                            <div className="flex justify-between gap-3 px-3 py-2.5">
+                                <dt className="text-stone-500 dark:text-stone-400">Mesa</dt>
+                                <dd className="font-medium text-stone-900 dark:text-stone-50 text-right">{mesaLabel}</dd>
+                            </div>
+                            <div className="flex justify-between gap-3 px-3 py-2.5">
+                                <dt className="text-stone-500 dark:text-stone-400">Pedido</dt>
+                                <dd className="font-medium text-stone-900 dark:text-stone-50">#{pedido.idPedido}</dd>
+                            </div>
+                            <div className="flex justify-between gap-3 px-3 py-2.5">
+                                <dt className="text-stone-500 dark:text-stone-400">Estado</dt>
+                                <dd className="font-medium text-stone-900 dark:text-stone-50">{estadoLabel}</dd>
+                            </div>
+                            <div className="flex justify-between gap-3 px-3 py-2.5">
+                                <dt className="text-stone-500 dark:text-stone-400">Ítems</dt>
+                                <dd className="font-medium text-stone-900 dark:text-stone-50">
+                                    {numLineas} {numLineas === 1 ? 'línea' : 'líneas'} · {numUnidades}{' '}
+                                    {numUnidades === 1 ? 'unidad' : 'unidades'}
+                                </dd>
+                            </div>
+                            <div className="flex justify-between gap-3 px-3 py-2.5">
+                                <dt className="text-stone-500 dark:text-stone-400">Total</dt>
+                                <dd className="font-semibold text-amber-700 dark:text-amber-400">{formatMoney(total)}</dd>
+                            </div>
+                        </dl>
+                        {pedido.estado === 'LISTO' ? (
+                            <p className="text-xs text-amber-800 dark:text-amber-200/90 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+                                Los platos están listos en cocina. Al cerrar, la mesa quedará disponible de inmediato.
+                            </p>
+                        ) : (
+                            <p className="text-xs text-stone-600 dark:text-stone-400">
+                                El pedido ya fue recibido de cocina. La mesa pasará a estado libre.
+                            </p>
+                        )}
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={busy}
+                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-50"
+                            >
+                                Volver
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPaso('confirmar')}
+                                className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 py-3 text-sm font-semibold disabled:opacity-50"
+                            >
+                                Continuar
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mt-4 space-y-4">
+                        <p className="text-sm text-stone-600 dark:text-stone-400">
+                            Se cerrará el pedido <strong>#{pedido.idPedido}</strong> de {mesaLabel} por{' '}
+                            <strong>{formatMoney(total)}</strong>. La mesa quedará libre.
+                        </p>
+                        <p className="text-xs text-stone-500 dark:text-stone-500">¿Estás seguro?</p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPaso('resumen')}
+                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium disabled:opacity-50"
+                            >
+                                No
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={onConfirm}
+                                className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 py-3 text-sm font-semibold disabled:opacity-50"
+                            >
+                                {busy ? 'Cerrando…' : 'Sí, cerrar cuenta'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function badgeItemEstado(estado) {
     if (estado === 'LISTO') {
         return 'bg-[#4d7c6f]/20 text-[#4d7c6f] border-[#4d7c6f]/30';
@@ -398,11 +495,26 @@ function ProductThumb({ imagenUrl, nombre, className }) {
 
 function MesaCard({ mesa, onSelect }) {
     const active = mesa.pedido_activo;
-    const bloqueado = active?.bloqueado;
-    const ocupada = mesa.estado === 'OCUPADA';
+    const bloqueado = Boolean(active?.bloqueado);
+    const tienePedido = Boolean(active?.idPedido || bloqueado);
+    const ocupada = mesa.estado === 'OCUPADA' || Boolean(active?.idPedido);
     const hora = active?.creado_en ? formatHora(active.creado_en) : null;
     const estadoPedido = active?.estado ? ESTADO_LABEL[active.estado] || active.estado : null;
     const refTitulo = active && !bloqueado ? tituloReferenciaPedido(active) : null;
+
+    const cardTone = bloqueado ? 'bloqueado' : ocupada || tienePedido ? 'ocupada' : 'libre';
+
+    const cardToneClass = {
+        libre: 'border-emerald-200 dark:border-emerald-800/55 bg-emerald-50/70 dark:bg-emerald-950/25 hover:border-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/10',
+        ocupada: 'border-orange-300 dark:border-orange-700/55 bg-orange-50/80 dark:bg-orange-950/30 hover:border-orange-400/80 hover:shadow-md hover:shadow-orange-500/10',
+        bloqueado: 'border-violet-200 dark:border-violet-800/50 bg-violet-50/60 dark:bg-violet-950/20 hover:border-violet-400/60 hover:shadow-md',
+    }[cardTone];
+
+    const iconToneClass = {
+        libre: 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/35 dark:border-emerald-400/30',
+        ocupada: 'bg-orange-500/10 dark:bg-orange-500/20 border-orange-500/30 dark:border-orange-400/25',
+        bloqueado: 'bg-violet-500/10 dark:bg-violet-500/20 border-violet-500/30 dark:border-violet-400/25',
+    }[cardTone];
 
     return (
         <button
@@ -410,12 +522,15 @@ function MesaCard({ mesa, onSelect }) {
             onClick={() => onSelect(mesa.idMesa)}
             className={classNames(
                 'rounded-2xl border p-4 sm:p-5 text-left transition-all min-h-[120px] active:scale-[0.98] touch-manipulation shadow-sm w-full',
-                'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-amber-500/50 hover:shadow-md',
+                cardToneClass,
             )}
         >
             <div className="flex items-start gap-3">
                 <div
-                    className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/30 dark:border-orange-400/25 flex items-center justify-center shadow-sm"
+                    className={classNames(
+                        'h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl flex items-center justify-center shadow-sm border',
+                        iconToneClass,
+                    )}
                     aria-hidden
                 >
                     <img
@@ -445,13 +560,13 @@ function MesaCard({ mesa, onSelect }) {
                     className={classNames(
                         'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
                         bloqueado
-                            ? 'bg-stone-200 text-stone-700 border border-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-600'
-                            : ocupada
+                            ? 'bg-violet-100 text-violet-800 border border-violet-300 dark:bg-violet-950/50 dark:text-violet-200 dark:border-violet-800/60'
+                            : ocupada || tienePedido
                               ? 'bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800/60'
-                              : 'bg-stone-100 text-stone-700 border border-stone-300 dark:bg-stone-800/90 dark:text-stone-300 dark:border-stone-600',
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/45 dark:text-emerald-300 dark:border-emerald-800/55',
                     )}
                 >
-                    {bloqueado ? 'Otro mesero' : ocupada ? 'Ocupada' : 'Libre'}
+                    {bloqueado ? 'Otro mesero' : ocupada || tienePedido ? 'Ocupada' : 'Libre'}
                 </span>
                 {active && estadoPedido ? (
                     <span className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
@@ -564,6 +679,7 @@ export function MeseroSalonPage() {
     const [cerrando, setCerrando] = useState(false);
     const [cancelando, setCancelando] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showCerrarModal, setShowCerrarModal] = useState(false);
     const [pedidosListos, setPedidosListos] = useState([]);
     const [llamadasCocina, setLlamadasCocina] = useState([]);
     const [pedidosListosVistos, setPedidosListosVistos] = useState(() => leerPedidosListosVistos());
@@ -572,18 +688,27 @@ export function MeseroSalonPage() {
     const [atendiendoLlamadaId, setAtendiendoLlamadaId] = useState(null);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
+    const pedidoCargadoIdRef = useRef(null);
 
     const selectedMesa = useMemo(() => mesas.find((m) => m.idMesa === selectedId), [mesas, selectedId]);
 
-    const fetchMesas = useCallback(async () => {
+    const activePedidoId = useMemo(() => {
+        if (!selectedId) return null;
+        const snap = mesas.find((m) => m.idMesa === selectedId);
+        if (snap?.pedido_activo?.bloqueado) return null;
+        return snap?.pedido_activo?.idPedido ?? null;
+    }, [mesas, selectedId]);
+
+    const fetchMesas = useCallback(async (options = {}) => {
+        const { silent = false } = options;
         try {
             const res = await apiFetch('/api/mesero/mesas');
             setMesas(Array.isArray(res?.data) ? res.data : []);
-            setBanner('');
+            if (!silent) setBanner('');
         } catch (e) {
-            setBanner(e?.message || 'No se pudieron cargar las mesas.');
+            if (!silent) setBanner(e?.message || 'No se pudieron cargar las mesas.');
         } finally {
-            setLoadingMesas(false);
+            if (!silent) setLoadingMesas(false);
         }
     }, []);
 
@@ -638,7 +763,7 @@ export function MeseroSalonPage() {
             });
             marcarPedidosListosVistos([p.idPedido]);
             setBanner(res?.message || 'Pedido recibido.');
-            await fetchMesas();
+            await fetchMesas({ silent: true });
             try {
                 const alertRes = await apiFetch('/api/mesero/alertas');
                 const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
@@ -721,51 +846,72 @@ export function MeseroSalonPage() {
         }
     }, []);
 
-    const loadPedido = useCallback(async (idPedido) => {
-        setLoadingPedido(true);
+    const loadPedido = useCallback(async (idPedido, options = {}) => {
+        const { silent = false } = options;
+        if (!idPedido) return null;
+        if (!silent) setLoadingPedido(true);
         try {
             const res = await apiFetch(`/api/mesero/pedidos/${idPedido}`);
-            setPedido(res?.data ?? null);
-            setBanner('');
+            const data = res?.data ?? null;
+            setPedido(data);
+            if (!silent) setBanner('');
+            return data;
         } catch (e) {
-            setPedido(null);
-            setBanner(e?.message || 'No se pudo cargar el pedido.');
+            if (!silent) {
+                setPedido(null);
+                setBanner(e?.message || 'No se pudo cargar el pedido.');
+            }
+            return null;
         } finally {
-            setLoadingPedido(false);
+            if (!silent) setLoadingPedido(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchMesas();
-        fetchAlertas();
+        void fetchMesas();
+        void fetchAlertas();
     }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         const id = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                fetchMesas();
-                fetchAlertas();
+                void fetchMesas({ silent: true });
+                void fetchAlertas();
             }
-        }, 6000);
+        }, 8000);
         return () => clearInterval(id);
     }, [fetchMesas, fetchAlertas]);
 
     useEffect(() => {
         if (!selectedId) {
             setPedido(null);
+            pedidoCargadoIdRef.current = null;
             return;
         }
-        const snap = mesas.find((m) => m.idMesa === selectedId);
-        if (snap?.pedido_activo?.bloqueado) {
+        if (selectedMesa?.pedido_activo?.bloqueado) {
             setPedido(null);
+            pedidoCargadoIdRef.current = null;
             return;
         }
-        if (snap?.pedido_activo?.idPedido) {
-            void loadPedido(snap.pedido_activo.idPedido);
+        if (activePedidoId) {
+            const silent = pedidoCargadoIdRef.current === activePedidoId;
+            pedidoCargadoIdRef.current = activePedidoId;
+            void loadPedido(activePedidoId, { silent });
         } else {
             setPedido(null);
+            pedidoCargadoIdRef.current = null;
         }
-    }, [selectedId, mesas, loadPedido]);
+    }, [selectedId, activePedidoId, selectedMesa?.pedido_activo?.bloqueado, loadPedido]);
+
+    useEffect(() => {
+        if (!selectedId || !activePedidoId) return undefined;
+        const id = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                void loadPedido(activePedidoId, { silent: true });
+            }
+        }, 10000);
+        return () => clearInterval(id);
+    }, [selectedId, activePedidoId, loadPedido]);
 
     useEffect(() => {
         if (selectedId && mesaTab === 'menu' && categorias.length === 0 && !loadingCategorias) {
@@ -794,6 +940,7 @@ export function MeseroSalonPage() {
         resetMenuFiltros();
         setCategorias([]);
         setPedido(null);
+        pedidoCargadoIdRef.current = null;
     }
 
     function seleccionarCategoria(idCategoria) {
@@ -826,8 +973,9 @@ export function MeseroSalonPage() {
             const p = res?.data;
             if (p?.idPedido) {
                 setPedido(p);
+                pedidoCargadoIdRef.current = p.idPedido;
                 setMesaTab('menu');
-                await fetchMesas();
+                await fetchMesas({ silent: true });
             }
         } catch (e) {
             setBanner(e?.message || 'No se pudo abrir la cuenta.');
@@ -849,8 +997,8 @@ export function MeseroSalonPage() {
                     nota,
                 }),
             });
-            await loadPedido(pedido.idPedido);
-            await fetchMesas();
+            await loadPedido(pedido.idPedido, { silent: true });
+            await fetchMesas({ silent: true });
             setQtyByProduct((prev) => ({ ...prev, [idProducto]: 1 }));
             setNotaByProduct((prev) => ({ ...prev, [idProducto]: '' }));
         } catch (e) {
@@ -862,19 +1010,19 @@ export function MeseroSalonPage() {
 
     async function cancelarPedido(motivo) {
         if (!pedido?.idPedido) return;
+        const idPedido = pedido.idPedido;
         setCancelando(true);
         setBanner('');
         try {
-            const res = await apiFetch(`/api/mesero/pedidos/${pedido.idPedido}/cancelar`, {
+            const res = await apiFetch(`/api/mesero/pedidos/${idPedido}/cancelar`, {
                 method: 'POST',
-                body: JSON.stringify({ motivo }),
+                body: JSON.stringify({ motivo: motivo.trim() }),
             });
             setShowCancelModal(false);
-            setPedido(null);
-            setBanner(res?.message || 'Pedido cancelado.');
-            await fetchMesas();
-            await fetchAlertas();
             cerrarMesa();
+            setBanner(res?.message || 'Pedido cancelado.');
+            await fetchMesas({ silent: true });
+            await fetchAlertas();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cancelar el pedido.');
         } finally {
@@ -882,20 +1030,19 @@ export function MeseroSalonPage() {
         }
     }
 
-    async function cerrarCuenta() {
-        if (!pedido?.idPedido || pedido.estado !== 'LISTO') return;
-        if (!window.confirm('¿Cerrar la cuenta? La mesa quedará libre para un nuevo servicio.')) return;
+    async function confirmarCerrarCuenta() {
+        if (!pedido?.idPedido || !['LISTO', 'ENTREGADO'].includes(pedido.estado)) return;
         setCerrando(true);
         setBanner('');
         try {
             const res = await apiFetch(`/api/mesero/pedidos/${pedido.idPedido}/cerrar`, {
                 method: 'POST',
             });
-            setPedido(null);
-            setBanner(res?.message || 'Cuenta cerrada.');
-            await fetchMesas();
-            await fetchAlertas();
+            setShowCerrarModal(false);
             cerrarMesa();
+            setBanner(res?.message || 'Cuenta cerrada. La mesa quedó libre.');
+            await fetchMesas({ silent: true });
+            await fetchAlertas();
         } catch (e) {
             setBanner(e?.message || 'No se pudo cerrar la cuenta.');
         } finally {
@@ -938,6 +1085,8 @@ export function MeseroSalonPage() {
     const puedeCancelarPedido = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
     const menuSinSeleccion = !categoriaActiva && !busquedaAplicada && !loadingCatalogo;
     const bloqueado = selectedMesa?.pedido_activo?.bloqueado;
+    const alertaCocinaUrgente = llamadasCocina.length > 0;
+    const botonNotificacionesActivo = notificacionesPendientes > 0;
 
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -960,19 +1109,48 @@ export function MeseroSalonPage() {
                                     ? `${notificacionesPendientes} notificación${notificacionesPendientes !== 1 ? 'es' : ''} pendiente${notificacionesPendientes !== 1 ? 's' : ''}`
                                     : 'Ver notificaciones de cocina'
                             }
-                            className="relative rounded-lg border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
+                            className={classNames(
+                                'relative inline-flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 touch-manipulation',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                                'focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-stone-950',
+                                botonNotificacionesActivo
+                                    ? alertaCocinaUrgente
+                                        ? 'border-amber-400/55 bg-amber-50 text-amber-950 shadow-sm shadow-amber-500/20 hover:bg-amber-100 hover:border-amber-500/70 dark:border-amber-500/50 dark:bg-gradient-to-b dark:from-amber-950/80 dark:to-amber-950/45 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_18px_rgba(245,158,11,0.22)] dark:hover:from-amber-900/70 dark:hover:to-amber-950/50 focus-visible:ring-amber-400'
+                                        : 'border-emerald-400/55 bg-emerald-50 text-emerald-950 shadow-sm shadow-emerald-500/15 hover:bg-emerald-100 hover:border-emerald-500/65 dark:border-emerald-500/45 dark:bg-gradient-to-b dark:from-emerald-950/75 dark:to-emerald-950/40 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(52,211,153,0.18)] dark:hover:from-emerald-900/65 dark:hover:to-emerald-950/45 focus-visible:ring-emerald-400'
+                                    : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800 dark:hover:border-stone-600 focus-visible:ring-stone-400',
+                            )}
                         >
-                            <img
-                                src="/cara feliz.png"
-                                alt=""
-                                className="h-5 w-5 object-contain"
-                                draggable={false}
-                            />
+                            <span
+                                className={classNames(
+                                    'flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg',
+                                    botonNotificacionesActivo
+                                        ? alertaCocinaUrgente
+                                            ? 'bg-amber-500/15 dark:bg-amber-400/10'
+                                            : 'bg-emerald-500/15 dark:bg-emerald-400/10'
+                                        : 'bg-stone-100 dark:bg-stone-800/80',
+                                )}
+                                aria-hidden
+                            >
+                                <img
+                                    src="/cara feliz.png"
+                                    alt=""
+                                    className={classNames(
+                                        'h-5 w-5 object-contain',
+                                        botonNotificacionesActivo
+                                            ? 'dark:brightness-110 dark:saturate-110'
+                                            : 'opacity-75 dark:opacity-90',
+                                    )}
+                                    draggable={false}
+                                />
+                            </span>
                             {notificacionesPendientes > 0 ? (
                                 <span
                                     className={classNames(
-                                        'absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ring-2 ring-stone-50 dark:ring-stone-950',
-                                        llamadasCocina.length > 0 ? 'bg-amber-600' : 'bg-emerald-600',
+                                        'absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white shadow-md',
+                                        'ring-2 ring-white dark:ring-stone-950',
+                                        alertaCocinaUrgente
+                                            ? 'bg-amber-500 dark:bg-amber-400 dark:text-amber-950'
+                                            : 'bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950',
                                     )}
                                 >
                                     {notificacionesPendientes > 9 ? '9+' : notificacionesPendientes}
@@ -980,9 +1158,10 @@ export function MeseroSalonPage() {
                             ) : pedidosListos.length > 0 || llamadasCocina.length > 0 ? (
                                 <span
                                     className={classNames(
-                                        'absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-stone-50 dark:ring-stone-950',
-                                        llamadasCocina.length > 0 ? 'bg-amber-500' : 'bg-emerald-500',
+                                        'absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-stone-950',
+                                        alertaCocinaUrgente ? 'bg-amber-500' : 'bg-emerald-500',
                                     )}
+                                    aria-hidden
                                 />
                             ) : null}
                         </button>
@@ -1053,6 +1232,16 @@ export function MeseroSalonPage() {
                 busy={cancelando}
                 onClose={() => !cancelando && setShowCancelModal(false)}
                 onConfirm={cancelarPedido}
+            />
+
+            <CerrarCuentaModal
+                open={showCerrarModal}
+                busy={cerrando}
+                onClose={() => !cerrando && setShowCerrarModal(false)}
+                onConfirm={confirmarCerrarCuenta}
+                pedido={pedido}
+                mesa={selectedMesa}
+                total={totalPedido}
             />
 
             {modalListosAbierto ? (
@@ -1272,10 +1461,10 @@ export function MeseroSalonPage() {
                                             <button
                                                 type="button"
                                                 disabled={cerrando}
-                                                onClick={cerrarCuenta}
+                                                onClick={() => setShowCerrarModal(true)}
                                                 className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold py-3 text-sm disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500"
                                             >
-                                                {cerrando ? 'Cerrando…' : 'Cerrar cuenta y liberar mesa'}
+                                                Cerrar cuenta y liberar mesa
                                             </button>
                                         ) : ['LISTO', 'ENTREGADO'].includes(pedido.estado) && hayItemsPendientesCocina ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">

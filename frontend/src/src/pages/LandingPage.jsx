@@ -17,6 +17,18 @@ const NAV_LINKS = [
     { href: '#contacto', label: 'Contáctanos' },
 ];
 
+/** Enlaces del pie: feedback claro en tema claro (hover, foco, active). */
+const footerInteractiveLinkClass = classNames(
+    'block w-full sm:w-auto rounded-lg px-2 py-2 -mx-2 text-left transition-colors duration-150',
+    'text-stone-700 dark:text-stone-300',
+    'hover:bg-stone-200 hover:text-stone-900 hover:underline hover:underline-offset-[3px] decoration-amber-700/70',
+    'dark:hover:bg-white/10 dark:hover:text-white dark:hover:decoration-amber-400/90',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2',
+    'focus-visible:bg-stone-200/70 focus-visible:text-stone-900 focus-visible:underline',
+    'focus-visible:ring-offset-stone-100 dark:focus-visible:ring-offset-stone-900 dark:focus-visible:bg-white/10 dark:focus-visible:text-white',
+    'active:bg-stone-300/80 dark:active:bg-white/15',
+);
+
 const DESTACADOS = [
     {
         title: 'Carta menú',
@@ -355,19 +367,10 @@ export function LandingPage() {
         <div className="relative min-h-screen overflow-x-clip bg-[#faf8f5] dark:bg-neutral-950 text-stone-900 dark:text-neutral-100">
             <a
                 href="#contenido"
-                className="fixed left-4 top-[5.25rem] z-[100] -translate-x-[calc(100%+2rem)] focus:translate-x-0 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-neutral-950 outline-none ring-2 ring-neutral-950/20 transition-transform duration-200"
+                className="fixed left-4 top-24 z-[100] -translate-x-[calc(100%+2rem)] focus:translate-x-0 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-neutral-950 outline-none ring-2 ring-neutral-950/20 transition-transform duration-200"
             >
                 Saltar al contenido
             </a>
-
-            {/* Franja superior */}
-            <div className="relative z-30 bg-stone-900 text-stone-100 text-[11px] min-[375px]:text-[12px] sm:text-[13px]">
-                <div className="mx-auto max-w-7xl px-3 min-[375px]:px-4 sm:px-6 py-1.5 sm:py-2">
-                    <span className="opacity-90 block text-center sm:text-left leading-snug">
-                        Abierto para todo el público · Carta digital disponible
-                    </span>
-                </div>
-            </div>
 
             <header className="relative z-40 sticky top-0 overflow-visible border-b border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md shadow-sm">
                 <div
@@ -548,9 +551,6 @@ export function LandingPage() {
                             Cerrar sesión
                         </button>
                     ) : null}
-                    <p className="pt-4 text-xs text-stone-500 dark:text-neutral-500 px-3">
-                        Ver carta sin cuenta: usa la burbuja abajo a la derecha o el bloque Carta · Reservas e inicio de sesión: junto al modo claro/oscuro arriba.
-                    </p>
                 </div>
             </header>
 
@@ -634,9 +634,6 @@ export function LandingPage() {
                                     Accesos rápidos para quien nos visita por primera vez o nos acompaña cada semana.
                                 </p>
                             </div>
-                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 md:text-right">
-                                Todo el público · Sin necesidad de cuenta para conocernos
-                            </p>
                         </div>
                         <CarruselServicios items={destacadosLista} />
                     </div>
@@ -780,7 +777,7 @@ export function LandingPage() {
 
                 {/* Contacto */}
                 <section id="contacto" className="scroll-mt-28 py-16 bg-stone-200/60 dark:bg-neutral-900/50 border-t border-stone-200 dark:border-white/10">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 grid md:grid-cols-2 gap-10">
+                    <div className="mx-auto max-w-xl px-4 sm:px-6">
                         <div>
                             <h2 className="text-2xl font-semibold text-stone-900 dark:text-neutral-50">Contáctanos</h2>
                             <p className="mt-4 text-stone-600 dark:text-neutral-400 leading-relaxed">
@@ -804,16 +801,6 @@ export function LandingPage() {
                                     <dd className="text-stone-600 dark:text-neutral-400">Ciudad demo · Carrera 00 # 00 — 00</dd>
                                 </div>
                             </dl>
-                        </div>
-                        <div className="rounded-2xl border border-stone-300 dark:border-white/10 bg-white dark:bg-neutral-950 p-8">
-                            <h3 className="font-semibold text-stone-900 dark:text-neutral-50">Preguntas frecuentes</h3>
-                            <ul className="mt-4 space-y-3 text-sm text-stone-600 dark:text-neutral-400">
-                                <li>
-                                    ¿Necesito cuenta para consultar precios del menú? No; la carta es pública en la web. La cuenta cliente sirve para reservas y otros
-                                    accesos personalizados.
-                                </li>
-                                <li>¿Puedo pedir por esta web? El demo muestra carta; pedidos en sala siguen el flujo del restaurante.</li>
-                            </ul>
                         </div>
                     </div>
                 </section>
@@ -840,7 +827,7 @@ export function LandingPage() {
                             <ul className="space-y-2 text-sm">
                                 {NAV_LINKS.map(({ href, label }) => (
                                     <li key={href}>
-                                        <a href={href} className="hover:text-stone-900 dark:hover:text-white transition-colors">
+                                        <a href={href} className={footerInteractiveLinkClass}>
                                             {label}
                                         </a>
                                     </li>
@@ -851,12 +838,12 @@ export function LandingPage() {
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Legal</h4>
                             <ul className="space-y-2 text-sm">
                                 <li>
-                                    <button type="button" className="hover:text-stone-900 dark:hover:text-white text-left transition-colors">
+                                    <button type="button" className={classNames(footerInteractiveLinkClass, 'cursor-pointer')}>
                                         Política de tratamiento de datos
                                     </button>
                                 </li>
                                 <li>
-                                    <button type="button" className="hover:text-stone-900 dark:hover:text-white text-left transition-colors">
+                                    <button type="button" className={classNames(footerInteractiveLinkClass, 'cursor-pointer')}>
                                         Preguntas frecuentes
                                     </button>
                                 </li>
@@ -865,7 +852,6 @@ export function LandingPage() {
                         <div>
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-500 mb-4">Redes</h4>
                             <p className="text-sm text-stone-600 dark:text-stone-400">@proyectorestaurante_demo</p>
-                            <p className="mt-2 text-xs text-stone-500 dark:text-stone-500">Contenido ilustrativo para proyecto académico.</p>
                         </div>
                     </div>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
