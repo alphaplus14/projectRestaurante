@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { confirmStaffLogout } from '../utils/confirmLogout';
 
 function formatMoney(n) {
     if (n == null) return '—';
@@ -67,16 +69,20 @@ function formatMesaLabel(mesa) {
 function ModalPedidosListos({
     pedidos,
     llamadasCocina,
+    cambiosMenu,
     onClose,
     onRecibir,
     onIrMesa,
     onAtenderLlamada,
+    onAtenderCambioMenu,
     busyRecibirId,
     busyLlamadaId,
+    busyCambioMenuId,
 }) {
     const hayLlamadas = llamadasCocina.length > 0;
     const hayListos = pedidos.length > 0;
-    const vacio = !hayLlamadas && !hayListos;
+    const hayCambiosMenu = cambiosMenu.length > 0;
+    const vacio = !hayLlamadas && !hayListos && !hayCambiosMenu;
 
     return (
         <div className="fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -95,7 +101,7 @@ function ModalPedidosListos({
                                 Notificaciones
                             </h2>
                             <p className="text-sm text-emerald-800/80 dark:text-emerald-200/80">
-                                Pedidos listos y avisos de cocina.
+                                Pedidos listos, avisos de cocina y cambios en el menú.
                             </p>
                         </div>
                     </div>
@@ -108,6 +114,55 @@ function ModalPedidosListos({
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {hayCambiosMenu ? (
+                        <section aria-label="Cambios en el menú">
+                            <h3 className="text-xs font-bold uppercase tracking-wide text-violet-800 dark:text-violet-200 mb-2">
+                                Cambios en el menú
+                            </h3>
+                            <div className="space-y-2">
+                                {cambiosMenu.map((c) => {
+                                    const busy = busyCambioMenuId === c.id;
+                                    const habilitado = Boolean(c.activo);
+                                    return (
+                                        <div
+                                            key={c.id}
+                                            className={classNames(
+                                                'rounded-xl border p-4',
+                                                habilitado
+                                                    ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30'
+                                                    : 'border-red-400 dark:border-red-700 bg-red-50 dark:bg-red-950/30',
+                                            )}
+                                        >
+                                            <p className="font-semibold text-stone-900 dark:text-stone-50">
+                                                {habilitado ? 'Plato habilitado' : 'Plato deshabilitado'}
+                                            </p>
+                                            <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
+                                                <span className="font-medium">{c.nombreProducto}</span>
+                                                {habilitado
+                                                    ? ' volvió al menú.'
+                                                    : ' ya no está disponible para nuevos pedidos.'}
+                                            </p>
+                                            <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+                                                {c.usuario_nombre || 'Cocina'}
+                                                {c.creado_en
+                                                    ? ` · ${new Date(c.creado_en).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+                                                    : ''}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                disabled={Boolean(busyCambioMenuId)}
+                                                onClick={() => onAtenderCambioMenu(c)}
+                                                className="mt-3 w-full min-h-[40px] rounded-xl bg-stone-800 hover:bg-stone-700 dark:bg-stone-200 dark:hover:bg-stone-100 dark:text-stone-900 text-white text-sm font-semibold disabled:opacity-50"
+                                            >
+                                                {busy ? 'Marcando…' : 'Entendido'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    ) : null}
+
                     {hayLlamadas ? (
                         <section aria-label="Llamadas de cocina">
                             <h3 className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200 mb-2">
@@ -563,10 +618,12 @@ export function MeseroSalonPage() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [pedidosListos, setPedidosListos] = useState([]);
     const [llamadasCocina, setLlamadasCocina] = useState([]);
+    const [cambiosMenu, setCambiosMenu] = useState([]);
     const [pedidosListosVistos, setPedidosListosVistos] = useState(() => leerPedidosListosVistos());
     const [modalListosAbierto, setModalListosAbierto] = useState(false);
     const [recibiendoId, setRecibiendoId] = useState(null);
     const [atendiendoLlamadaId, setAtendiendoLlamadaId] = useState(null);
+    const [atendiendoCambioMenuId, setAtendiendoCambioMenuId] = useState(null);
     const [qtyByProduct, setQtyByProduct] = useState({});
     const [notaByProduct, setNotaByProduct] = useState({});
     const pedidoCargadoIdRef = useRef(null);
@@ -589,7 +646,7 @@ export function MeseroSalonPage() {
         } catch (e) {
             if (!silent) setBanner(e?.message || 'No se pudieron cargar las mesas.');
         } finally {
-            if (!silent) setLoadingMesas(false);
+            setLoadingMesas(false);
         }
     }, []);
 
@@ -599,9 +656,11 @@ export function MeseroSalonPage() {
             const listos = res?.pedidos_listos;
             setPedidosListos(Array.isArray(listos?.data) ? listos.data : []);
             setLlamadasCocina(Array.isArray(res?.llamadas_cocina) ? res.llamadas_cocina : []);
+            setCambiosMenu(Array.isArray(res?.cambios_menu) ? res.cambios_menu : []);
         } catch {
             setPedidosListos([]);
             setLlamadasCocina([]);
+            setCambiosMenu([]);
         }
     }, []);
 
@@ -620,7 +679,7 @@ export function MeseroSalonPage() {
         [pedidosListos, pedidosListosVistos],
     );
 
-    const notificacionesPendientes = pedidosListosSinLeer + llamadasCocina.length;
+    const notificacionesPendientes = pedidosListosSinLeer + llamadasCocina.length + cambiosMenu.length;
 
     function abrirModalListos() {
         setModalListosAbierto(true);
@@ -685,15 +744,40 @@ export function MeseroSalonPage() {
             const alertRes = await apiFetch('/api/mesero/alertas');
             const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
             const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+            const cambios = Array.isArray(alertRes?.cambios_menu) ? alertRes.cambios_menu : [];
             setPedidosListos(remaining);
             setLlamadasCocina(llamadas);
-            if (remaining.length === 0 && llamadas.length === 0) {
+            setCambiosMenu(cambios);
+            if (remaining.length === 0 && llamadas.length === 0 && cambios.length === 0) {
                 setModalListosAbierto(false);
             }
         } catch (e) {
             setBanner(e?.message || 'No se pudo atender la llamada.');
         } finally {
             setAtendiendoLlamadaId(null);
+        }
+    }
+
+    async function atenderCambioMenu(cambio) {
+        if (!cambio?.id) return;
+        setAtendiendoCambioMenuId(cambio.id);
+        setBanner('');
+        try {
+            await apiFetch(`/api/mesero/alertas/cambio-menu/${cambio.id}/atender`, { method: 'POST' });
+            const alertRes = await apiFetch('/api/mesero/alertas');
+            const remaining = Array.isArray(alertRes?.pedidos_listos?.data) ? alertRes.pedidos_listos.data : [];
+            const llamadas = Array.isArray(alertRes?.llamadas_cocina) ? alertRes.llamadas_cocina : [];
+            const cambios = Array.isArray(alertRes?.cambios_menu) ? alertRes.cambios_menu : [];
+            setPedidosListos(remaining);
+            setLlamadasCocina(llamadas);
+            setCambiosMenu(cambios);
+            if (remaining.length === 0 && llamadas.length === 0 && cambios.length === 0) {
+                setModalListosAbierto(false);
+            }
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo marcar el aviso.');
+        } finally {
+            setAtendiendoCambioMenuId(null);
         }
     }
 
@@ -913,7 +997,12 @@ export function MeseroSalonPage() {
 
     function onSalir() {
         clearToken();
-        window.location.href = '/login-mesero';
+        window.location.href = '/staff?rol=mesero';
+    }
+
+    async function solicitarSalir() {
+        const ok = await confirmStaffLogout();
+        if (ok) onSalir();
     }
 
     const nombreCategoriaActiva = useMemo(
@@ -923,12 +1012,19 @@ export function MeseroSalonPage() {
 
     const totalPedido = useMemo(() => {
         if (!pedido?.detalles?.length) return 0;
-        return pedido.detalles.reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
+        return pedido.detalles
+            .filter((l) => l.estado_item !== 'CANCELADO')
+            .reduce((s, l) => s + Number(l.precio_unitario) * Number(l.cantidad), 0);
     }, [pedido]);
 
     const puedeAgregar = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
     const hayItemsPendientesCocina = useMemo(
-        () => (pedido?.detalles ?? []).some((l) => l.estado_item && l.estado_item !== 'LISTO'),
+        () =>
+            (pedido?.detalles ?? []).some(
+                (l) =>
+                    l.estado_item &&
+                    !['LISTO', 'CANCELADO'].includes(l.estado_item),
+            ),
         [pedido],
     );
     const cuentaListaParaCaja =
@@ -1020,12 +1116,27 @@ export function MeseroSalonPage() {
                             ) : null}
                         </button>
                         <ThemeToggle />
+                        <Link
+                            to="/mesero/ajustes"
+                            aria-label="Ajustes e historial"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
+                        >
+                            <img src="/ajustes.png" alt="" className="h-4 w-4 shrink-0 object-contain dark:invert opacity-90" />
+                            <span className="whitespace-nowrap">Ajustes</span>
+                        </Link>
                         <button
                             type="button"
-                            onClick={onSalir}
-                            className="rounded-lg border border-stone-200 dark:border-stone-800 px-3 sm:px-4 py-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 focus-visible:ring-2 focus-visible:ring-amber-500"
+                            onClick={() => void solicitarSalir()}
+                            aria-label="Cerrar sesión"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-600/80 bg-red-600 hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
                         >
-                            Salir
+                            <img
+                                src="/cerrar sesion icon.png"
+                                alt=""
+                                className="h-4 w-4 shrink-0 object-contain brightness-0 invert"
+                                aria-hidden
+                            />
+                            <span>Salir</span>
                         </button>
                     </div>
                 </div>
@@ -1074,12 +1185,17 @@ export function MeseroSalonPage() {
                 <ModalPedidosListos
                     pedidos={pedidosListos}
                     llamadasCocina={llamadasCocina}
+                    cambiosMenu={cambiosMenu}
                     busyRecibirId={recibiendoId}
                     busyLlamadaId={atendiendoLlamadaId}
-                    onClose={() => !recibiendoId && !atendiendoLlamadaId && setModalListosAbierto(false)}
+                    busyCambioMenuId={atendiendoCambioMenuId}
+                    onClose={() =>
+                        !recibiendoId && !atendiendoLlamadaId && !atendiendoCambioMenuId && setModalListosAbierto(false)
+                    }
                     onRecibir={recibirPedidoListo}
                     onIrMesa={irAMesaPedidoListo}
                     onAtenderLlamada={atenderLlamadaCocina}
+                    onAtenderCambioMenu={atenderCambioMenu}
                 />
             ) : null}
 
@@ -1227,11 +1343,29 @@ export function MeseroSalonPage() {
                                                                     {l.nota}
                                                                 </div>
                                                             ) : null}
+                                                            {l.estado_item === 'CANCELADO' && l.motivo_cancelacion ? (
+                                                                <p className="mt-1 text-xs text-red-800 dark:text-red-200 leading-snug">
+                                                                    Cocina: {l.motivo_cancelacion}
+                                                                    {l.cancelado_en
+                                                                        ? ` · ${formatHora(l.cancelado_en)}`
+                                                                        : ''}
+                                                                </p>
+                                                            ) : null}
                                                         </div>
-                                                        <span className="text-stone-600 dark:text-stone-400 tabular-nums shrink-0">
-                                                            {formatMoney(
-                                                                Number(l.precio_unitario) * Number(l.cantidad),
+                                                        <span
+                                                            className={classNames(
+                                                                'tabular-nums shrink-0',
+                                                                l.estado_item === 'CANCELADO'
+                                                                    ? 'text-stone-400 line-through text-sm'
+                                                                    : 'text-stone-600 dark:text-stone-400',
                                                             )}
+                                                        >
+                                                            {l.estado_item === 'CANCELADO'
+                                                                ? '—'
+                                                                : formatMoney(
+                                                                      Number(l.precio_unitario) *
+                                                                          Number(l.cantidad),
+                                                                  )}
                                                         </span>
                                                     </li>
                                                 ))

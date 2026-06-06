@@ -34,7 +34,7 @@ export function LoginClientePage() {
                             <span className="text-amber-700 dark:text-amber-300">Proyecto Restaurante</span>
                         </h1>
                         <p className="mt-4 text-sm sm:text-base text-stone-700 dark:text-neutral-300 leading-relaxed max-w-prose">
-                            La carta del menú la puedes ver sin cuenta desde el inicio. Inicia sesión si quieres reservar mesa o tener un acceso personalizado ligado a tu cuenta.
+                            La carta del menú la puedes ver sin cuenta desde el inicio. Crea una cuenta o inicia sesión para reservar mesa.
                         </p>
                     </div>
 

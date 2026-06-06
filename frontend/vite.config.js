@@ -6,11 +6,12 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     server: {
         proxy: {
-            // Proxy para que el frontend consuma la API sin CORS
+            // API del backend Laravel
             '/api': 'http://127.0.0.1:8000',
-            // Logos e imágenes públicas (storage:link en el backend)
+            // Logos e imágenes públicas (requiere php artisan storage:link)
             '/storage': 'http://127.0.0.1:8000',
+            // OAuth Google (redirección del navegador al backend)
+            '/auth': 'http://127.0.0.1:8000',
         },
     },
 });
-

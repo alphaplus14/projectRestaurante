@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { apiFetch } from './apiClient';
 import { clearToken, getToken } from './authStorage';
+import { staffLoginUrl } from './staffLogin';
 
 export function RequireCajero({ children }) {
     const navigate = useNavigate();
@@ -11,7 +12,7 @@ export function RequireCajero({ children }) {
         const token = getToken();
         if (!token) {
             setOk(false);
-            navigate('/login-cajero', { replace: true });
+            navigate(staffLoginUrl('CAJERO'), { replace: true });
             return;
         }
 
@@ -22,7 +23,7 @@ export function RequireCajero({ children }) {
                 if (data?.user?.rol !== 'CAJERO') {
                     clearToken();
                     setOk(false);
-                    navigate('/login-cajero', { replace: true });
+                    navigate(staffLoginUrl('CAJERO'), { replace: true });
                     return;
                 }
                 setOk(true);
@@ -31,7 +32,7 @@ export function RequireCajero({ children }) {
                 if (cancelled) return;
                 clearToken();
                 setOk(false);
-                navigate('/login-cajero', { replace: true });
+                navigate(staffLoginUrl('CAJERO'), { replace: true });
             });
 
         return () => {
@@ -47,7 +48,7 @@ export function RequireCajero({ children }) {
         );
     }
 
-    if (!ok) return <Navigate to="/login-cajero" replace />;
+    if (!ok) return <Navigate to={staffLoginUrl('CAJERO')} replace />;
 
     return children;
 }

@@ -15,6 +15,7 @@ const UNIDADES = ["g", "kg", "ml", "L", "unidad", "porción", "lb", "oz"];
 const TABS = [
   { id: "stock", label: "Stock general" },
   { id: "alertas", label: "Alertas" },
+  { id: "historial", label: "Historial" },
 ];
 
 const fieldClass =
@@ -466,7 +467,12 @@ function ModalHistorial({ ingrediente, onClose }) {
                         {m.motivo}
                       </Td>
                       <Td className="text-stone-600 dark:text-stone-500">
-                        {m.usuario}
+                        <div>{m.usuario}</div>
+                        {m.usuario_rol ? (
+                          <div className="text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-500 mt-0.5">
+                            {m.usuario_rol}
+                          </div>
+                        ) : null}
                       </Td>
                     </tr>
                   ))}
@@ -773,6 +779,216 @@ function StockGeneral({ data, onRecargar }) {
   );
 }
 
+function emptyHistorialFiltros() {
+  return {
+    ingrediente: "",
+    usuario: "",
+    fecha_desde: "",
+    fecha_hasta: "",
+  };
+}
+
+function buildHistorialQuery(soloCocina, filtros) {
+  const p = new URLSearchParams();
+  if (soloCocina) p.set("solo_cocina", "1");
+  const ing = filtros.ingrediente?.trim();
+  const usr = filtros.usuario?.trim();
+  if (ing) p.set("ingrediente", ing);
+  if (usr) p.set("usuario", usr);
+  if (filtros.fecha_desde) p.set("fecha_desde", filtros.fecha_desde);
+  if (filtros.fecha_hasta) p.set("fecha_hasta", filtros.fecha_hasta);
+  const s = p.toString();
+  return s ? `?${s}` : "";
+}
+
+// ── Tab: Historial de movimientos (cocinero + admin) ───
+
+function PanelHistorial({
+  historial,
+  loading,
+  soloCocina,
+  onToggleSoloCocina,
+  filtros,
+  onChangeFiltros,
+  onAplicarFiltros,
+  onLimpiarFiltros,
+}) {
+  const tipoBadge = (tipo) => {
+    if (tipo === "ENTRADA")
+      return "bg-emerald-900/60 text-emerald-300 border-emerald-700/50";
+    if (tipo === "SALIDA")
+      return "bg-red-900/60 text-red-300 border-red-700/50";
+    return "bg-amber-900/60 text-amber-300 border-amber-700/50";
+  };
+
+  const hayFiltrosActivos = Boolean(
+    filtros.ingrediente?.trim() ||
+      filtros.usuario?.trim() ||
+      filtros.fecha_desde ||
+      filtros.fecha_hasta,
+  );
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-stone-600 dark:text-stone-400">
+        Registro permanente de entradas, salidas y ajustes. Los cambios del cocinero aparecen aquí; no se pueden eliminar.
+      </p>
+
+      <div className={classNames(panelClass, "p-4 space-y-4")}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
+            Filtros
+          </p>
+          <label className="inline-flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={soloCocina}
+              onChange={(e) => onToggleSoloCocina(e.target.checked)}
+              className="rounded border-stone-300 dark:border-stone-600 text-amber-600 focus:ring-amber-500"
+            />
+            Solo cambios del cocinero
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Input
+            label="Ingrediente"
+            placeholder="Ej. Arroz, Pollo…"
+            value={filtros.ingrediente}
+            onChange={(e) =>
+              onChangeFiltros((f) => ({ ...f, ingrediente: e.target.value }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onAplicarFiltros();
+            }}
+          />
+          <Input
+            label="Usuario"
+            placeholder="Nombre del responsable…"
+            value={filtros.usuario}
+            onChange={(e) =>
+              onChangeFiltros((f) => ({ ...f, usuario: e.target.value }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onAplicarFiltros();
+            }}
+          />
+          <Input
+            label="Fecha desde"
+            type="date"
+            value={filtros.fecha_desde}
+            onChange={(e) =>
+              onChangeFiltros((f) => ({ ...f, fecha_desde: e.target.value }))
+            }
+          />
+          <Input
+            label="Fecha hasta"
+            type="date"
+            value={filtros.fecha_hasta}
+            min={filtros.fecha_desde || undefined}
+            onChange={(e) =>
+              onChangeFiltros((f) => ({ ...f, fecha_hasta: e.target.value }))
+            }
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Btn onClick={onAplicarFiltros} disabled={loading}>
+            {loading ? "Buscando…" : "Aplicar filtros"}
+          </Btn>
+          <Btn
+            variant="secondary"
+            onClick={onLimpiarFiltros}
+            disabled={loading || (!hayFiltrosActivos && !soloCocina)}
+          >
+            Limpiar
+          </Btn>
+          {historial != null ? (
+            <span className="text-xs text-stone-600 dark:text-stone-500 ml-1">
+              {historial.total} resultado{historial.total !== 1 ? "s" : ""}
+              {historial.total >= 250 ? " (máx. 250)" : ""}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {loading ? <Spinner /> : null}
+
+      <div className="rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-900">
+        <table className="w-full">
+          <thead className="bg-stone-100 dark:bg-stone-950/50">
+            <tr>
+              {["Fecha", "Ingrediente", "Tipo", "Cantidad", "Motivo", "Usuario"].map(
+                (h) => (
+                  <Th key={h}>{h}</Th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
+            {(historial?.data ?? []).length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-sm text-stone-600 dark:text-stone-500"
+                >
+                  {hayFiltrosActivos || soloCocina
+                    ? "Sin movimientos con esos filtros."
+                    : "Sin movimientos registrados."}
+                </td>
+              </tr>
+            ) : (
+              historial.data.map((m) => (
+                <tr
+                  key={m.idMovimiento}
+                  className="hover:bg-stone-100/80 dark:hover:bg-stone-800/30"
+                >
+                  <Td className="text-stone-600 dark:text-stone-500 whitespace-nowrap">
+                    {m.fecha?.slice(0, 16).replace("T", " ")}
+                  </Td>
+                  <Td className="font-medium text-stone-900 dark:text-stone-50">
+                    {m.ingrediente?.nombreIngrediente ?? "—"}
+                    {m.ingrediente?.unidad ? (
+                      <span className="text-xs text-stone-500 ml-1">
+                        ({m.ingrediente.unidad})
+                      </span>
+                    ) : null}
+                  </Td>
+                  <Td>
+                    <span
+                      className={classNames(
+                        "text-xs font-semibold px-2 py-0.5 rounded-full border",
+                        tipoBadge(m.tipo),
+                      )}
+                    >
+                      {m.tipo}
+                    </span>
+                  </Td>
+                  <Td className="text-stone-900 dark:text-stone-50 font-medium tabular-nums whitespace-nowrap">
+                    {m.tipo === "SALIDA" ? "-" : "+"}
+                    {m.cantidad}
+                  </Td>
+                  <Td className="text-stone-700 dark:text-stone-300 max-w-[200px] truncate">
+                    {m.motivo}
+                  </Td>
+                  <Td className="text-stone-600 dark:text-stone-500">
+                    <div>{m.usuario}</div>
+                    {m.usuario_rol ? (
+                      <div className="text-[10px] uppercase tracking-wide text-stone-500 mt-0.5">
+                        {m.usuario_rol}
+                      </div>
+                    ) : null}
+                  </Td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab: Alertas (HU17) ────────────────────────────────
 
 function PanelAlertas({ alertas }) {
@@ -861,6 +1077,12 @@ export function AdminInventarioPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [alertas, setAlertas] = useState(null);
+  const [historial, setHistorial] = useState(null);
+  const [historialLoading, setHistorialLoading] = useState(false);
+  const [soloCocinaHistorial, setSoloCocinaHistorial] = useState(true);
+  const [historialFiltros, setHistorialFiltros] = useState(emptyHistorialFiltros);
+  const [historialFiltrosAplicados, setHistorialFiltrosAplicados] =
+    useState(emptyHistorialFiltros);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -878,9 +1100,39 @@ export function AdminInventarioPage() {
     }
   }, []);
 
+  const cargarHistorial = useCallback(async (soloCocina, filtros) => {
+    setHistorialLoading(true);
+    try {
+      const qs = buildHistorialQuery(soloCocina, filtros);
+      const res = await apiFetch(`${BASE}/admin/inventario/movimientos${qs}`);
+      setHistorial(res);
+    } catch (err) {
+      void adminAlertError(err, "Historial de inventario");
+      setHistorial(null);
+    } finally {
+      setHistorialLoading(false);
+    }
+  }, []);
+
+  function aplicarFiltrosHistorial() {
+    setHistorialFiltrosAplicados({ ...historialFiltros });
+  }
+
+  function limpiarFiltrosHistorial() {
+    const vacio = emptyHistorialFiltros();
+    setHistorialFiltros(vacio);
+    setHistorialFiltrosAplicados(vacio);
+    setSoloCocinaHistorial(false);
+  }
+
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    if (tab !== "historial") return;
+    void cargarHistorial(soloCocinaHistorial, historialFiltrosAplicados);
+  }, [tab, soloCocinaHistorial, historialFiltrosAplicados, cargarHistorial]);
 
   return (
     <AdminLayout title="Inventario">
@@ -909,12 +1161,23 @@ export function AdminInventarioPage() {
           ))}
         </div>
 
-        {loading ? (
+        {loading && tab !== "historial" ? (
           <Spinner />
         ) : tab === "stock" ? (
           <StockGeneral data={data} onRecargar={cargar} />
-        ) : (
+        ) : tab === "alertas" ? (
           <PanelAlertas alertas={alertas} />
+        ) : (
+          <PanelHistorial
+            historial={historial}
+            loading={historialLoading}
+            soloCocina={soloCocinaHistorial}
+            onToggleSoloCocina={setSoloCocinaHistorial}
+            filtros={historialFiltros}
+            onChangeFiltros={setHistorialFiltros}
+            onAplicarFiltros={aplicarFiltrosHistorial}
+            onLimpiarFiltros={limpiarFiltrosHistorial}
+          />
         )}
       </div>
     </AdminLayout>

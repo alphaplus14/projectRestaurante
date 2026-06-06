@@ -26,6 +26,7 @@ class Usuario extends Authenticatable
         'cedula',
         'telefono',
         'correo',
+        'google_id',
         'password',
         'cargos_idCargo',
         'activo',

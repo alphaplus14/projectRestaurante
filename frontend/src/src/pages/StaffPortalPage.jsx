@@ -55,7 +55,7 @@ export function StaffPortalPage() {
                     </li>
                     <li>
                         <Link
-                            to="/login-cajero"
+                            to="/staff?rol=cajero"
                             className="flex items-center justify-between rounded-xl border border-stone-300 dark:border-white/10 bg-white dark:bg-neutral-900/60 px-4 py-4 hover:bg-stone-50 dark:hover:bg-neutral-800/80 transition-colors"
                         >
                             <span className="font-medium text-stone-900 dark:text-neutral-50">Caja</span>

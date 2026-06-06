@@ -1,13 +1,12 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginClientePage } from './pages/LoginClientePage';
-import { LoginCocinaPage } from './pages/LoginCocinaPage';
-import { LoginMeseroPage } from './pages/LoginMeseroPage';
-import { LoginCajeroPage } from './pages/LoginCajeroPage';
-import { LoginAdminPage } from './pages/LoginAdminPage';
-import { StaffPortalPage } from './pages/StaffPortalPage';
+import { LoginStaffPage } from './pages/LoginStaffPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
+import { CocinaInventarioPage } from './pages/CocinaInventarioPage';
+import { CocinaMenuPage } from './pages/CocinaMenuPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
+import { MeseroAjustesPage } from './pages/MeseroAjustesPage';
 import { CajeroCajaPage } from './pages/CajeroCajaPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -17,6 +16,7 @@ import { AdminCajerosPage } from './pages/AdminCajerosPage';
 import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
 import { AdminReservasPage } from './pages/AdminReservasPage';
+import { AdminPlatosCanceladosPage } from './pages/AdminPlatosCanceladosPage';
 import { AdminReportesPage } from './pages/AdminReportesPage';
 import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
@@ -28,6 +28,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { isMasterHost } from './tenancy/tenantContext';
 import { ClienteCartaPage } from './pages/ClienteCartaPage';
 import { ClienteReservasPage } from './pages/ClienteReservasPage';
+import { ClienteOAuthCallbackPage } from './pages/ClienteOAuthCallbackPage';
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireCajero } from './auth/RequireCajero';
@@ -63,6 +64,7 @@ export function App() {
             {/* Sitio clientes (público + sesión cliente) */}
             <Route path="/cliente" element={<LandingPage />} />
             <Route path="/cliente/login" element={<LoginClientePage />} />
+            <Route path="/cliente/oauth-callback" element={<ClienteOAuthCallbackPage />} />
             <Route path="/login" element={<Navigate to="/cliente/login" replace />} />
             <Route path="/blank" element={<Navigate to="/cliente/carta" replace />} />
             <Route path="/cliente/carta" element={<ClienteCartaPage />} />
@@ -76,12 +78,12 @@ export function App() {
             />
 
             {/* Personal del restaurante */}
-            <Route path="/staff" element={<StaffPortalPage />} />
-            <Route path="/login-admin" element={<LoginAdminPage />} />
+            <Route path="/staff" element={<LoginStaffPage />} />
+            <Route path="/login-admin" element={<Navigate to="/staff?rol=admin" replace />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/login-mesero" element={<LoginMeseroPage />} />
-            <Route path="/login-cocina" element={<LoginCocinaPage />} />
-            <Route path="/login-cajero" element={<LoginCajeroPage />} />
+            <Route path="/login-mesero" element={<Navigate to="/staff?rol=mesero" replace />} />
+            <Route path="/login-cocina" element={<Navigate to="/staff?rol=cocina" replace />} />
+            <Route path="/login-cajero" element={<Navigate to="/staff?rol=cajero" replace />} />
             <Route
                 path="/mesero"
                 element={
@@ -91,10 +93,34 @@ export function App() {
                 }
             />
             <Route
+                path="/mesero/ajustes"
+                element={
+                    <RequireMesero>
+                        <MeseroAjustesPage />
+                    </RequireMesero>
+                }
+            />
+            <Route
                 path="/cocina"
                 element={
                     <RequireCocina>
                         <CocinaPedidosPage />
+                    </RequireCocina>
+                }
+            />
+            <Route
+                path="/cocina/inventario"
+                element={
+                    <RequireCocina>
+                        <CocinaInventarioPage />
+                    </RequireCocina>
+                }
+            />
+            <Route
+                path="/cocina/menu"
+                element={
+                    <RequireCocina>
+                        <CocinaMenuPage />
                     </RequireCocina>
                 }
             />
@@ -127,6 +153,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminReservasPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/platos-cancelados"
+                element={
+                    <RequireAdmin>
+                        <AdminPlatosCanceladosPage />
                     </RequireAdmin>
                 }
             />
