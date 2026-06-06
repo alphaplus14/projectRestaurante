@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { confirmStaffLogout } from '../utils/confirmLogout';
 
 function formatMoney(n) {
     if (n == null) return '—';
@@ -708,7 +710,7 @@ export function MeseroSalonPage() {
         } catch (e) {
             if (!silent) setBanner(e?.message || 'No se pudieron cargar las mesas.');
         } finally {
-            if (!silent) setLoadingMesas(false);
+            setLoadingMesas(false);
         }
     }, []);
 
@@ -1055,6 +1057,11 @@ export function MeseroSalonPage() {
         window.location.href = '/staff?rol=mesero';
     }
 
+    async function solicitarSalir() {
+        const ok = await confirmStaffLogout();
+        if (ok) onSalir();
+    }
+
     const nombreCategoriaActiva = useMemo(
         () => categorias.find((c) => c.idCategoria === categoriaActiva)?.nombre ?? null,
         [categorias, categoriaActiva],
@@ -1166,30 +1173,27 @@ export function MeseroSalonPage() {
                             ) : null}
                         </button>
                         <ThemeToggle />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                fetchMesas();
-                                fetchAlertas();
-                            }}
-                            className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                        >
-                            Actualizar
-                        </button>
                         <Link
-                            to="/staff?rol=cocina"
-                            aria-label="Cambiar a pantalla de cocina"
+                            to="/mesero/ajustes"
+                            aria-label="Ajustes e historial"
                             className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
                         >
-                            <IconChefHat className="h-4 w-4 shrink-0 opacity-90" />
-                            <span className="whitespace-nowrap hidden sm:inline">Cocina</span>
+                            <img src="/ajustes.png" alt="" className="h-4 w-4 shrink-0 object-contain dark:invert opacity-90" />
+                            <span className="whitespace-nowrap">Ajustes</span>
                         </Link>
                         <button
                             type="button"
-                            onClick={onSalir}
-                            className="rounded-lg border border-stone-200 dark:border-stone-800 px-3 sm:px-4 py-2 text-xs sm:text-sm text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 focus-visible:ring-2 focus-visible:ring-amber-500"
+                            onClick={() => void solicitarSalir()}
+                            aria-label="Cerrar sesión"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-600/80 bg-red-600 hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
                         >
-                            Salir
+                            <img
+                                src="/cerrar sesion icon.png"
+                                alt=""
+                                className="h-4 w-4 shrink-0 object-contain brightness-0 invert"
+                                aria-hidden
+                            />
+                            <span>Salir</span>
                         </button>
                     </div>
                 </div>
