@@ -335,7 +335,7 @@ export function LandingPage() {
 
     function cerrarLoginEsquina() {
         setLoginEsquinaAbierto(false);
-        if (window.location.hash === '#login-esquina' || window.location.hash === '#acceso') {
+        if (window.location.hash === '#login-esquina' || window.location.hash === '#carta') {
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
         }
     }
@@ -494,7 +494,7 @@ export function LandingPage() {
                                     </button>
                                     {loginEsquinaAbierto ? (
                                         <div
-                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-[min(22rem,calc(100vw-1.25rem))] max-sm:right-1 max-sm:w-[calc(100vw-1rem)] rounded-2xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 shadow-2xl p-4 pt-11 pb-5 max-h-[min(28rem,min(72vh,calc(100dvh-10rem)))] overflow-y-auto overscroll-contain"
+                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-[min(22rem,calc(100vw-1.25rem))] max-sm:right-1 max-sm:w-[calc(100vw-1rem)] rounded-2xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-900 shadow-2xl p-4 pt-11 pb-5 max-h-[min(36rem,min(85vh,calc(100dvh-6rem)))] overflow-y-auto overscroll-contain"
                                             role="dialog"
                                             aria-label="Iniciar sesión cliente"
                                         >
@@ -508,7 +508,14 @@ export function LandingPage() {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
-                                            <ClienteLoginPanel subtitle="Ingresa para ver la carta" />
+                                            <ClienteLoginPanel
+                                                redirectPath={null}
+                                                subtitle="Entra o crea tu cuenta"
+                                                onSuccess={() => {
+                                                    setSesionCliente(true);
+                                                    cerrarLoginEsquina();
+                                                }}
+                                            />
                                         </div>
                                     ) : null}
                                 </>
@@ -632,6 +639,68 @@ export function LandingPage() {
                     </div>
                 </section>
 
+                {/* Carta / acceso: recordatorio (formulario en esquina + burbuja) */}
+                <section id="carta" className="scroll-mt-28 relative overflow-hidden">
+                    <div
+                        className="pointer-events-none absolute inset-x-0 top-0 h-[110%] bg-no-repeat bg-top bg-cover opacity-55 dark:opacity-25"
+                        style={{
+                            backgroundImage: "url('/salchipapas.png')",
+                            WebkitMaskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%)',
+                            maskImage:
+                                'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%)',
+                        }}
+                        aria-hidden
+                    />
+                    <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:py-20">
+                    <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/15 bg-stone-100/80 dark:bg-white/5 backdrop-blur-sm px-6 py-8 sm:px-10 text-center max-w-3xl mx-auto">
+                        <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-neutral-50">Carta digital</h2>
+                        <p className="mt-3 text-stone-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
+                            Pulsa{' '}
+                            <Link to="/cliente/carta" className="font-semibold text-amber-700 dark:text-amber-400 hover:underline">
+                                ver carta
+                            </Link>{' '}
+                            para consultar precios sin cuenta (también con la{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">burbuja «Ver carta»</strong>). Para iniciar sesión usa el botón junto al{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">cambio claro / oscuro</strong>; con cuenta cliente también puedes gestionar tus{' '}
+                            <strong className="text-stone-800 dark:text-neutral-200">reservas</strong>.
+                        </p>
+                        <div className="mt-6 flex flex-wrap justify-center gap-3">
+                            <Link
+                                to="/cliente/carta"
+                                className="rounded-full px-6 py-2.5 text-sm font-semibold bg-amber-400 text-neutral-950 hover:bg-amber-300 inline-flex items-center justify-center"
+                            >
+                                Ver carta
+                            </Link>
+                            {!sesionCliente ? (
+                                <button
+                                    type="button"
+                                    onClick={abrirLoginEsquina}
+                                    className="rounded-full px-6 py-2.5 text-sm font-semibold bg-stone-900 text-white dark:bg-amber-400 dark:text-neutral-950 hover:opacity-90"
+                                >
+                                    Abrir iniciar sesión
+                                </button>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/cliente/reservas"
+                                        className="rounded-full px-6 py-2.5 text-sm font-semibold bg-teal-700 text-white hover:bg-teal-600 inline-flex items-center justify-center"
+                                    >
+                                        Ir a reservas
+                                    </Link>
+                                    <Link
+                                        to="/cliente/carta"
+                                        className="rounded-full px-6 py-2.5 text-sm font-semibold border border-amber-400/80 text-amber-800 dark:text-amber-300 hover:bg-amber-400/15 inline-flex items-center justify-center"
+                                    >
+                                        Ir a la carta
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    </div>
+                </section>
+
                 {/* Nosotros */}
                 <section id="nosotros" className="scroll-mt-28 py-10 lg:py-14 bg-[#faf8f5] dark:bg-neutral-950">
                     <div className="mx-auto max-w-6xl px-4 sm:px-6 grid lg:grid-cols-[1.2fr_1fr] gap-8 lg:gap-10 items-center">
@@ -666,57 +735,6 @@ export function LandingPage() {
                                     <p className="mt-2 text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50 leading-snug">
                                         Más de una década en cada detalle.
                                     </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Carta digital teaser */}
-                <section id="carta" className="scroll-mt-28 py-16 lg:py-24 bg-white dark:bg-neutral-900/30 border-y border-stone-200/80 dark:border-white/10">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                        <div className="rounded-3xl border border-stone-200 dark:border-white/10 bg-gradient-to-br from-amber-50 via-stone-100 to-orange-100 text-stone-900 dark:from-stone-900 dark:via-stone-800 dark:to-neutral-950 dark:text-white px-8 py-12 lg:px-14 lg:py-16 relative overflow-hidden">
-                            <div className="pointer-events-none absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.35),transparent_55%)] dark:bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.25),transparent_55%)]" />
-                            <div className="relative max-w-2xl">
-                                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Menú</h2>
-                                <div className="mt-8 flex flex-wrap gap-4">
-                                    {sesionCliente ? (
-                                        <>
-                                            <Link
-                                                to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
-                                            >
-                                                Abrir carta menú
-                                            </Link>
-                                            <Link
-                                                to="/cliente/reservas"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
-                                            >
-                                                Reservar mesa
-                                            </Link>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Link
-                                                to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
-                                            >
-                                                Ver carta
-                                            </Link>
-                                            <Link
-                                                to="/cliente/login"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
-                                            >
-                                                Entrar para reservar
-                                            </Link>
-                                        </>
-                                    )}
-                                    <a
-                                        href="#novedades"
-                                        className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 text-stone-800 hover:bg-stone-50 dark:border-white/30 dark:text-white dark:hover:bg-white/10 transition-colors"
-                                    >
-                                        Ver novedades
-                                    </a>
                                 </div>
                             </div>
                         </div>

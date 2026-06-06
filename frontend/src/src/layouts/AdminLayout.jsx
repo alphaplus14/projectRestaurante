@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
+import { staffLoginUrl } from '../auth/staffLogin';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { confirmStaffLogout } from '../utils/confirmLogout';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -36,30 +38,44 @@ function marcaInicial(nombre) {
     return t.slice(0, 1).toUpperCase();
 }
 
-function sidebarDotClass(to) {
-    if (to.includes('/configuracion')) return 'bg-stone-500';
-    if (to.includes('/reservas')) return 'bg-teal-600';
-    if (to.includes('/productos') || to.includes('/cocineros')) return 'bg-orange-600';
-    if (to.includes('/usuarios') || to.includes('/reportes') || to.includes('/inventario') || to.includes('/finanzas')) {
-        return 'bg-amber-500';
-    }
-    return 'bg-amber-500';
-}
+const ADMIN_NAV_ICON_DIR = '/admin navbar icons';
 
-function SidebarItem({ to, label, collapsed }) {
+const ADMIN_NAV_ITEMS = [
+    { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard.png' },
+    { to: '/admin/mesas', label: 'Mesas', icon: 'mesas.png' },
+    { to: '/admin/reservas', label: 'Reservas', icon: 'reservas.png' },
+    { to: '/admin/platos-cancelados', label: 'Platos cancelados', icon: 'plato cancelado.png' },
+    { to: '/admin/productos', label: 'Menú', icon: 'menu.png' },
+    { to: '/admin/meseros', label: 'Meseros', icon: 'mesero.png' },
+    { to: '/admin/cocineros', label: 'Cocineros', icon: 'cocinero.png' },
+    { to: '/admin/cajeros', label: 'Cajeros', icon: 'mesero.png' },
+    { to: '/admin/reportes', label: 'Reportes', icon: 'reportes.png' },
+    { to: '/admin/inventario', label: 'Inventario', icon: 'inventario.png' },
+    { to: '/admin/finanzas', label: 'Finanzas', icon: 'finanzas.png' },
+    { to: '/admin/usuarios', label: 'Usuarios', icon: 'usuarios.png' },
+    { to: '/admin/configuracion', label: 'Configuración', icon: 'configuracion.png' },
+];
+
+function SidebarItem({ to, label, icon, collapsed }) {
     return (
         <NavLink
             to={to}
             className={({ isActive }) =>
                 classNames(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                    'flex items-center rounded-lg py-2 text-sm transition-colors',
+                    collapsed ? 'justify-center px-2' : 'gap-3 px-3',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
-                    isActive ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:text-stone-50',
+                    isActive ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-50',
                 )
             }
             title={collapsed ? label : undefined}
         >
-            <span className={classNames('h-2.5 w-2.5 rounded-full shrink-0', sidebarDotClass(to))} />
+            <img
+                src={`${ADMIN_NAV_ICON_DIR}/${icon}`}
+                alt=""
+                className="h-5 w-5 shrink-0 object-contain opacity-90 dark:invert"
+                aria-hidden
+            />
             <span className={classNames('truncate', collapsed ? 'hidden' : 'block')}>{label}</span>
         </NavLink>
     );
@@ -101,6 +117,13 @@ export function AdminLayout({ title, children }) {
     }, []);
 
     const sidebarWidth = useMemo(() => (collapsed ? 'w-20' : 'w-72'), [collapsed]);
+
+    async function solicitarCerrarSesion() {
+        const ok = await confirmStaffLogout();
+        if (!ok) return;
+        clearToken();
+        navigate(staffLoginUrl('ADMINISTRADOR'), { replace: true });
+    }
 
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
@@ -181,18 +204,9 @@ export function AdminLayout({ title, children }) {
                             </button>
                         ) : null}
 
-                        <SidebarItem to="/admin/dashboard" label="Dashboard" collapsed={collapsed} />
-                        <SidebarItem to="/admin/mesas" label="Mesas" collapsed={collapsed} />
-                        <SidebarItem to="/admin/reservas" label="Reservas" collapsed={collapsed} />
-                        <SidebarItem to="/admin/productos" label="Productos" collapsed={collapsed} />
-                        <SidebarItem to="/admin/meseros" label="Meseros" collapsed={collapsed} />
-                        <SidebarItem to="/admin/cocineros" label="Cocineros" collapsed={collapsed} />
-                        <SidebarItem to="/admin/cajeros" label="Cajeros" collapsed={collapsed} />
-                        <SidebarItem to="/admin/reportes" label="Reportes" collapsed={collapsed} />
-                        <SidebarItem to="/admin/inventario" label="Inventario" collapsed={collapsed} />
-                        <SidebarItem to="/admin/finanzas" label="Finanzas" collapsed={collapsed} />
-                        <SidebarItem to="/admin/usuarios" label="Usuarios" collapsed={collapsed} />
-                        <SidebarItem to="/admin/configuracion" label="Configuración" collapsed={collapsed} />
+                        {ADMIN_NAV_ITEMS.map((item) => (
+                            <SidebarItem key={item.to} {...item} collapsed={collapsed} />
+                        ))}
                     </div>
                 </aside>
 
@@ -203,18 +217,22 @@ export function AdminLayout({ title, children }) {
                             <ThemeToggle />
                             <button
                                 type="button"
-                                onClick={() => {
-                                    clearToken();
-                                    navigate('/login-admin', { replace: true });
-                                }}
+                                onClick={() => void solicitarCerrarSesion()}
+                                aria-label="Cerrar sesión"
                                 className={classNames(
-                                    'rounded-lg border border-stone-200 dark:border-stone-800',
-                                    'px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200',
-                                    'hover:bg-stone-100 dark:hover:bg-stone-800/60',
-                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 whitespace-nowrap',
+                                    'inline-flex items-center gap-1.5 rounded-lg border border-red-600/80',
+                                    'bg-red-600 hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600',
+                                    'px-3 py-2 text-sm font-medium text-white whitespace-nowrap',
+                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors',
                                 )}
                             >
-                                Cerrar sesión
+                                <img
+                                    src="/cerrar sesion icon.png"
+                                    alt=""
+                                    className="h-4 w-4 shrink-0 object-contain brightness-0 invert"
+                                    aria-hidden
+                                />
+                                <span>Cerrar sesión</span>
                             </button>
                         </div>
                     </div>

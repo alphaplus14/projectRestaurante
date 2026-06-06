@@ -362,7 +362,7 @@ export function CajeroCajaPage() {
 
     function onSalir() {
         clearToken();
-        window.location.href = '/login-cajero';
+        window.location.href = '/staff?rol=cajero';
     }
 
     const pendientesOrdenadas = useMemo(

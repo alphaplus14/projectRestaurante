@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { apiFetch } from './apiClient';
+import { staffLoginUrl } from './staffLogin';
 import { clearToken, getToken } from './authStorage';
 
 export function RequireAdmin({ children }) {
     const navigate = useNavigate();
     const [ok, setOk] = useState(null);
+    const loginPath = staffLoginUrl('ADMINISTRADOR');
 
     useEffect(() => {
         const token = getToken();
         if (!token) {
             setOk(false);
-            navigate('/login-admin', { replace: true });
+            navigate(loginPath, { replace: true });
             return;
         }
 
@@ -32,7 +34,7 @@ export function RequireAdmin({ children }) {
                     }
                     clearToken();
                     setOk(false);
-                    navigate('/login-admin', { replace: true });
+                    navigate(loginPath, { replace: true });
                     return;
                 }
                 setOk(true);
@@ -52,13 +54,13 @@ export function RequireAdmin({ children }) {
                 }
                 clearToken();
                 setOk(false);
-                navigate('/login-admin', { replace: true });
+                navigate(loginPath, { replace: true });
             });
 
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, [navigate, loginPath]);
 
     if (ok === null) {
         return (
@@ -68,8 +70,7 @@ export function RequireAdmin({ children }) {
         );
     }
 
-    if (!ok) return <Navigate to="/login-admin" replace />;
+    if (!ok) return <Navigate to={loginPath} replace />;
 
     return children;
 }
-

@@ -6,9 +6,9 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 
 const PASOS = [
     { id: 1, label: 'Información' },
-    { id: 2, label: 'Horario' },
+    { id: 2, label: 'Fecha' },
     { id: 3, label: 'Personas' },
-    { id: 4, label: 'Fecha' },
+    { id: 4, label: 'Horario' },
     { id: 5, label: 'Resultado' },
 ];
 
@@ -418,6 +418,8 @@ export function ClienteReservasPage() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelando, setCancelando] = useState(false);
     const [banner, setBanner] = useState('');
+    const [disponibilidad, setDisponibilidad] = useState(null);
+    const [cargandoDisponibilidad, setCargandoDisponibilidad] = useState(false);
 
     const minFecha = useMemo(() => minDateLocal(), []);
     const maxFecha = useMemo(() => maxDateLocal(), []);
@@ -452,6 +454,43 @@ export function ClienteReservasPage() {
         setFecha('');
         setNotas('');
         setResultado(null);
+        setDisponibilidad(null);
+    }
+
+    const fetchDisponibilidad = useCallback(async (fechaSel) => {
+        if (!fechaSel) {
+            setDisponibilidad(null);
+            return;
+        }
+        setCargandoDisponibilidad(true);
+        try {
+            const res = await apiFetch(`/api/cliente/reservas/disponibilidad?fecha=${encodeURIComponent(fechaSel)}`);
+            setDisponibilidad(res);
+        } catch {
+            setDisponibilidad(null);
+        } finally {
+            setCargandoDisponibilidad(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (paso === 4 && fecha) {
+            fetchDisponibilidad(fecha);
+        }
+    }, [paso, fecha, fetchDisponibilidad]);
+
+    const disponibilidadPorHora = useMemo(() => {
+        const map = new Map();
+        for (const f of disponibilidad?.franjas ?? []) {
+            map.set(f.hora, f);
+        }
+        return map;
+    }, [disponibilidad]);
+
+    function onCambiarFecha(nuevaFecha) {
+        setFecha(nuevaFecha);
+        setHora('');
+        setDisponibilidad(null);
     }
 
     async function cancelarReserva(motivo) {
@@ -513,9 +552,10 @@ export function ClienteReservasPage() {
 
     const nombreMostrar = user ? [user.nombre, user.apellido].filter(Boolean).join(' ') : '';
 
-    const puedeAvanzarPaso2 = Boolean(hora);
+    const puedeAvanzarPaso2 = Boolean(fecha) && fecha >= minFecha && fecha <= maxFecha;
     const puedeAvanzarPaso3 = Number(numPersonas) >= 1 && Number(numPersonas) <= MAX_PERSONAS;
-    const puedeAvanzarPaso4 = Boolean(fecha) && fecha >= minFecha && fecha <= maxFecha;
+    const horaDisponible = hora ? disponibilidadPorHora.get(hora)?.disponible === true : false;
+    const puedeAvanzarPaso4 = Boolean(hora) && horaDisponible && !cargandoDisponibilidad;
 
     const mostrarResultado = paso === 5 && resultado;
     const mostrarFormulario = puedeReservar && paso < 5;
@@ -654,8 +694,12 @@ export function ClienteReservasPage() {
                                 </h3>
                                 <ul className="mt-3 space-y-2.5 text-sm text-stone-700 dark:text-neutral-300 leading-relaxed list-disc pl-5">
                                     <li>
-                                        Deberás elegir en este orden: <strong>horario de visita</strong>,{' '}
-                                        <strong>cantidad de personas</strong> y <strong>fecha</strong>.
+                                        Deberás elegir en este orden: <strong>fecha</strong>,{' '}
+                                        <strong>cantidad de personas</strong> y <strong>horario de visita</strong>.
+                                    </li>
+                                    <li>
+                                        Cada franja horaria admite tantas reservas como <strong>mesas activas</strong> haya
+                                        en el local.
                                     </li>
                                     <li>
                                         Los horarios son franjas de <strong>1 hora y 30 minutos</strong> (de 10:00 a. m.
@@ -692,34 +736,26 @@ export function ClienteReservasPage() {
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-base font-semibold text-stone-900 dark:text-neutral-50">
-                                    Paso 2 · Horario de visita
+                                    Paso 2 · Fecha de la reserva
                                 </h3>
                                 <p className="mt-1 text-sm text-stone-600 dark:text-neutral-400">
-                                    Elige una franja de 1 h 30 min. Disponible de 10:00 a. m. a 8:30 p. m.
+                                    Máximo {MAX_DIAS} días desde hoy ({formatFechaLarga(minFecha)} –{' '}
+                                    {formatFechaLarga(maxFecha)}).
                                 </p>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                {TIME_SLOTS.map((slot) => {
-                                    const sel = hora === slot.value;
-                                    return (
-                                        <button
-                                            key={slot.value}
-                                            type="button"
-                                            onClick={() => setHora(slot.value)}
-                                            className={classNames(
-                                                'rounded-xl border px-4 py-3.5 text-left transition-all touch-manipulation',
-                                                sel
-                                                    ? 'border-teal-500 bg-teal-500/15 ring-2 ring-teal-500/40 text-teal-900 dark:text-teal-100'
-                                                    : 'border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-950/40 hover:border-teal-500/50 text-stone-800 dark:text-neutral-200',
-                                            )}
-                                        >
-                                            <span className="block text-xs uppercase tracking-wide text-stone-500 dark:text-neutral-500">
-                                                Franja
-                                            </span>
-                                            <span className="block mt-0.5 text-sm font-semibold">{formatSlotLabel(slot)}</span>
-                                        </button>
-                                    );
-                                })}
+                            <div>
+                                <label className="block text-sm font-medium text-stone-800 dark:text-neutral-200">
+                                    Fecha
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    min={minFecha}
+                                    max={maxFecha}
+                                    value={fecha}
+                                    onChange={(ev) => onCambiarFecha(ev.target.value)}
+                                    className="mt-1.5 w-full min-h-[2.75rem] rounded-xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-950/40 px-3 py-2.5 text-base sm:text-sm outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40"
+                                />
                             </div>
                             <div className="flex gap-2 pt-2">
                                 <button
@@ -805,10 +841,7 @@ export function ClienteReservasPage() {
                                 <button
                                     type="button"
                                     disabled={!puedeAvanzarPaso3}
-                                    onClick={() => {
-                                        if (!fecha) setFecha(minFecha);
-                                        setPaso(4);
-                                    }}
+                                    onClick={() => setPaso(4)}
                                     className="flex-1 min-h-[44px] rounded-xl bg-teal-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-teal-500"
                                 >
                                     Siguiente
@@ -821,18 +854,34 @@ export function ClienteReservasPage() {
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-base font-semibold text-stone-900 dark:text-neutral-50">
-                                    Paso 4 · Fecha de la reserva
+                                    Paso 4 · Horario de visita
                                 </h3>
                                 <p className="mt-1 text-sm text-stone-600 dark:text-neutral-400">
-                                    Máximo {MAX_DIAS} días desde hoy ({formatFechaLarga(minFecha)} –{' '}
-                                    {formatFechaLarga(maxFecha)}).
+                                    {fecha ? (
+                                        <>
+                                            Disponibilidad para el{' '}
+                                            <strong className="text-stone-800 dark:text-neutral-200">
+                                                {formatFechaLarga(fecha)}
+                                            </strong>
+                                            . Franjas de 1 h 30 min (10:00 a. m. – 8:30 p. m.).
+                                        </>
+                                    ) : (
+                                        'Elige primero una fecha en el paso anterior.'
+                                    )}
                                 </p>
+                                {disponibilidad?.mesas_activas != null ? (
+                                    <p className="mt-1 text-xs text-stone-500 dark:text-neutral-500">
+                                        Capacidad del local:{' '}
+                                        <strong>{disponibilidad.mesas_activas}</strong> reserva
+                                        {disponibilidad.mesas_activas === 1 ? '' : 's'} por franja.
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-neutral-950/40 p-4 space-y-2 text-sm">
                                 <p>
-                                    <span className="text-stone-500 dark:text-neutral-500">Horario:</span>{' '}
-                                    <strong>{slotElegido ? formatSlotLabel(slotElegido) : '—'}</strong>
+                                    <span className="text-stone-500 dark:text-neutral-500">Fecha:</span>{' '}
+                                    <strong>{fecha ? formatFechaLarga(fecha) : '—'}</strong>
                                 </p>
                                 <p>
                                     <span className="text-stone-500 dark:text-neutral-500">Personas:</span>{' '}
@@ -840,20 +889,59 @@ export function ClienteReservasPage() {
                                 </p>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-stone-800 dark:text-neutral-200">
-                                    Fecha
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    min={minFecha}
-                                    max={maxFecha}
-                                    value={fecha}
-                                    onChange={(ev) => setFecha(ev.target.value)}
-                                    className="mt-1.5 w-full min-h-[2.75rem] rounded-xl border border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-950/40 px-3 py-2.5 text-base sm:text-sm outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40"
-                                />
-                            </div>
+                            {cargandoDisponibilidad ? (
+                                <p className="text-sm text-center text-stone-500 dark:text-neutral-400 py-4">
+                                    Consultando disponibilidad…
+                                </p>
+                            ) : disponibilidad?.mesas_activas === 0 ? (
+                                <p className="text-sm text-center text-red-700 dark:text-red-300 py-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-950/30 px-3">
+                                    No hay mesas activas para reservas. Contacta al restaurante.
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {TIME_SLOTS.map((slot) => {
+                                        const info = disponibilidadPorHora.get(slot.value);
+                                        const disponible = info?.disponible === true;
+                                        const sel = hora === slot.value;
+                                        return (
+                                            <button
+                                                key={slot.value}
+                                                type="button"
+                                                disabled={!disponible}
+                                                onClick={() => disponible && setHora(slot.value)}
+                                                className={classNames(
+                                                    'rounded-xl border px-4 py-3.5 text-left transition-all touch-manipulation',
+                                                    !disponible &&
+                                                        'opacity-60 cursor-not-allowed border-stone-200 dark:border-white/10 bg-stone-100 dark:bg-neutral-900/50',
+                                                    disponible &&
+                                                        !sel &&
+                                                        'border-stone-200 dark:border-white/15 bg-white dark:bg-neutral-950/40 hover:border-teal-500/50 text-stone-800 dark:text-neutral-200',
+                                                    disponible &&
+                                                        sel &&
+                                                        'border-teal-500 bg-teal-500/15 ring-2 ring-teal-500/40 text-teal-900 dark:text-teal-100',
+                                                )}
+                                            >
+                                                <span className="block text-xs uppercase tracking-wide text-stone-500 dark:text-neutral-500">
+                                                    {disponible ? 'Franja' : 'Sin disponibilidad'}
+                                                </span>
+                                                <span className="block mt-0.5 text-sm font-semibold">
+                                                    {formatSlotLabel(slot)}
+                                                </span>
+                                                {info && disponible && info.restantes <= 2 ? (
+                                                    <span className="block mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                                                        Quedan {info.restantes} cupo{info.restantes === 1 ? '' : 's'}
+                                                    </span>
+                                                ) : null}
+                                                {info && !disponible ? (
+                                                    <span className="block mt-1 text-[11px] text-stone-500 dark:text-neutral-500">
+                                                        Completo · elige otra hora
+                                                    </span>
+                                                ) : null}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-stone-800 dark:text-neutral-200">
@@ -946,7 +1034,7 @@ export function ClienteReservasPage() {
                                 {!resultado.ok ? (
                                     <button
                                         type="button"
-                                        onClick={() => setPaso(2)}
+                                        onClick={() => setPaso(4)}
                                         className="min-h-[44px] rounded-xl px-6 border border-stone-200 dark:border-white/15 text-sm font-medium"
                                     >
                                         Cambiar horario

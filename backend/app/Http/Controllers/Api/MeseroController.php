@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CocinaLlamadaMesero;
+use App\Models\ProductoEstadoLog;
 use App\Models\Mesa;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
@@ -63,7 +64,9 @@ class MeseroController extends Controller
                     $numLineas = $lineas->count();
 
                     if ((int) $p->mesero_idUsuario === $authId) {
-                        $subtotal = $lineas->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
+                        $subtotal = $lineas
+                            ->where('estado_item', '!=', 'CANCELADO')
+                            ->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
                         $previewParts = $lineas->take(2)->map(function ($d) {
                             $name = $d->producto?->nombreProducto ?? 'Ítem';
 
@@ -121,6 +124,16 @@ class MeseroController extends Controller
             ->orderByDesc('creado_en')
             ->get();
 
+        $cambiosMenu = ProductoEstadoLog::query()
+            ->with([
+                'producto:idProducto,nombreProducto',
+                'usuario:idUsuario,nombre,apellido',
+            ])
+            ->whereNull('atendida_en')
+            ->where('creado_en', '>=', now()->subHours(24))
+            ->orderByDesc('creado_en')
+            ->get();
+
         return response()->json([
             'pedidos_listos' => $listos,
             'llamadas_cocina' => $llamadas->map(fn (CocinaLlamadaMesero $l) => [
@@ -128,6 +141,33 @@ class MeseroController extends Controller
                 'creado_en' => $l->creado_en?->toIso8601String(),
                 'cocinero_nombre' => trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina',
             ]),
+            'cambios_menu' => $cambiosMenu->map(fn (ProductoEstadoLog $log) => [
+                'id' => $log->idLog,
+                'idProducto' => $log->producto_idProducto,
+                'nombreProducto' => $log->producto?->nombreProducto ?? 'Plato',
+                'activo' => (bool) $log->activo,
+                'creado_en' => $log->creado_en?->toIso8601String(),
+                'usuario_nombre' => $log->usuario
+                    ? trim($log->usuario->nombre.' '.$log->usuario->apellido)
+                    : 'Cocina',
+            ]),
+        ]);
+    }
+
+    public function atenderCambioMenu(Request $request, ProductoEstadoLog $log): JsonResponse
+    {
+        $meseroId = (int) $request->user()->getAuthIdentifier();
+
+        if ($log->atendida_en) {
+            return response()->json(['message' => 'Este aviso ya fue atendido.'], 422);
+        }
+
+        $log->atendida_en = now();
+        $log->mesero_atendio_idUsuario = $meseroId;
+        $log->save();
+
+        return response()->json([
+            'message' => 'Aviso de menú atendido.',
         ]);
     }
 
@@ -418,6 +458,80 @@ class MeseroController extends Controller
         ]);
     }
 
+    /**
+     * Perfil del mesero en sesión (solo lectura).
+     */
+    public function perfil(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        $user->loadMissing('cargo:idCargo,nombre');
+
+        return response()->json([
+            'data' => [
+                'idUsuario' => $user->idUsuario,
+                'nombre' => $user->nombre,
+                'apellido' => $user->apellido,
+                'cedula' => $user->cedula,
+                'telefono' => $user->telefono,
+                'correo' => $user->correo,
+                'rol' => $user->cargo?->nombre,
+                'activo' => (bool) $user->activo,
+                'creado_en' => $user->creado_en?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Historial de pedidos tomados por el mesero en sesión.
+     */
+    public function historialPedidos(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof Usuario) {
+            abort(401, 'No autenticado.');
+        }
+
+        $data = $request->validate([
+            'estado' => ['nullable', 'string', 'in:todas,PENDIENTE,EN_PREPARACION,LISTO,ENTREGADO,CERRADO,CANCELADO'],
+            'desde' => ['nullable', 'date'],
+            'hasta' => ['nullable', 'date'],
+            'orden' => ['nullable', 'string', 'in:reciente,antiguo'],
+        ]);
+
+        $estado = $data['estado'] ?? 'todas';
+        $orden = $data['orden'] ?? 'reciente';
+
+        $query = Pedido::query()
+            ->with([
+                'mesa:idMesa,numero,nombre',
+                'detalles' => fn ($q) => $q->with('producto:idProducto,nombreProducto'),
+            ])
+            ->where('mesero_idUsuario', (int) $user->getAuthIdentifier());
+
+        if ($estado !== 'todas') {
+            $query->where('estado', $estado);
+        }
+        if (! empty($data['desde'])) {
+            $query->whereDate('creado_en', '>=', $data['desde']);
+        }
+        if (! empty($data['hasta'])) {
+            $query->whereDate('creado_en', '<=', $data['hasta']);
+        }
+
+        $query->orderBy('creado_en', $orden === 'antiguo' ? 'asc' : 'desc');
+
+        $items = $query->limit(200)->get();
+
+        return response()->json([
+            'data' => $items->map(fn (Pedido $p) => $this->serializePedidoHistorial($p)),
+            'total' => $items->count(),
+        ]);
+    }
+
     private function authorizeMesero(Request $request, Pedido $pedido): void
     {
         $user = $request->user();
@@ -428,6 +542,39 @@ class MeseroController extends Controller
         if ((int) $pedido->mesero_idUsuario !== (int) $user->getAuthIdentifier()) {
             abort(403, 'No autorizado para este pedido.');
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializePedidoHistorial(Pedido $p): array
+    {
+        $lineas = $p->detalles;
+        $subtotal = $lineas
+            ->where('estado_item', '!=', 'CANCELADO')
+            ->sum(fn ($d) => (float) $d->precio_unitario * (int) $d->cantidad);
+
+        return [
+            'idPedido' => $p->idPedido,
+            'estado' => $p->estado,
+            'notas' => $p->notas,
+            'motivo_cancelacion' => $p->motivo_cancelacion,
+            'creado_en' => $p->creado_en?->toIso8601String(),
+            'cerrado_en' => $p->cerrado_en?->toIso8601String(),
+            'cancelado_en' => $p->cancelado_en?->toIso8601String(),
+            'mesa' => $p->mesa ? [
+                'numero' => $p->mesa->numero,
+                'nombre' => $p->mesa->nombre,
+            ] : null,
+            'num_lineas' => $lineas->count(),
+            'total_unidades' => (int) $lineas->sum('cantidad'),
+            'subtotal_cop' => (int) round($subtotal),
+            'resumen_productos' => $lineas->take(3)->map(function ($d) {
+                $name = $d->producto?->nombreProducto ?? 'Ítem';
+
+                return $name.' ×'.(int) $d->cantidad;
+            })->implode(' · '),
+        ];
     }
 
     /**
@@ -454,6 +601,8 @@ class MeseroController extends Controller
                 'precio_unitario' => $d->precio_unitario,
                 'nota' => $d->nota,
                 'estado_item' => $d->estado_item,
+                'motivo_cancelacion' => $d->motivo_cancelacion,
+                'cancelado_en' => $d->cancelado_en?->toIso8601String(),
                 'producto' => $d->producto ? [
                     'nombreProducto' => $d->producto->nombreProducto,
                     'tipo' => $d->producto->tipo,
