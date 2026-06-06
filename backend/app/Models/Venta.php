@@ -21,6 +21,11 @@ class Venta extends Model
         'total',
         'registrada_en',
         'cajero_idUsuario',
+        'estado',
+        'motivo_cancelacion',
+        'cancelada_en',
+        'cancelada_por_idUsuario',
+        'admin_visto',
     ];
 
     protected function casts(): array
@@ -30,6 +35,8 @@ class Venta extends Model
             'impuesto_o_servicio' => 'decimal:2',
             'total' => 'decimal:2',
             'registrada_en' => 'datetime',
+            'cancelada_en' => 'datetime',
+            'admin_visto' => 'boolean',
         ];
     }
 
@@ -41,6 +48,18 @@ class Venta extends Model
     public function cajero(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'cajero_idUsuario', 'idUsuario');
+    }
+
+    public function canceladaPor(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'cancelada_por_idUsuario', 'idUsuario');
+    }
+
+    public function scopeActivas($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('estado', 'ACTIVA')->orWhereNull('estado');
+        });
     }
 
     public function pagos(): HasMany
