@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CocinaLlamadaMesero;
+use App\Models\ProductoEstadoLog;
 use App\Models\Mesa;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
@@ -123,6 +124,16 @@ class MeseroController extends Controller
             ->orderByDesc('creado_en')
             ->get();
 
+        $cambiosMenu = ProductoEstadoLog::query()
+            ->with([
+                'producto:idProducto,nombreProducto',
+                'usuario:idUsuario,nombre,apellido',
+            ])
+            ->whereNull('atendida_en')
+            ->where('creado_en', '>=', now()->subHours(24))
+            ->orderByDesc('creado_en')
+            ->get();
+
         return response()->json([
             'pedidos_listos' => $listos,
             'llamadas_cocina' => $llamadas->map(fn (CocinaLlamadaMesero $l) => [
@@ -130,6 +141,33 @@ class MeseroController extends Controller
                 'creado_en' => $l->creado_en?->toIso8601String(),
                 'cocinero_nombre' => trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina',
             ]),
+            'cambios_menu' => $cambiosMenu->map(fn (ProductoEstadoLog $log) => [
+                'id' => $log->idLog,
+                'idProducto' => $log->producto_idProducto,
+                'nombreProducto' => $log->producto?->nombreProducto ?? 'Plato',
+                'activo' => (bool) $log->activo,
+                'creado_en' => $log->creado_en?->toIso8601String(),
+                'usuario_nombre' => $log->usuario
+                    ? trim($log->usuario->nombre.' '.$log->usuario->apellido)
+                    : 'Cocina',
+            ]),
+        ]);
+    }
+
+    public function atenderCambioMenu(Request $request, ProductoEstadoLog $log): JsonResponse
+    {
+        $meseroId = (int) $request->user()->getAuthIdentifier();
+
+        if ($log->atendida_en) {
+            return response()->json(['message' => 'Este aviso ya fue atendido.'], 422);
+        }
+
+        $log->atendida_en = now();
+        $log->mesero_atendio_idUsuario = $meseroId;
+        $log->save();
+
+        return response()->json([
+            'message' => 'Aviso de menú atendido.',
         ]);
     }
 

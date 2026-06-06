@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\AdminRestauranteConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
 use App\Http\Controllers\Api\CocinaPedidoController;
+use App\Http\Controllers\Api\CocinaProductoController;
 use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
@@ -80,6 +81,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
         Route::get('alertas', [MeseroController::class, 'alertas']);
         Route::post('alertas/llamada-cocina/{llamada}/atender', [MeseroController::class, 'atenderLlamadaCocina']);
+        Route::post('alertas/cambio-menu/{log:idLog}/atender', [MeseroController::class, 'atenderCambioMenu']);
         Route::post('pedidos/{pedido:idPedido}/recibir', [MeseroController::class, 'recibirPedido']);
         Route::get('categorias', [ProductoController::class, 'categoriasMesero']);
         Route::get('productos', [ProductoController::class, 'indexMesero']);
@@ -96,6 +98,14 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('llamar-mesero', [CocinaPedidoController::class, 'llamarMesero']);
         Route::patch('pedidos/{pedido:idPedido}/estado', [CocinaPedidoController::class, 'updateEstado']);
         Route::post('pedidos/{pedido:idPedido}/detalles/{detalle:idPedidoDetalle}/cancelar', [CocinaPedidoController::class, 'cancelarDetalle']);
+
+        Route::get('inventario/ingredientes', [IngredienteController::class, 'index']);
+        Route::get('inventario/alertas', [IngredienteController::class, 'alertas']);
+        Route::get('inventario/ingredientes/{ingrediente:idIngrediente}/movimientos', [IngredienteController::class, 'movimientos']);
+        Route::post('inventario/ingredientes/{ingrediente:idIngrediente}/movimiento', [IngredienteController::class, 'registrarMovimiento']);
+
+        Route::get('menu/productos', [CocinaProductoController::class, 'index']);
+        Route::patch('menu/productos/{producto:idProducto}/activo', [CocinaProductoController::class, 'setActivo']);
     });
 
     Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
@@ -112,6 +122,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('mesas/{mesa:idMesa}/historial', [AdminMesaController::class, 'historialPedidos']);
 
         Route::get('productos', [AdminProductoController::class, 'index']);
+        Route::get('productos/historial-activo', [AdminProductoController::class, 'historialActivo']);
         Route::post('productos', [AdminProductoController::class, 'store']);
         Route::get('productos/{producto:idProducto}', [AdminProductoController::class, 'show']);
         Route::match(['put', 'post'], 'productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
@@ -136,6 +147,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('reportes/productos-mas-vendidos', [ReporteController::class, 'productosMasVendidos']);
 
         Route::get('inventario/alertas', [IngredienteController::class, 'alertas']);
+        Route::get('inventario/movimientos', [IngredienteController::class, 'historialGlobal']);
         Route::get('inventario/ingredientes', [IngredienteController::class, 'index']);
         Route::post('inventario/ingredientes', [IngredienteController::class, 'store']);
         Route::put('inventario/ingredientes/{ingrediente:idIngrediente}', [IngredienteController::class, 'update']);

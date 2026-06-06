@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Categoria;
 use App\Models\Producto;
+use App\Models\ProductoEstadoLog;
+use App\Services\ProductoActivoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +14,9 @@ use Illuminate\Validation\Rule;
 
 class AdminProductoController extends Controller
 {
+    public function __construct(
+        private readonly ProductoActivoService $productoActivoService,
+    ) {}
     public function index(Request $request): JsonResponse
     {
         $productos = Producto::query()
@@ -90,12 +95,85 @@ class AdminProductoController extends Controller
             'activo' => ['required', 'boolean'],
         ]);
 
-        $producto->activo = (bool) $data['activo'];
-        $producto->save();
+        $userId = (int) $request->user()->getAuthIdentifier();
+        $this->productoActivoService->cambiarActivo($producto, (bool) $data['activo'], $userId);
 
         return response()->json([
             'message' => $producto->activo ? 'Producto habilitado.' : 'Producto deshabilitado.',
             'data' => $this->serializeProducto($producto->fresh(['categoria:idCategoria,nombre,orden,activa'])),
+        ]);
+    }
+
+    public function historialActivo(Request $request): JsonResponse
+    {
+        $filtros = $request->validate([
+            'producto' => ['nullable', 'string', 'max:160'],
+            'fecha_desde' => ['nullable', 'date'],
+            'fecha_hasta' => ['nullable', 'date', 'after_or_equal:fecha_desde'],
+        ]);
+
+        $query = ProductoEstadoLog::query()
+            ->with([
+                'producto:idProducto,nombreProducto',
+                'usuario:idUsuario,nombre,apellido,cargos_idCargo',
+                'usuario.cargo:idCargo,nombre',
+            ])
+            ->orderByDesc('creado_en')
+            ->limit(250);
+
+        $nombreProducto = trim((string) ($filtros['producto'] ?? ''));
+        if ($nombreProducto !== '') {
+            $term = '%'.$nombreProducto.'%';
+            $query->whereHas('producto', fn ($q) => $q->where('nombreProducto', 'like', $term));
+        }
+
+        if (! empty($filtros['fecha_desde'])) {
+            $query->whereDate('creado_en', '>=', $filtros['fecha_desde']);
+        }
+
+        if (! empty($filtros['fecha_hasta'])) {
+            $query->whereDate('creado_en', '<=', $filtros['fecha_hasta']);
+        }
+
+        $logs = $query->get();
+        $porProductoAsc = ProductoEstadoLog::query()
+            ->orderBy('producto_idProducto')
+            ->orderBy('creado_en')
+            ->get()
+            ->groupBy('producto_idProducto');
+
+        $data = $logs->map(function (ProductoEstadoLog $log) use ($porProductoAsc) {
+            $periodoFin = null;
+            if (! $log->activo) {
+                $grupo = $porProductoAsc->get($log->producto_idProducto, collect());
+                $periodoFin = $grupo->first(
+                    fn (ProductoEstadoLog $otro) => $otro->activo
+                        && $otro->creado_en
+                        && $log->creado_en
+                        && $otro->creado_en->gt($log->creado_en)
+                )?->creado_en;
+            }
+
+            return [
+                'idLog' => $log->idLog,
+                'activo' => (bool) $log->activo,
+                'accion' => $log->activo ? 'HABILITADO' : 'DESHABILITADO',
+                'creado_en' => $log->creado_en?->toIso8601String(),
+                'periodo_fin' => $periodoFin?->toIso8601String(),
+                'producto' => $log->producto ? [
+                    'idProducto' => $log->producto->idProducto,
+                    'nombreProducto' => $log->producto->nombreProducto,
+                ] : null,
+                'usuario' => $log->usuario
+                    ? trim($log->usuario->nombre.' '.$log->usuario->apellido)
+                    : '—',
+                'usuario_rol' => $log->usuario?->cargo?->nombre,
+            ];
+        });
+
+        return response()->json([
+            'total' => $data->count(),
+            'data' => $data,
         ]);
     }
 

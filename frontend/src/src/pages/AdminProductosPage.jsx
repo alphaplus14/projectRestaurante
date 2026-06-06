@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { adminAlertError } from '../utils/adminAlerts';
@@ -47,7 +47,148 @@ function ProductThumb({ imagenUrl, nombre, size = 'md' }) {
     );
 }
 
+function emptyHistorialFiltros() {
+    return { producto: '', fecha_desde: '', fecha_hasta: '' };
+}
+
+function buildHistorialQs(filtros) {
+    const p = new URLSearchParams();
+    const nombre = filtros.producto?.trim();
+    if (nombre) p.set('producto', nombre);
+    if (filtros.fecha_desde) p.set('fecha_desde', filtros.fecha_desde);
+    if (filtros.fecha_hasta) p.set('fecha_hasta', filtros.fecha_hasta);
+    const s = p.toString();
+    return s ? `?${s}` : '';
+}
+
+function formatFechaHora(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return iso.slice(0, 16).replace('T', ' ');
+    }
+}
+
+function PanelHistorialActivo({ historial, loading, filtros, onChangeFiltros, onAplicar, onLimpiar }) {
+    const hayFiltros = Boolean(filtros.producto?.trim() || filtros.fecha_desde || filtros.fecha_hasta);
+
+    return (
+        <div className="space-y-4 max-w-6xl">
+            <p className="text-sm text-stone-600 dark:text-stone-400">
+                Historial permanente de platos habilitados y deshabilitados (cocina y administración). No se puede eliminar.
+            </p>
+            <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Plato</label>
+                        <input
+                            type="search"
+                            value={filtros.producto}
+                            onChange={(e) => onChangeFiltros((f) => ({ ...f, producto: e.target.value }))}
+                            onKeyDown={(e) => e.key === 'Enter' && onAplicar()}
+                            placeholder="Nombre del plato…"
+                            className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Fecha desde</label>
+                        <input
+                            type="date"
+                            value={filtros.fecha_desde}
+                            onChange={(e) => onChangeFiltros((f) => ({ ...f, fecha_desde: e.target.value }))}
+                            className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-stone-600 dark:text-stone-400 mb-1">Fecha hasta</label>
+                        <input
+                            type="date"
+                            value={filtros.fecha_hasta}
+                            min={filtros.fecha_desde || undefined}
+                            onChange={(e) => onChangeFiltros((f) => ({ ...f, fecha_hasta: e.target.value }))}
+                            className="w-full rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm"
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <button type="button" onClick={onAplicar} disabled={loading} className="rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold px-4 py-2 text-sm disabled:opacity-50">
+                        {loading ? 'Buscando…' : 'Aplicar filtros'}
+                    </button>
+                    <button type="button" onClick={onLimpiar} disabled={loading || !hayFiltros} className="rounded-lg border border-stone-300 dark:border-stone-700 px-4 py-2 text-sm disabled:opacity-50">
+                        Limpiar
+                    </button>
+                    {historial != null ? (
+                        <span className="text-xs text-stone-500">{historial.total} registro{historial.total !== 1 ? 's' : ''}</span>
+                    ) : null}
+                </div>
+            </div>
+            {loading ? (
+                <div className="py-16 text-center text-stone-500">Cargando historial…</div>
+            ) : (
+                <div className="rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-900">
+                    <table className="w-full text-sm">
+                        <thead className="bg-stone-100 dark:bg-stone-950/50 text-xs uppercase text-stone-500">
+                            <tr>
+                                {['Fecha / hora', 'Plato', 'Acción', 'Periodo', 'Usuario'].map((h) => (
+                                    <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
+                            {(historial?.data ?? []).length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-10 text-center text-stone-500">
+                                        {hayFiltros ? 'Sin registros con esos filtros.' : 'Sin cambios registrados aún.'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                historial.data.map((row) => (
+                                    <tr key={row.idLog} className="hover:bg-stone-50 dark:hover:bg-stone-800/30">
+                                        <td className="px-4 py-3 text-stone-600 dark:text-stone-400 whitespace-nowrap">{formatFechaHora(row.creado_en)}</td>
+                                        <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-50">{row.producto?.nombreProducto ?? '—'}</td>
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={classNames(
+                                                    'text-xs font-semibold px-2 py-0.5 rounded-full border',
+                                                    row.activo
+                                                        ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/50'
+                                                        : 'bg-red-900/40 text-red-300 border-red-700/50',
+                                                )}
+                                            >
+                                                {row.accion}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-stone-600 dark:text-stone-400 text-xs whitespace-nowrap">
+                                            {!row.activo && row.periodo_fin ? (
+                                                <>
+                                                    {formatFechaHora(row.creado_en).split(',')[1]?.trim() ?? ''} –{' '}
+                                                    {formatFechaHora(row.periodo_fin).split(',')[1]?.trim() ?? ''}
+                                                    <div className="text-stone-500 mt-0.5">{formatFechaHora(row.periodo_fin).split(',')[0]}</div>
+                                                </>
+                                            ) : row.activo ? (
+                                                '—'
+                                            ) : (
+                                                <span className="text-amber-600 dark:text-amber-400">Aún deshabilitado</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-stone-600 dark:text-stone-500">
+                                            <div>{row.usuario}</div>
+                                            {row.usuario_rol ? <div className="text-[10px] uppercase mt-0.5">{row.usuario_rol}</div> : null}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function AdminProductosPage() {
+    const [tab, setTab] = useState('productos');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [productos, setProductos] = useState([]);
@@ -67,6 +208,29 @@ export function AdminProductosPage() {
     const [draft, setDraft] = useState(emptyDraft());
     const [imageFile, setImageFile] = useState(null);
     const [localImagePreview, setLocalImagePreview] = useState(null);
+    const [historial, setHistorial] = useState(null);
+    const [historialLoading, setHistorialLoading] = useState(false);
+    const [historialFiltros, setHistorialFiltros] = useState(emptyHistorialFiltros);
+    const [historialFiltrosAplicados, setHistorialFiltrosAplicados] = useState(emptyHistorialFiltros);
+
+    const cargarHistorial = useCallback(async (filtros) => {
+        setHistorialLoading(true);
+        try {
+            const qs = buildHistorialQs(filtros);
+            const res = await apiFetch(`/api/admin/productos/historial-activo${qs}`);
+            setHistorial(res);
+        } catch (err) {
+            void adminAlertError(err, 'Historial del menú');
+            setHistorial(null);
+        } finally {
+            setHistorialLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (tab !== 'historial') return;
+        void cargarHistorial(historialFiltrosAplicados);
+    }, [tab, historialFiltrosAplicados, cargarHistorial]);
 
     const categoriasById = useMemo(() => {
         const m = new Map();
@@ -273,7 +437,7 @@ export function AdminProductosPage() {
         );
     }
 
-    if (loading) {
+    if (loading && tab === 'productos') {
         return (
             <AdminLayout title="Menú">
                 <div className="flex items-center justify-center text-stone-600 dark:text-stone-400 text-lg py-20">Cargando productos…</div>
@@ -291,7 +455,30 @@ export function AdminProductosPage() {
                     <div className="mt-2 text-stone-600 dark:text-stone-400">
                         Administra el menú. Deshabilitar es preferido sobre eliminar.
                     </div>
+                    <div className="mt-4 inline-flex rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setTab('productos')}
+                            className={classNames(
+                                'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                                tab === 'productos' ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400',
+                            )}
+                        >
+                            Productos
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTab('historial')}
+                            className={classNames(
+                                'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                                tab === 'historial' ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400',
+                            )}
+                        >
+                            Historial
+                        </button>
+                    </div>
                 </div>
+                {tab === 'productos' ? (
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="inline-flex rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950 p-1">
                         <button
@@ -352,8 +539,24 @@ export function AdminProductosPage() {
                         Crear producto
                     </button>
                 </div>
+                ) : null}
             </div>
 
+            {tab === 'historial' ? (
+                <PanelHistorialActivo
+                    historial={historial}
+                    loading={historialLoading}
+                    filtros={historialFiltros}
+                    onChangeFiltros={setHistorialFiltros}
+                    onAplicar={() => setHistorialFiltrosAplicados({ ...historialFiltros })}
+                    onLimpiar={() => {
+                        const vacio = emptyHistorialFiltros();
+                        setHistorialFiltros(vacio);
+                        setHistorialFiltrosAplicados(vacio);
+                    }}
+                />
+            ) : (
+            <>
             {listaPorCategoriaAbierta ? (
                 <div className="mt-6 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -552,6 +755,9 @@ export function AdminProductosPage() {
                         </div>
                     ) : null}
                 </div>
+            )}
+
+            </>
             )}
 
             {isOpen ? (
