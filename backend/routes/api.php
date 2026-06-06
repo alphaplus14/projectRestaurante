@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminReservaController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
+use App\Http\Controllers\Api\AdminVentaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
 use App\Http\Controllers\Api\CocinaPedidoController;
@@ -97,7 +98,13 @@ Route::middleware('tenant.identify')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:CAJERO'])->prefix('cajero')->group(function () {
         Route::get('cuentas-pendientes', [CajeroController::class, 'cuentasPendientes']);
+        Route::get('perfil', [CajeroController::class, 'perfil']);
+        Route::get('reservas', [CajeroController::class, 'reservas']);
+        Route::post('llamar-mesero', [CajeroController::class, 'llamarMesero']);
+        Route::get('mesas', [CajeroController::class, 'mesas']);
+        Route::get('ventas', [CajeroController::class, 'ventas']);
         Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+        Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/cobrar', [CajeroController::class, 'cobrar']);
     });
@@ -120,6 +127,10 @@ Route::middleware('tenant.identify')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('ventas', [AdminVentaController::class, 'index']);
+        Route::get('ventas/notificaciones', [AdminVentaController::class, 'notificacionesPendientes']);
+        Route::post('ventas/notificaciones/marcar-vistas', [AdminVentaController::class, 'marcarNotificacionesVistas']);
 
         Route::get('reservas', [AdminReservaController::class, 'index']);
         Route::get('pedidos-platos-cancelados', [AdminPedidoCancelacionController::class, 'index']);

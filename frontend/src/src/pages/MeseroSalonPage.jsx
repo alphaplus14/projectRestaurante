@@ -164,23 +164,25 @@ function ModalPedidosListos({
                     ) : null}
 
                     {hayLlamadas ? (
-                        <section aria-label="Llamadas de cocina">
+                        <section aria-label="Llamadas de cocina o caja">
                             <h3 className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200 mb-2">
-                                Cocina te necesita
+                                Te necesitan en el local
                             </h3>
                             <div className="space-y-2">
                                 {llamadasCocina.map((l) => {
                                     const busy = busyLlamadaId === l.id;
+                                    const desdeCaja = l.origen === 'CAJERO';
+                                    const solicitante = l.solicitante_nombre || l.cocinero_nombre || (desdeCaja ? 'Caja' : 'Cocina');
                                     return (
                                         <div
                                             key={l.id}
                                             className="rounded-xl border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-4"
                                         >
                                             <p className="font-semibold text-amber-950 dark:text-amber-100">
-                                                Te llaman desde cocina
+                                                {desdeCaja ? 'Te llaman desde caja' : 'Te llaman desde cocina'}
                                             </p>
                                             <p className="text-sm text-stone-700 dark:text-stone-300 mt-1">
-                                                {l.cocinero_nombre || 'Cocina'} necesita ayuda en cocina.
+                                                {solicitante} necesita ayuda {desdeCaja ? 'en recepción/caja' : 'en cocina'}.
                                             </p>
                                             {l.creado_en ? (
                                                 <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
@@ -196,7 +198,7 @@ function ModalPedidosListos({
                                                 onClick={() => onAtenderLlamada(l)}
                                                 className="mt-3 w-full min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold"
                                             >
-                                                {busy ? 'Atendiendo…' : 'Voy a cocina'}
+                                                {busy ? 'Atendiendo…' : desdeCaja ? 'Voy a caja' : 'Voy a cocina'}
                                             </button>
                                         </div>
                                     );

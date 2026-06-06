@@ -8,6 +8,7 @@ import { CocinaMenuPage } from './pages/CocinaMenuPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
 import { MeseroAjustesPage } from './pages/MeseroAjustesPage';
 import { CajeroCajaPage } from './pages/CajeroCajaPage';
+import { CajeroAjustesPage } from './pages/CajeroAjustesPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminMeserosPage } from './pages/AdminMeserosPage';
@@ -18,6 +19,7 @@ import { AdminMesasPage } from './pages/AdminMesasPage';
 import { AdminReservasPage } from './pages/AdminReservasPage';
 import { AdminPlatosCanceladosPage } from './pages/AdminPlatosCanceladosPage';
 import { AdminReportesPage } from './pages/AdminReportesPage';
+import { AdminVentasPage } from './pages/AdminVentasPage';
 import { AdminInventarioPage } from './pages/AdminInventarioPage';
 import { AdminFinanzasPage } from './pages/AdminFinanzasPage';
 import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
@@ -133,6 +135,14 @@ export function App() {
                 }
             />
             <Route
+                path="/cajero/ajustes"
+                element={
+                    <RequireCajero>
+                        <CajeroAjustesPage />
+                    </RequireCajero>
+                }
+            />
+            <Route
                 path="/admin/dashboard"
                 element={
                     <RequireAdmin>
@@ -193,6 +203,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminCajerosPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/ventas"
+                element={
+                    <RequireAdmin>
+                        <AdminVentasPage />
                     </RequireAdmin>
                 }
             />
