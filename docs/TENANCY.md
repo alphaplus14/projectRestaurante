@@ -84,12 +84,44 @@ php artisan mail:test cliente@ejemplo.com
 
 Si SMTP falla, Master sigue mostrando el enlace para copiarlo manualmente.
 
-## Flujo operativo
+## Flujo operativo (checklist)
 
-1. Entra a **Master** → crea invitación (correo + slug).
-2. El cliente recibe el correo con el enlace (o cópialo tú si SMTP no está listo).
-3. El cliente completa el formulario → se crea la BD y el admin inicial.
-4. El cliente opera en `https://{slug}.tudominio.com`.
+### A. Preparación (una vez)
+
+- [ ] `restaurante.sql` importado en MySQL como BD `restaurante` (plantilla).
+- [ ] `php artisan master:migrate --seed`
+- [ ] SMTP en `.env` (contraseña de aplicación **sin espacios** en `MAIL_PASSWORD`).
+- [ ] `TENANT_FRONTEND_PORT=5173` para enlaces correctos en el correo.
+- [ ] `TENANCY_MODE=multi` en backend `.env`.
+
+### B. Alta de un cliente
+
+1. **Master** → http://master.localhost:5173/master/login  
+2. Invitación: correo + slug (`mi-sushi`).  
+3. Cliente recibe correo → abre `/onboarding/{token}`.  
+4. Completa datos → se crea BD `rest_mi_sushi` + admin.  
+5. Cliente entra en http://mi-sushi.localhost:5173/login-admin  
+
+### C. Desarrollo sin subdominio (opcional)
+
+En `backend/.env` y `frontend/.env.local`:
+
+```env
+TENANT_DEFAULT_SLUG=mi-sushi
+VITE_TENANT_DEFAULT_SLUG=mi-sushi
+```
+
+Así `127.0.0.1:5173` envía el header `X-Tenant-Slug` al API.
+
+### D. Reenviar invitación
+
+En Master, restaurantes en estado **pending** → botón **Reenviar correo**.
+
+## Flujo resumido
+
+1. Master crea invitación → correo SMTP.  
+2. Cliente configura onboarding → BD dedicada.  
+3. Opera en `{slug}.tudominio.com` (o `{slug}.localhost:5173` en local).
 
 ## Producción
 

@@ -8,10 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('pedido', function (Blueprint $table) {
-            $table->string('motivo_cancelacion', 500)->nullable()->after('notas');
-            $table->dateTime('cancelado_en')->nullable()->after('cerrado_en');
-        });
+        if (! Schema::hasColumn('pedido', 'motivo_cancelacion')) {
+            Schema::table('pedido', function (Blueprint $table) {
+                $table->string('motivo_cancelacion', 500)->nullable()->after('notas');
+            });
+        }
+
+        if (! Schema::hasColumn('pedido', 'cancelado_en')) {
+            Schema::table('pedido', function (Blueprint $table) {
+                $table->dateTime('cancelado_en')->nullable()->after('cerrado_en');
+            });
+        }
     }
 
     public function down(): void

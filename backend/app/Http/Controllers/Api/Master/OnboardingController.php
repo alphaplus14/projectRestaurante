@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api\Master;
 
 use App\Http\Controllers\Controller;
 use App\Models\Master\OnboardingInvitation;
+use App\Models\Master\Tenant;
 use App\Services\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class OnboardingController extends Controller
 {
@@ -16,20 +16,21 @@ class OnboardingController extends Controller
     {
         config(['database.default' => 'master']);
 
-        $invitation = $this->findUsableInvitation($token);
-        if (! $invitation) {
-            return response()->json(['message' => 'Enlace inválido o expirado.'], 404);
+        $plain = $this->normalizeToken($token);
+        $resolved = $this->resolveInvitation($plain);
+
+        if ($resolved['http_status'] !== 200) {
+            return response()->json([
+                'message' => $resolved['message'],
+                'reason' => $resolved['reason'],
+                'data' => $resolved['data'] ?? null,
+            ], $resolved['http_status']);
         }
 
-        $tenant = $invitation->tenant;
-
         return response()->json([
-            'data' => [
-                'email' => $invitation->email,
-                'slug' => $tenant->slug,
-                'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
-                'expires_at' => $invitation->expires_at->toIso8601String(),
-            ],
+            'message' => $resolved['message'],
+            'reason' => $resolved['reason'],
+            'data' => $resolved['data'],
         ]);
     }
 
@@ -37,16 +38,25 @@ class OnboardingController extends Controller
     {
         config(['database.default' => 'master']);
 
-        $invitation = $this->findUsableInvitation($token);
-        if (! $invitation) {
-            return response()->json(['message' => 'Enlace inválido o expirado.'], 404);
+        $plain = $this->normalizeToken($token);
+        $resolved = $this->resolveInvitation($plain);
+
+        if ($resolved['reason'] === 'already_active') {
+            return response()->json([
+                'message' => $resolved['message'],
+                'data' => $resolved['data'],
+            ]);
         }
 
+        if ($resolved['http_status'] !== 200 || empty($resolved['invitation'])) {
+            return response()->json([
+                'message' => $resolved['message'],
+                'reason' => $resolved['reason'],
+            ], $resolved['http_status']);
+        }
+
+        $invitation = $resolved['invitation'];
         $tenant = $invitation->tenant;
-
-        if ($tenant->status === 'active') {
-            return response()->json(['message' => 'Este restaurante ya fue configurado.'], 422);
-        }
 
         $data = $request->validate([
             'nombre_comercial' => ['required', 'string', 'max:160'],
@@ -63,10 +73,6 @@ class OnboardingController extends Controller
         ]);
 
         try {
-            DB::connection('master')->transaction(function () use ($invitation): void {
-                $invitation->update(['used_at' => now()]);
-            });
-
             $logoUrl = null;
             if ($request->hasFile('logo')) {
                 $logoUrl = TenantProvisioner::storeLogoForTenant($tenant, $request->file('logo'));
@@ -79,6 +85,7 @@ class OnboardingController extends Controller
 
             $provisioner->provision($tenant, $payload);
 
+            $invitation->update(['used_at' => now()]);
             $tenant->refresh();
 
             return response()->json([
@@ -96,13 +103,95 @@ class OnboardingController extends Controller
         }
     }
 
-    private function findUsableInvitation(string $plain): ?OnboardingInvitation
+    private function normalizeToken(string $token): string
     {
-        return OnboardingInvitation::query()
+        return trim(urldecode($token));
+    }
+
+    /**
+     * @return array{
+     *   http_status: int,
+     *   reason: string,
+     *   message: string,
+     *   data?: array<string, mixed>,
+     *   invitation?: OnboardingInvitation|null
+     * }
+     */
+    private function resolveInvitation(string $plain): array
+    {
+        if ($plain === '') {
+            return [
+                'http_status' => 404,
+                'reason' => 'invalid',
+                'message' => 'Enlace incompleto. Usa el enlace completo del correo.',
+            ];
+        }
+
+        $invitation = OnboardingInvitation::query()
             ->with('tenant')
             ->where('token_hash', hash('sha256', $plain))
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
             ->first();
+
+        if (! $invitation) {
+            return [
+                'http_status' => 404,
+                'reason' => 'invalid',
+                'message' => 'Enlace no reconocido. Pide al administrador que reenvíe la invitación.',
+            ];
+        }
+
+        /** @var Tenant $tenant */
+        $tenant = $invitation->tenant;
+
+        if ($tenant->status === 'active') {
+            return [
+                'http_status' => 200,
+                'reason' => 'already_active',
+                'message' => 'Este restaurante ya está configurado.',
+                'data' => [
+                    'email' => $invitation->email,
+                    'slug' => $tenant->slug,
+                    'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
+                    'tenant_url' => $tenant->tenantAppUrl(),
+                    'admin_login' => $tenant->tenantAppUrl().'/login-admin',
+                ],
+            ];
+        }
+
+        if ($invitation->used_at !== null) {
+            return [
+                'http_status' => 410,
+                'reason' => 'used',
+                'message' => 'Este enlace ya se utilizó. Solicita un correo nuevo desde Master.',
+                'data' => [
+                    'slug' => $tenant->slug,
+                    'status' => $tenant->status,
+                ],
+            ];
+        }
+
+        if ($invitation->expires_at->isPast()) {
+            return [
+                'http_status' => 410,
+                'reason' => 'expired',
+                'message' => 'El enlace expiró. Solicita que reenvíen la invitación.',
+                'data' => [
+                    'expires_at' => $invitation->expires_at->toIso8601String(),
+                ],
+            ];
+        }
+
+        return [
+            'http_status' => 200,
+            'reason' => 'ready',
+            'message' => 'OK',
+            'data' => [
+                'email' => $invitation->email,
+                'slug' => $tenant->slug,
+                'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
+                'expires_at' => $invitation->expires_at->toIso8601String(),
+            ],
+            'invitation' => $invitation,
+        ];
     }
 }

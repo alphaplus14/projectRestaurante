@@ -37,6 +37,7 @@ Route::prefix('master')->group(function () {
         Route::post('auth/logout', [MasterAuthController::class, 'logout']);
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
+        Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
     });
 });
 

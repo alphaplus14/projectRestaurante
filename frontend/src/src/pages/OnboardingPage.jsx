@@ -1,12 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { tenantAppOrigin } from '../tenancy/tenantContext';
 
+function cleanTokenParam(raw) {
+    if (!raw) return '';
+    try {
+        return decodeURIComponent(String(raw).trim()).split(/[?#]/)[0];
+    } catch {
+        return String(raw).trim().split(/[?#]/)[0];
+    }
+}
+
 export function OnboardingPage() {
-    const { token } = useParams();
+    const { token: rawToken } = useParams();
+    const token = useMemo(() => cleanTokenParam(rawToken), [rawToken]);
+
     const [meta, setMeta] = useState(null);
+    const [reason, setReason] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [done, setDone] = useState(null);
 
@@ -26,22 +39,40 @@ export function OnboardingPage() {
 
     useEffect(() => {
         let cancelled = false;
+
         async function load() {
+            setLoading(true);
+            setError('');
+            setReason('');
+            setMeta(null);
+
+            if (!token) {
+                setError('Enlace incompleto. Abre el URL completo que llegó en el correo.');
+                setLoading(false);
+                return;
+            }
+
             try {
-                const res = await masterApiFetch(`/api/master/onboarding/${token}`);
-                if (!cancelled) {
-                    setMeta(res?.data ?? null);
-                    setForm((f) => ({ ...f, admin_correo: res?.data?.email || f.admin_correo }));
-                }
+                const res = await masterApiFetch(`/api/master/onboarding/${encodeURIComponent(token)}`);
+                if (cancelled) return;
+
+                const data = res?.data ?? null;
+                setMeta(data);
+                setReason(res?.reason || 'ready');
+                setForm((f) => ({ ...f, admin_correo: data?.email || f.admin_correo }));
             } catch (e) {
-                if (!cancelled) {
-                    setError(e?.message || 'Enlace no válido.');
-                }
+                if (cancelled) return;
+                const data = e?.data;
+                setReason(data?.reason || 'error');
+                setMeta(data?.data ?? data ?? null);
+                setError(e?.message || 'No se pudo validar el enlace.');
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         }
-        if (token) {
-            void load();
-        }
+
+        void load();
+
         return () => {
             cancelled = true;
         };
@@ -67,7 +98,7 @@ export function OnboardingPage() {
                 body.append('logo', logo);
             }
 
-            const res = await masterApiFetch(`/api/master/onboarding/${token}`, {
+            const res = await masterApiFetch(`/api/master/onboarding/${encodeURIComponent(token)}`, {
                 method: 'POST',
                 body,
             });
@@ -77,6 +108,14 @@ export function OnboardingPage() {
         } finally {
             setBusy(false);
         }
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-stone-100 dark:bg-stone-950 flex items-center justify-center p-4">
+                <p className="text-sm text-stone-600 dark:text-stone-400">Cargando configuración…</p>
+            </div>
+        );
     }
 
     if (done) {
@@ -105,10 +144,44 @@ export function OnboardingPage() {
         );
     }
 
-    if (error && !meta) {
+    if (reason === 'already_active' && meta?.tenant_url) {
         return (
             <div className="min-h-screen bg-stone-100 dark:bg-stone-950 flex items-center justify-center p-4">
-                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                <div className="max-w-md w-full rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 space-y-4 text-center">
+                    <h1 className="text-xl font-semibold">Restaurante ya activo</h1>
+                    <p className="text-sm text-stone-600 dark:text-stone-400">
+                        Este enlace ya se usó y el local está listo. Entra directamente:
+                    </p>
+                    <a href={meta.tenant_url} className="block text-violet-700 dark:text-violet-400 font-medium break-all">
+                        {meta.tenant_url}
+                    </a>
+                    <button
+                        type="button"
+                        onClick={() => window.location.assign(meta.admin_login || meta.tenant_url + '/login-admin')}
+                        className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold py-3 text-sm"
+                    >
+                        Ir al login de administración
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (reason === 'used' || reason === 'expired' || reason === 'invalid' || (error && !meta)) {
+        return (
+            <div className="min-h-screen bg-stone-100 dark:bg-stone-950 flex items-center justify-center p-4">
+                <div className="max-w-md w-full rounded-2xl border border-red-500/30 bg-white dark:bg-stone-900 p-6 space-y-3">
+                    <h1 className="text-lg font-semibold text-red-800 dark:text-red-300">Enlace no disponible</h1>
+                    <p className="text-sm text-stone-700 dark:text-stone-300">{error}</p>
+                    <p className="text-xs text-stone-500">
+                        En Master, abre el restaurante y pulsa <strong>Reenviar correo</strong> para obtener un enlace
+                        nuevo. Usa el último correo recibido.
+                    </p>
+                    <p className="text-xs text-stone-500">
+                        Abre el enlace en el mismo PC donde corre el proyecto (
+                        <code className="text-violet-600">npm run dev</code> en puerto 5173).
+                    </p>
+                </div>
             </div>
         );
     }

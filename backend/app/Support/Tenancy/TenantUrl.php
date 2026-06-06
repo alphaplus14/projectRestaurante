@@ -19,7 +19,7 @@ class TenantUrl
         if ($subdomain) {
             $host = $subdomain.'.'.$domain;
         } else {
-            $host = $domain;
+            $host = (string) config('tenancy.frontend_host', $domain);
         }
 
         return $scheme.'://'.$host.$portSuffix;

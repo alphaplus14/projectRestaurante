@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class MasterInvitationController extends Controller
 {
@@ -106,5 +107,52 @@ class MasterInvitationController extends Controller
                 'email_error' => $emailResult['error'],
             ],
         ], 201);
+    }
+
+    public function resend(Request $request, Tenant $tenant, OnboardingInvitationMailer $mailer): JsonResponse
+    {
+        if ($tenant->status === 'active') {
+            throw ValidationException::withMessages([
+                'tenant' => ['Este restaurante ya está activo.'],
+            ]);
+        }
+
+        if ($tenant->status === 'failed') {
+            $tenant->update(['status' => 'pending', 'provision_error' => null]);
+        }
+
+        $plainToken = Str::random(48);
+        $ttlHours = (int) config('tenancy.onboarding_token_ttl_hours', 72);
+
+        $invitation = DB::connection('master')->transaction(function () use ($tenant, $request, $plainToken, $ttlHours) {
+            OnboardingInvitation::query()
+                ->where('tenant_id', $tenant->id)
+                ->whereNull('used_at')
+                ->update(['used_at' => now()]);
+
+            return OnboardingInvitation::query()->create([
+                'tenant_id' => $tenant->id,
+                'email' => $tenant->contact_email,
+                'token_hash' => hash('sha256', $plainToken),
+                'expires_at' => now()->addHours($ttlHours),
+                'created_by' => $request->user()?->id,
+            ]);
+        });
+
+        $onboardingUrl = TenantUrl::onboarding($plainToken);
+        $emailResult = $mailer->send($tenant, $invitation, $plainToken);
+
+        $message = $emailResult['sent']
+            ? 'Nuevo enlace generado y correo reenviado.'
+            : 'Nuevo enlace generado. No se pudo enviar el correo; copia el enlace.';
+
+        return response()->json([
+            'message' => $message,
+            'data' => [
+                'onboarding_url' => $onboardingUrl,
+                'email_sent' => $emailResult['sent'],
+                'email_error' => $emailResult['error'],
+            ],
+        ]);
     }
 }

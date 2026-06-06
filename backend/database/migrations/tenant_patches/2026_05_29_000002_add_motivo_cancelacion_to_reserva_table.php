@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('reserva', 'motivo_cancelacion')) {
+            return;
+        }
+
         Schema::table('reserva', function (Blueprint $table) {
             $table->string('motivo_cancelacion', 500)->nullable()->after('notas');
         });

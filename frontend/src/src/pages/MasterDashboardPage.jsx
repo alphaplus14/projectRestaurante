@@ -13,6 +13,7 @@ export function MasterDashboardPage() {
     const [banner, setBanner] = useState('');
     const [lastLink, setLastLink] = useState('');
     const [busy, setBusy] = useState(false);
+    const [resendingId, setResendingId] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
@@ -65,6 +66,27 @@ export function MasterDashboardPage() {
             setBanner(err?.message || 'No se pudo crear la invitación.');
         } finally {
             setBusy(false);
+        }
+    }
+
+    async function reenviarInvitacion(tenantId) {
+        setResendingId(tenantId);
+        setBanner('');
+        try {
+            const res = await masterApiFetch(`/api/master/tenants/${tenantId}/resend-invitation`, {
+                method: 'POST',
+            });
+            setLastLink(res?.data?.onboarding_url || '');
+            let msg = res?.message || 'Invitación reenviada.';
+            if (res?.data?.email_sent === false && res?.data?.email_error) {
+                msg += ` (${res.data.email_error})`;
+            }
+            setBanner(msg);
+            await load();
+        } catch (err) {
+            setBanner(err?.message || 'No se pudo reenviar.');
+        } finally {
+            setResendingId(null);
         }
     }
 
@@ -184,14 +206,28 @@ export function MasterDashboardPage() {
                                             <p className="text-xs text-red-600 mt-1">{t.provision_error}</p>
                                         ) : null}
                                     </div>
-                                    {t.tenant_url ? (
-                                        <a
-                                            href={t.tenant_url}
-                                            className="text-sm text-violet-700 dark:text-violet-400 self-center"
-                                        >
-                                            Abrir app
-                                        </a>
-                                    ) : null}
+                                    <div className="flex flex-col items-end gap-2 self-center">
+                                        {t.status === 'pending' || t.status === 'failed' ? (
+                                            <button
+                                                type="button"
+                                                disabled={resendingId === t.id}
+                                                onClick={() => reenviarInvitacion(t.id)}
+                                                className="text-sm font-medium text-violet-700 dark:text-violet-400 disabled:opacity-50"
+                                            >
+                                                {resendingId === t.id ? 'Enviando…' : 'Reenviar correo'}
+                                            </button>
+                                        ) : null}
+                                        {t.tenant_url ? (
+                                            <a
+                                                href={t.tenant_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-sm text-emerald-700 dark:text-emerald-400"
+                                            >
+                                                Abrir app
+                                            </a>
+                                        ) : null}
+                                    </div>
                                 </li>
                             ))}
                         </ul>
