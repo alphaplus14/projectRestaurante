@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
+import { staffLoginUrl } from '../auth/staffLogin';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
@@ -206,7 +207,7 @@ export function AdminLayout({ title, children }) {
                                 type="button"
                                 onClick={() => {
                                     clearToken();
-                                    navigate('/login-admin', { replace: true });
+                                    navigate(staffLoginUrl('ADMINISTRADOR'), { replace: true });
                                 }}
                                 className={classNames(
                                     'rounded-lg border border-stone-200 dark:border-stone-800',

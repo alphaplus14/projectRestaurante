@@ -323,7 +323,7 @@ export function LandingPage() {
 
     function cerrarLoginEsquina() {
         setLoginEsquinaAbierto(false);
-        if (window.location.hash === '#login-esquina' || window.location.hash === '#acceso') {
+        if (window.location.hash === '#login-esquina' || window.location.hash === '#carta') {
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
         }
     }
@@ -643,7 +643,7 @@ export function LandingPage() {
                 </section>
 
                 {/* Carta / acceso: recordatorio (formulario en esquina + burbuja) */}
-                <section id="acceso" className="scroll-mt-28 relative overflow-hidden">
+                <section id="carta" className="scroll-mt-28 relative overflow-hidden">
                     <div
                         className="pointer-events-none absolute inset-x-0 top-0 h-[110%] bg-no-repeat bg-top bg-cover opacity-55 dark:opacity-25"
                         style={{
@@ -738,60 +738,6 @@ export function LandingPage() {
                                     <p className="mt-2 text-lg sm:text-xl font-semibold text-stone-900 dark:text-neutral-50 leading-snug">
                                         Más de una década en cada detalle.
                                     </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Carta digital teaser */}
-                <section id="carta" className="scroll-mt-28 py-16 lg:py-24 bg-white dark:bg-neutral-900/30 border-y border-stone-200/80 dark:border-white/10">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                        <div className="rounded-3xl border border-stone-200 dark:border-white/10 bg-gradient-to-br from-amber-50 via-stone-100 to-orange-100 text-stone-900 dark:from-stone-900 dark:via-stone-800 dark:to-neutral-950 dark:text-white px-8 py-12 lg:px-14 lg:py-16 relative overflow-hidden">
-                            <div className="pointer-events-none absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.35),transparent_55%)] dark:bg-[radial-gradient(circle_at_80%_30%,rgba(251,191,36,0.25),transparent_55%)]" />
-                            <div className="relative max-w-2xl">
-                                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Menú</h2>
-                                <p className="mt-4 text-lg text-stone-700 dark:text-stone-300 leading-relaxed">
-                                    Las delicias del día en un solo lugar digital: categorías, fotos cuando están disponibles y precios al día. No necesitas iniciar sesión para verla; la cuenta cliente sirve para reservas y un acceso personalizado.
-                                </p>
-                                <div className="mt-8 flex flex-wrap gap-4">
-                                    {sesionCliente ? (
-                                        <>
-                                            <Link
-                                                to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
-                                            >
-                                                Abrir carta menú
-                                            </Link>
-                                            <Link
-                                                to="/cliente/reservas"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
-                                            >
-                                                Reservar mesa
-                                            </Link>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Link
-                                                to="/cliente/carta"
-                                                className="rounded-full px-8 py-3.5 font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300 transition-colors"
-                                            >
-                                                Ver carta
-                                            </Link>
-                                            <Link
-                                                to="/cliente/login"
-                                                className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-white/35 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 transition-colors"
-                                            >
-                                                Entrar para reservar
-                                            </Link>
-                                        </>
-                                    )}
-                                    <a
-                                        href="#novedades"
-                                        className="rounded-full px-8 py-3.5 font-semibold border border-stone-300 text-stone-800 hover:bg-stone-50 dark:border-white/30 dark:text-white dark:hover:bg-white/10 transition-colors"
-                                    >
-                                        Ver novedades
-                                    </a>
                                 </div>
                             </div>
                         </div>

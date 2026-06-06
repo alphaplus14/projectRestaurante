@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
+import { staffLoginUrl } from '../auth/staffLogin';
 import { clearToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
@@ -849,7 +850,7 @@ export function CocinaPedidosPage() {
 
     function onSalir() {
         clearToken();
-        window.location.href = '/login-cocina';
+        window.location.href = staffLoginUrl('COCINERO');
     }
 
     return (

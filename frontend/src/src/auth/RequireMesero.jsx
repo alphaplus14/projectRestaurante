@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { apiFetch } from './apiClient';
+import { staffLoginUrl } from './staffLogin';
 import { clearToken, getToken } from './authStorage';
 
 export function RequireMesero({ children }) {
     const navigate = useNavigate();
     const [ok, setOk] = useState(null);
+    const loginPath = staffLoginUrl('MESERO');
 
     useEffect(() => {
         const token = getToken();
         if (!token) {
             setOk(false);
-            navigate('/login-mesero', { replace: true });
+            navigate(loginPath, { replace: true });
             return;
         }
 
@@ -22,7 +24,7 @@ export function RequireMesero({ children }) {
                 if (data?.user?.rol !== 'MESERO') {
                     clearToken();
                     setOk(false);
-                    navigate('/login-mesero', { replace: true });
+                    navigate(loginPath, { replace: true });
                     return;
                 }
                 setOk(true);
@@ -31,13 +33,13 @@ export function RequireMesero({ children }) {
                 if (cancelled) return;
                 clearToken();
                 setOk(false);
-                navigate('/login-mesero', { replace: true });
+                navigate(loginPath, { replace: true });
             });
 
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, [navigate, loginPath]);
 
     if (ok === null) {
         return (
@@ -47,7 +49,7 @@ export function RequireMesero({ children }) {
         );
     }
 
-    if (!ok) return <Navigate to="/login-mesero" replace />;
+    if (!ok) return <Navigate to={loginPath} replace />;
 
     return children;
 }

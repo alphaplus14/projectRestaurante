@@ -905,7 +905,7 @@ export function MeseroSalonPage() {
 
     function onSalir() {
         clearToken();
-        window.location.href = '/login-mesero';
+        window.location.href = '/staff?rol=mesero';
     }
 
     const nombreCategoriaActiva = useMemo(
@@ -998,7 +998,7 @@ export function MeseroSalonPage() {
                             Actualizar
                         </button>
                         <Link
-                            to="/login-cocina"
+                            to="/staff?rol=cocina"
                             aria-label="Cambiar a pantalla de cocina"
                             className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
                         >
