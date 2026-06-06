@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::prefix('master')->group(function () {
-    Route::post('auth/login', [MasterAuthController::class, 'login']);
+    Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
 
     Route::get('onboarding/{token}', [OnboardingController::class, 'show']);
     Route::post('onboarding/{token}', [OnboardingController::class, 'complete']);
@@ -56,13 +56,16 @@ Route::middleware('tenant.identify')->group(function () {
     Route::get('public/productos-carta', [ProductoController::class, 'catalogoPublico']);
 
     Route::prefix('auth')->group(function () {
-        Route::post('login', [AuthController::class, 'login']);
-        Route::post('login-cliente', [AuthController::class, 'loginCliente']);
-        Route::post('register-cliente', [AuthController::class, 'registerCliente']);
-        Route::post('login-cocina', [AuthController::class, 'loginCocina']);
-        Route::post('login-mesero', [AuthController::class, 'loginMesero']);
-        Route::post('login-cajero', [AuthController::class, 'loginCajero']);
-        Route::post('login-admin', [AuthController::class, 'loginAdmin']);
+        // Limita intentos de autenticación para frenar fuerza bruta (por IP + correo).
+        Route::middleware('throttle:auth')->group(function () {
+            Route::post('login', [AuthController::class, 'login']);
+            Route::post('login-cliente', [AuthController::class, 'loginCliente']);
+            Route::post('register-cliente', [AuthController::class, 'registerCliente']);
+            Route::post('login-cocina', [AuthController::class, 'loginCocina']);
+            Route::post('login-mesero', [AuthController::class, 'loginMesero']);
+            Route::post('login-cajero', [AuthController::class, 'loginCajero']);
+            Route::post('login-admin', [AuthController::class, 'loginAdmin']);
+        });
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);

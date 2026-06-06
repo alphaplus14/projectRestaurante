@@ -74,12 +74,25 @@ const ROL_TO_QUERY = Object.fromEntries(
     Object.values(STAFF_ROLES).map((r) => [r.key, r.query]),
 );
 
-const DEMO_CREDENTIALS = {
-    ADMINISTRADOR: { correo: 'admin@gmail.com', password: 'adminn' },
-    MESERO: { correo: 'mesero@gmail.com', password: 'meseroo' },
-    COCINERO: { correo: 'cocinero@gmail.com', password: 'cocineroo' },
-    CAJERO: { correo: 'cajero@gmail.com', password: 'cajeroo' },
-};
+// Las credenciales demo SOLO existen en desarrollo (Vite `import.meta.env.DEV`).
+// En el build de producción quedan vacías y nunca se incluyen autocompletadas.
+// Para personalizarlas en local, define VITE_DEMO_<ROL>_CORREO / _PASSWORD en .env.local.
+const IS_DEV = Boolean(import.meta.env?.DEV);
+
+function demoFromEnv(rolKey, correoFallback, passwordFallback) {
+    const correo = import.meta.env?.[`VITE_DEMO_${rolKey}_CORREO`] ?? correoFallback;
+    const password = import.meta.env?.[`VITE_DEMO_${rolKey}_PASSWORD`] ?? passwordFallback;
+    return { correo, password };
+}
+
+const DEMO_CREDENTIALS = IS_DEV
+    ? {
+          ADMINISTRADOR: demoFromEnv('ADMINISTRADOR', 'admin@gmail.com', 'adminn'),
+          MESERO: demoFromEnv('MESERO', 'mesero@gmail.com', 'meseroo'),
+          COCINERO: demoFromEnv('COCINERO', 'cocinero@gmail.com', 'cocineroo'),
+          CAJERO: demoFromEnv('CAJERO', 'cajero@gmail.com', 'cajeroo'),
+      }
+    : {};
 
 export function staffLoginUrl(rolKey) {
     const q = ROL_TO_QUERY[rolKey];

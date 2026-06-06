@@ -13,6 +13,7 @@ use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class MeseroController extends Controller
 {
@@ -548,9 +549,8 @@ class MeseroController extends Controller
             abort(401, 'No autenticado.');
         }
 
-        if ((int) $pedido->mesero_idUsuario !== (int) $user->getAuthIdentifier()) {
-            abort(403, 'No autorizado para este pedido.');
-        }
+        // Autorización centralizada en PedidoPolicy (dueño del pedido).
+        Gate::forUser($user)->authorize('gestionar', $pedido);
     }
 
     /**
