@@ -32,6 +32,8 @@ class MasterInvitationController extends Controller
                 'status' => $t->status,
                 'provision_error' => $t->provision_error,
                 'tenant_url' => $t->status === 'active' ? $t->tenantAppUrl() : null,
+                'admin_login' => $t->status === 'active' ? $t->tenantAppUrl().'/login-admin' : null,
+                'cliente_url' => $t->status === 'active' ? $t->tenantAppUrl().'/cliente' : null,
                 'created_at' => $t->created_at?->toIso8601String(),
                 'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),
                 'last_invitation' => $t->invitations->first() ? [
@@ -117,7 +119,7 @@ class MasterInvitationController extends Controller
             ]);
         }
 
-        if ($tenant->status === 'failed') {
+        if (in_array($tenant->status, ['failed', 'provisioning'], true)) {
             $tenant->update(['status' => 'pending', 'provision_error' => null]);
         }
 

@@ -9,9 +9,7 @@ use App\Models\Usuario;
 use App\Support\Tenancy\TenantConnectionManager;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class TenantProvisioner
@@ -163,7 +161,7 @@ class TenantProvisioner
             'cedula' => $payload['admin_cedula'] ?? '0000000000',
             'telefono' => $payload['admin_telefono'] ?? '3000000000',
             'correo' => $payload['admin_correo'],
-            'password' => Hash::make($payload['admin_password']),
+            'password' => $payload['admin_password'],
             'cargos_idCargo' => $cargos['ADMINISTRADOR'] ?? 4,
             'activo' => true,
             'creado_en' => now(),
@@ -176,8 +174,6 @@ class TenantProvisioner
             return null;
         }
 
-        $path = $uploadedFile->store('tenants/'.$tenant->slug.'/branding', 'public');
-
-        return Storage::disk('public')->url($path);
+        return \App\Support\PublicStorage::storeTenantLogo($tenant->slug, $uploadedFile);
     }
 }

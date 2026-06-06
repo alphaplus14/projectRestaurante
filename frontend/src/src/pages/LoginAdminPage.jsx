@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { setToken } from '../auth/authStorage';
+import { clearToken, setToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { getTenantSlugForApi } from '../tenancy/tenantContext';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -10,12 +11,27 @@ function classNames(...xs) {
 
 export function LoginAdminPage() {
     const navigate = useNavigate();
-    const [correo, setCorreo] = useState('admin@gmail.com');
-    const [password, setPassword] = useState('adminn');
+    const tenantSlug = useMemo(() => getTenantSlugForApi(), []);
+    const isTenantApp = Boolean(tenantSlug);
+    const [correo, setCorreo] = useState(isTenantApp ? '' : 'admin@gmail.com');
+    const [password, setPassword] = useState(isTenantApp ? '' : 'adminn');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const deviceName = useMemo(() => `admin-${navigator.platform || 'web'}`, []);
+
+    useEffect(() => {
+        try {
+            const stored = sessionStorage.getItem('admin_login_error');
+            if (stored) {
+                setError(stored);
+                sessionStorage.removeItem('admin_login_error');
+                clearToken();
+            }
+        } catch {
+            /* ignore */
+        }
+    }, []);
 
     async function onSubmit(e) {
         e.preventDefault();
@@ -23,7 +39,7 @@ export function LoginAdminPage() {
         setLoading(true);
 
         try {
-            const data = await apiFetch('/api/auth/login', {
+            const data = await apiFetch('/api/auth/login-admin', {
                 method: 'POST',
                 body: JSON.stringify({ correo, password, device_name: deviceName }),
             });
@@ -31,7 +47,7 @@ export function LoginAdminPage() {
             if (!data?.token) throw new Error('Login OK, pero no llegó token.');
 
             setToken(data.token);
-            navigate('/admin/productos', { replace: true });
+            navigate('/admin/dashboard', { replace: true });
         } catch (err) {
             setError(err?.message || 'No se pudo iniciar sesión.');
         } finally {
@@ -81,6 +97,20 @@ export function LoginAdminPage() {
                                 </div>
                             </div>
 
+                            {!tenantSlug ? (
+                                <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                                    No se detectó el restaurante. Entra desde tu subdominio, por ejemplo{' '}
+                                    <a href="http://turestaurante.localhost:5173/login-admin" className="underline font-medium">
+                                        turestaurante.localhost:5173/login-admin
+                                    </a>
+                                    .
+                                </div>
+                            ) : (
+                                <div className="mt-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/50 px-3 py-2 text-xs text-stone-600 dark:text-stone-400">
+                                    Restaurante activo: <strong className="text-stone-800 dark:text-stone-200">{tenantSlug}</strong>
+                                </div>
+                            )}
+
                             <form className="mt-6 space-y-4" onSubmit={onSubmit}>
                                 <div>
                                     <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Correo</label>
@@ -127,8 +157,18 @@ export function LoginAdminPage() {
                                     {loading ? 'Ingresando…' : 'Entrar al panel'}
                                 </button>
 
-                                <div className="text-xs text-stone-600 dark:text-stone-500">
-                                    Solo usuarios con rol <span className="text-stone-600 dark:text-stone-400">ADMINISTRADOR</span>.
+                                <div className="text-xs text-stone-600 dark:text-stone-500 space-y-1">
+                                    <p>
+                                        Solo usuarios con rol <span className="text-stone-600 dark:text-stone-400">ADMINISTRADOR</span>.
+                                    </p>
+                                    {isTenantApp ? (
+                                        <p>
+                                            Usa el correo y la contraseña que definiste al activar el restaurante
+                                            {tenantSlug ? ` (${tenantSlug})` : ''}.
+                                        </p>
+                                    ) : (
+                                        <p>Demo local: admin@gmail.com / adminn (solo BD plantilla sin tenant).</p>
+                                    )}
                                 </div>
                             </form>
                         </div>

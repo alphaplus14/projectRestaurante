@@ -9,12 +9,13 @@ function classNames(...xs) {
   return xs.filter(Boolean).join(" ");
 }
 
-const ROLES = ["ADMINISTRADOR", "MESERO", "COCINERO"];
+const ROLES = ["ADMINISTRADOR", "MESERO", "COCINERO", "CAJERO"];
 
 const ROL_BADGE = {
   ADMINISTRADOR: "bg-violet-600/15 border-violet-500/30 text-violet-900 dark:text-violet-200",
   MESERO: "bg-amber-600/15 border-amber-500/30 text-amber-900 dark:text-amber-200",
   COCINERO: "bg-orange-600/15 border-orange-500/30 text-orange-900 dark:text-orange-200",
+  CAJERO: "bg-blue-600/15 border-blue-500/30 text-blue-900 dark:text-blue-200",
 };
 
 function emptyDraft() {

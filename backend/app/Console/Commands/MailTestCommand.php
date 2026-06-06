@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\OnboardingInvitationMail;
+use App\Support\Tenancy\TenantUrl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 
@@ -18,9 +19,9 @@ class MailTestCommand extends Command
 
         try {
             Mail::to($to)->send(new OnboardingInvitationMail(
-                onboardingUrl: config('app.url').'/onboarding/ejemplo-prueba',
+                onboardingUrl: TenantUrl::onboarding('ejemplo-prueba'),
                 slug: 'ejemplo',
-                subdomainHost: 'ejemplo.'.config('tenancy.base_domain', 'localhost'),
+                subdomainHost: 'ejemplo.'.TenantUrl::baseDomain(),
                 expiresAtFormatted: now()->addDays(3)->format('d/m/Y H:i'),
             ));
             $this->info("Correo de prueba enviado a {$to}.");

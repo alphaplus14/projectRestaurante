@@ -52,6 +52,9 @@ export function MasterLoginPage() {
                         <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
                             Alta de restaurantes y enlaces de configuración.
                         </p>
+                        <p className="text-xs text-stone-500 mt-2">
+                            Recomendado: <code className="text-violet-600">http://master.localhost:5173/master/login</code>
+                        </p>
                     </div>
                     {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
                     <label className="block text-sm">

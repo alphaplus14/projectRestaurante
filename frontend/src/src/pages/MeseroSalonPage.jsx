@@ -330,123 +330,6 @@ function CancelarPedidoModal({ open, onClose, onConfirm, busy }) {
     );
 }
 
-function CerrarCuentaModal({ open, onClose, onConfirm, busy, pedido, mesa, total }) {
-    const [paso, setPaso] = useState('resumen');
-
-    useEffect(() => {
-        if (!open) setPaso('resumen');
-    }, [open]);
-
-    if (!open || !pedido) return null;
-
-    const numLineas = pedido.detalles?.length ?? 0;
-    const numUnidades =
-        pedido.detalles?.reduce((s, l) => s + Number(l.cantidad || 0), 0) ?? 0;
-    const mesaLabel = formatMesaLabel(mesa);
-    const estadoLabel = ESTADO_LABEL[pedido.estado] || pedido.estado;
-
-    return (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} aria-hidden />
-            <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="cerrar-cuenta-titulo"
-                className="relative z-10 w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto"
-            >
-                <h2 id="cerrar-cuenta-titulo" className="text-lg font-semibold text-stone-900 dark:text-stone-50">
-                    {paso === 'resumen' ? 'Cerrar cuenta' : '¿Confirmar cierre?'}
-                </h2>
-                {paso === 'resumen' ? (
-                    <div className="mt-4 space-y-4">
-                        <p className="text-sm text-stone-600 dark:text-stone-400">
-                            Revisa el resumen antes de liberar la mesa para un nuevo servicio.
-                        </p>
-                        <dl className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50 divide-y divide-stone-200 dark:divide-stone-800 text-sm">
-                            <div className="flex justify-between gap-3 px-3 py-2.5">
-                                <dt className="text-stone-500 dark:text-stone-400">Mesa</dt>
-                                <dd className="font-medium text-stone-900 dark:text-stone-50 text-right">{mesaLabel}</dd>
-                            </div>
-                            <div className="flex justify-between gap-3 px-3 py-2.5">
-                                <dt className="text-stone-500 dark:text-stone-400">Pedido</dt>
-                                <dd className="font-medium text-stone-900 dark:text-stone-50">#{pedido.idPedido}</dd>
-                            </div>
-                            <div className="flex justify-between gap-3 px-3 py-2.5">
-                                <dt className="text-stone-500 dark:text-stone-400">Estado</dt>
-                                <dd className="font-medium text-stone-900 dark:text-stone-50">{estadoLabel}</dd>
-                            </div>
-                            <div className="flex justify-between gap-3 px-3 py-2.5">
-                                <dt className="text-stone-500 dark:text-stone-400">Ítems</dt>
-                                <dd className="font-medium text-stone-900 dark:text-stone-50">
-                                    {numLineas} {numLineas === 1 ? 'línea' : 'líneas'} · {numUnidades}{' '}
-                                    {numUnidades === 1 ? 'unidad' : 'unidades'}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between gap-3 px-3 py-2.5">
-                                <dt className="text-stone-500 dark:text-stone-400">Total</dt>
-                                <dd className="font-semibold text-amber-700 dark:text-amber-400">{formatMoney(total)}</dd>
-                            </div>
-                        </dl>
-                        {pedido.estado === 'LISTO' ? (
-                            <p className="text-xs text-amber-800 dark:text-amber-200/90 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
-                                Los platos están listos en cocina. Al cerrar, la mesa quedará disponible de inmediato.
-                            </p>
-                        ) : (
-                            <p className="text-xs text-stone-600 dark:text-stone-400">
-                                El pedido ya fue recibido de cocina. La mesa pasará a estado libre.
-                            </p>
-                        )}
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={busy}
-                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-50"
-                            >
-                                Volver
-                            </button>
-                            <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => setPaso('confirmar')}
-                                className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 py-3 text-sm font-semibold disabled:opacity-50"
-                            >
-                                Continuar
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mt-4 space-y-4">
-                        <p className="text-sm text-stone-600 dark:text-stone-400">
-                            Se cerrará el pedido <strong>#{pedido.idPedido}</strong> de {mesaLabel} por{' '}
-                            <strong>{formatMoney(total)}</strong>. La mesa quedará libre.
-                        </p>
-                        <p className="text-xs text-stone-500 dark:text-stone-500">¿Estás seguro?</p>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => setPaso('resumen')}
-                                className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 py-3 text-sm font-medium disabled:opacity-50"
-                            >
-                                No
-                            </button>
-                            <button
-                                type="button"
-                                disabled={busy}
-                                onClick={onConfirm}
-                                className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 py-3 text-sm font-semibold disabled:opacity-50"
-                            >
-                                {busy ? 'Cerrando…' : 'Sí, cerrar cuenta'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
 function badgeItemEstado(estado) {
     if (estado === 'LISTO') {
         return 'bg-[#4d7c6f]/20 text-[#4d7c6f] border-[#4d7c6f]/30';
@@ -676,10 +559,8 @@ export function MeseroSalonPage() {
     const [loadingCategorias, setLoadingCategorias] = useState(false);
     const [loadingCatalogo, setLoadingCatalogo] = useState(false);
     const [addingId, setAddingId] = useState(null);
-    const [cerrando, setCerrando] = useState(false);
     const [cancelando, setCancelando] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const [showCerrarModal, setShowCerrarModal] = useState(false);
     const [pedidosListos, setPedidosListos] = useState([]);
     const [llamadasCocina, setLlamadasCocina] = useState([]);
     const [pedidosListosVistos, setPedidosListosVistos] = useState(() => leerPedidosListosVistos());
@@ -1030,26 +911,6 @@ export function MeseroSalonPage() {
         }
     }
 
-    async function confirmarCerrarCuenta() {
-        if (!pedido?.idPedido || !['LISTO', 'ENTREGADO'].includes(pedido.estado)) return;
-        setCerrando(true);
-        setBanner('');
-        try {
-            const res = await apiFetch(`/api/mesero/pedidos/${pedido.idPedido}/cerrar`, {
-                method: 'POST',
-            });
-            setShowCerrarModal(false);
-            cerrarMesa();
-            setBanner(res?.message || 'Cuenta cerrada. La mesa quedó libre.');
-            await fetchMesas({ silent: true });
-            await fetchAlertas();
-        } catch (e) {
-            setBanner(e?.message || 'No se pudo cerrar la cuenta.');
-        } finally {
-            setCerrando(false);
-        }
-    }
-
     function onSalir() {
         clearToken();
         window.location.href = '/login-mesero';
@@ -1070,7 +931,7 @@ export function MeseroSalonPage() {
         () => (pedido?.detalles ?? []).some((l) => l.estado_item && l.estado_item !== 'LISTO'),
         [pedido],
     );
-    const puedeCerrarCuenta =
+    const cuentaListaParaCaja =
         pedido &&
         ['LISTO', 'ENTREGADO'].includes(pedido.estado) &&
         (pedido.detalles?.length ?? 0) > 0 &&
@@ -1207,16 +1068,6 @@ export function MeseroSalonPage() {
                 busy={cancelando}
                 onClose={() => !cancelando && setShowCancelModal(false)}
                 onConfirm={cancelarPedido}
-            />
-
-            <CerrarCuentaModal
-                open={showCerrarModal}
-                busy={cerrando}
-                onClose={() => !cerrando && setShowCerrarModal(false)}
-                onConfirm={confirmarCerrarCuenta}
-                pedido={pedido}
-                mesa={selectedMesa}
-                total={totalPedido}
             />
 
             {modalListosAbierto ? (
@@ -1414,18 +1265,18 @@ export function MeseroSalonPage() {
                                             </button>
                                         ) : null}
 
-                                        {puedeCerrarCuenta ? (
-                                            <button
-                                                type="button"
-                                                disabled={cerrando}
-                                                onClick={() => setShowCerrarModal(true)}
-                                                className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-semibold py-3 text-sm disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                            >
-                                                Cerrar cuenta y liberar mesa
-                                            </button>
+                                        {cuentaListaParaCaja ? (
+                                            <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-center space-y-1">
+                                                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                    Cuenta lista — cobro en caja
+                                                </p>
+                                                <p className="text-xs text-blue-800/90 dark:text-blue-200/80">
+                                                    Total {formatMoney(totalPedido)}. El cajero liberará la mesa al registrar el pago.
+                                                </p>
+                                            </div>
                                         ) : ['LISTO', 'ENTREGADO'].includes(pedido.estado) && hayItemsPendientesCocina ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">
-                                                Hay platos nuevos en cocina. Cierra la cuenta cuando todo esté listo.
+                                                Hay platos nuevos en cocina. La cuenta irá a caja cuando todo esté listo.
                                             </p>
                                         ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">

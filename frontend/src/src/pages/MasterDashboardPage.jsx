@@ -1,9 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
-import { clearMasterToken, getMasterToken } from '../auth/masterAuthStorage';
+import { clearMasterToken } from '../auth/masterAuthStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { getBaseDomain } from '../tenancy/tenantContext';
+
+const STATUS_LABEL = {
+    pending: { text: 'Pendiente', className: 'text-amber-700 dark:text-amber-300' },
+    provisioning: { text: 'Configurando…', className: 'text-violet-700 dark:text-violet-300' },
+    active: { text: 'Activo', className: 'text-emerald-700 dark:text-emerald-300' },
+    failed: { text: 'Falló', className: 'text-red-700 dark:text-red-300' },
+    suspended: { text: 'Suspendido', className: 'text-stone-600 dark:text-stone-400' },
+};
+
+function statusOf(s) {
+    return STATUS_LABEL[s] || { text: s, className: 'text-stone-600' };
+}
 
 export function MasterDashboardPage() {
     const navigate = useNavigate();
@@ -33,12 +45,8 @@ export function MasterDashboardPage() {
     }, [navigate]);
 
     useEffect(() => {
-        if (!getMasterToken()) {
-            navigate('/master/login', { replace: true });
-            return;
-        }
         void load();
-    }, [load, navigate]);
+    }, [load]);
 
     async function crearInvitacion(e) {
         e.preventDefault();
@@ -93,13 +101,20 @@ export function MasterDashboardPage() {
     function copiarEnlace() {
         if (!lastLink) return;
         void navigator.clipboard?.writeText(lastLink);
-        setBanner('Enlace copiado. Envíalo al cliente por WhatsApp o correo manual.');
+        setBanner('Enlace copiado. Envíalo al cliente por WhatsApp o correo.');
     }
 
-    function salir() {
+    async function salir() {
+        try {
+            await masterApiFetch('/api/master/auth/logout', { method: 'POST' });
+        } catch {
+            /* ignore */
+        }
         clearMasterToken();
         navigate('/master/login', { replace: true });
     }
+
+    const canResend = (status) => ['pending', 'failed', 'provisioning'].includes(status);
 
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
@@ -107,7 +122,8 @@ export function MasterDashboardPage() {
                 <div>
                     <h1 className="text-lg font-semibold">Master — clientes</h1>
                     <p className="text-xs text-stone-500">
-                        Subdominio: <code className="text-violet-600 dark:text-violet-400">{'{slug}.'}{getBaseDomain()}</code>
+                        Flujo: invitar → cliente configura onboarding → opera en{' '}
+                        <code className="text-violet-600 dark:text-violet-400">{'{slug}.'}{getBaseDomain()}</code>
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -132,8 +148,8 @@ export function MasterDashboardPage() {
                 <section className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 space-y-4">
                     <h2 className="font-semibold">Nueva invitación</h2>
                     <p className="text-sm text-stone-600 dark:text-stone-400">
-                        Al crear la invitación se envía un correo al cliente (si SMTP está en .env). Si falla,
-                        puedes copiar el enlace abajo.
+                        El cliente recibirá un correo con el enlace de configuración inicial (onboarding). Ahí define su local,
+                        crea el usuario admin y activa su base de datos.
                     </p>
                     <form onSubmit={crearInvitacion} className="grid gap-3 sm:grid-cols-2">
                         <label className="text-sm sm:col-span-2">
@@ -164,19 +180,20 @@ export function MasterDashboardPage() {
                                 disabled={busy}
                                 className="w-full rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-semibold py-2.5 text-sm disabled:opacity-50"
                             >
-                                {busy ? 'Creando…' : 'Generar enlace'}
+                                {busy ? 'Creando…' : 'Invitar cliente'}
                             </button>
                         </div>
                     </form>
                     {lastLink ? (
                         <div className="rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 p-3 space-y-2">
-                            <p className="text-xs text-stone-500 break-all">{lastLink}</p>
+                            <p className="text-xs text-stone-500">Enlace de onboarding (enviar al cliente si el correo falló):</p>
+                            <p className="text-xs break-all">{lastLink}</p>
                             <button
                                 type="button"
                                 onClick={copiarEnlace}
                                 className="text-sm font-medium text-violet-700 dark:text-violet-400"
                             >
-                                Copiar enlace de configuración
+                                Copiar enlace
                             </button>
                         </div>
                     ) : null}
@@ -187,49 +204,73 @@ export function MasterDashboardPage() {
                     {loading ? (
                         <p className="text-sm text-stone-500">Cargando…</p>
                     ) : tenants.length === 0 ? (
-                        <p className="text-sm text-stone-500">Aún no hay clientes registrados.</p>
+                        <p className="text-sm text-stone-500">Aún no hay clientes. Crea la primera invitación arriba.</p>
                     ) : (
                         <ul className="space-y-2">
-                            {tenants.map((t) => (
-                                <li
-                                    key={t.id}
-                                    className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 flex flex-wrap justify-between gap-2"
-                                >
-                                    <div>
-                                        <p className="font-medium">{t.nombre_comercial || t.slug}</p>
-                                        <p className="text-xs text-stone-500">{t.contact_email}</p>
-                                        <p className="text-xs text-stone-500">
-                                            {t.slug}.{getBaseDomain()} —{' '}
-                                            <span className="font-medium">{t.status}</span>
-                                        </p>
-                                        {t.provision_error ? (
-                                            <p className="text-xs text-red-600 mt-1">{t.provision_error}</p>
-                                        ) : null}
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2 self-center">
-                                        {t.status === 'pending' || t.status === 'failed' ? (
-                                            <button
-                                                type="button"
-                                                disabled={resendingId === t.id}
-                                                onClick={() => reenviarInvitacion(t.id)}
-                                                className="text-sm font-medium text-violet-700 dark:text-violet-400 disabled:opacity-50"
-                                            >
-                                                {resendingId === t.id ? 'Enviando…' : 'Reenviar correo'}
-                                            </button>
-                                        ) : null}
-                                        {t.tenant_url ? (
-                                            <a
-                                                href={t.tenant_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-sm text-emerald-700 dark:text-emerald-400"
-                                            >
-                                                Abrir app
-                                            </a>
-                                        ) : null}
-                                    </div>
-                                </li>
-                            ))}
+                            {tenants.map((t) => {
+                                const st = statusOf(t.status);
+                                return (
+                                    <li
+                                        key={t.id}
+                                        className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 space-y-2"
+                                    >
+                                        <div className="flex flex-wrap justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="font-medium">{t.nombre_comercial || t.slug}</p>
+                                                <p className="text-xs text-stone-500">{t.contact_email}</p>
+                                                <p className="text-xs text-stone-500">
+                                                    {t.slug}.{getBaseDomain()} —{' '}
+                                                    <span className={`font-medium ${st.className}`}>{st.text}</span>
+                                                </p>
+                                                {t.provision_error ? (
+                                                    <p className="text-xs text-red-600 mt-1">{t.provision_error}</p>
+                                                ) : null}
+                                                {t.onboarding_completed_at ? (
+                                                    <p className="text-xs text-stone-500 mt-1">
+                                                        Activado: {new Date(t.onboarding_completed_at).toLocaleString('es-CO')}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                                {canResend(t.status) ? (
+                                                    <button
+                                                        type="button"
+                                                        disabled={resendingId === t.id}
+                                                        onClick={() => reenviarInvitacion(t.id)}
+                                                        className="text-sm font-medium text-violet-700 dark:text-violet-400 disabled:opacity-50"
+                                                    >
+                                                        {resendingId === t.id
+                                                            ? 'Enviando…'
+                                                            : t.status === 'provisioning'
+                                                              ? 'Reenviar / reiniciar'
+                                                              : 'Reenviar correo'}
+                                                    </button>
+                                                ) : null}
+                                                {t.status === 'active' ? (
+                                                    <>
+                                                        <a
+                                                            href={t.admin_login}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-sm text-amber-700 dark:text-amber-400"
+                                                        >
+                                                            Panel admin
+                                                        </a>
+                                                        <a
+                                                            href={t.cliente_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-sm text-emerald-700 dark:text-emerald-400"
+                                                        >
+                                                            Sitio clientes
+                                                        </a>
+                                                    </>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </section>

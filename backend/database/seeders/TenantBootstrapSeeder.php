@@ -12,7 +12,7 @@ class TenantBootstrapSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['CLIENTE', 'MESERO', 'COCINERO', 'ADMINISTRADOR'] as $nombre) {
+        foreach (['CLIENTE', 'MESERO', 'COCINERO', 'CAJERO', 'ADMINISTRADOR'] as $nombre) {
             Cargo::query()->firstOrCreate(['nombre' => $nombre]);
         }
     }

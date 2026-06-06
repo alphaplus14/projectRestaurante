@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\RestauranteConfig;
 use App\Models\Usuario;
+use App\Support\PublicStorage;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminRestauranteConfigController extends Controller
@@ -80,9 +81,9 @@ class AdminRestauranteConfigController extends Controller
         $config->direccion = $dir !== '' ? $dir : null;
 
         if ($request->hasFile('logo')) {
-            $this->deleteStoredLogo($config->logo_url);
-            $path = $request->file('logo')->store('restaurante', 'public');
-            $config->logo_url = $path;
+            PublicStorage::deleteIfStored($config->logo_url);
+            $slug = TenantContext::current()?->slug ?? 'local';
+            $config->logo_url = PublicStorage::storeTenantLogo($slug, $request->file('logo'));
         }
 
         $config->actualizado_en = now();
@@ -94,28 +95,13 @@ class AdminRestauranteConfigController extends Controller
         ]);
     }
 
-    private function deleteStoredLogo(?string $path): void
-    {
-        if (! $path || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return;
-        }
-
-        if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
-    }
-
     /**
      * @return array<string, mixed>
      */
     private function serialize(RestauranteConfig $c): array
     {
-        $logoUrl = null;
-        if ($c->logo_url) {
-            $logoUrl = str_starts_with($c->logo_url, 'http://') || str_starts_with($c->logo_url, 'https://')
-                ? $c->logo_url
-                : asset('storage/'.$c->logo_url);
-        }
+        $storedPath = PublicStorage::normalizeStoredPath($c->logo_url);
+        $logoUrl = PublicStorage::publicUrl($c->logo_url);
 
         return [
             'idConfig' => $c->idConfig,
@@ -124,7 +110,7 @@ class AdminRestauranteConfigController extends Controller
             'nit_editable' => false,
             'telefono' => $c->telefono,
             'direccion' => $c->direccion,
-            'logo_url' => $c->logo_url,
+            'logo_url' => $storedPath,
             'logoUrl' => $logoUrl,
             'actualizado_en' => $c->actualizado_en?->toIso8601String(),
         ];
