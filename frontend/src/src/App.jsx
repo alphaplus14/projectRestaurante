@@ -1,10 +1,7 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginClientePage } from './pages/LoginClientePage';
-import { LoginCocinaPage } from './pages/LoginCocinaPage';
-import { LoginMeseroPage } from './pages/LoginMeseroPage';
-import { LoginAdminPage } from './pages/LoginAdminPage';
-import { StaffPortalPage } from './pages/StaffPortalPage';
+import { LoginStaffPage } from './pages/LoginStaffPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
 import { MeseroSalonPage } from './pages/MeseroSalonPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
@@ -49,10 +46,10 @@ export function App() {
             />
 
             {/* Personal del restaurante */}
-            <Route path="/staff" element={<StaffPortalPage />} />
-            <Route path="/login-admin" element={<LoginAdminPage />} />
-            <Route path="/login-mesero" element={<LoginMeseroPage />} />
-            <Route path="/login-cocina" element={<LoginCocinaPage />} />
+            <Route path="/staff" element={<LoginStaffPage />} />
+            <Route path="/login-admin" element={<Navigate to="/staff?rol=admin" replace />} />
+            <Route path="/login-mesero" element={<Navigate to="/staff?rol=mesero" replace />} />
+            <Route path="/login-cocina" element={<Navigate to="/staff?rol=cocina" replace />} />
             <Route
                 path="/mesero"
                 element={
