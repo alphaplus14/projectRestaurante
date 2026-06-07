@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\AdminPasswordResetController;
+use App\Http\Controllers\Api\AdminTwoFactorController;
 use App\Http\Controllers\Api\AdminCajeroController;
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\CajeroController;
@@ -61,7 +64,12 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('login-cocina', [AuthController::class, 'loginCocina']);
         Route::post('login-mesero', [AuthController::class, 'loginMesero']);
         Route::post('login-cajero', [AuthController::class, 'loginCajero']);
-        Route::post('login-admin', [AuthController::class, 'loginAdmin']);
+        Route::post('login-admin', [AdminAuthController::class, 'login'])
+            ->middleware('throttle:login');
+        Route::post('two-factor-challenge', [AdminAuthController::class, 'twoFactorChallenge'])
+            ->middleware('throttle:two-factor');
+        Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
+        Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -179,5 +187,11 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('usuarios', [UsuarioController::class, 'store']);
         Route::put('usuarios/{usuario:idUsuario}', [UsuarioController::class, 'update']);
         Route::patch('usuarios/{usuario:idUsuario}/activo', [UsuarioController::class, 'setActivo']);
+
+        Route::get('two-factor/status', [AdminTwoFactorController::class, 'status']);
+        Route::post('two-factor/enable', [AdminTwoFactorController::class, 'enable']);
+        Route::post('two-factor/confirm', [AdminTwoFactorController::class, 'confirm']);
+        Route::post('two-factor/recovery-codes', [AdminTwoFactorController::class, 'recoveryCodes']);
+        Route::delete('two-factor/disable', [AdminTwoFactorController::class, 'disable']);
     });
 });

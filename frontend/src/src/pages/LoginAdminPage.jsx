@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken, setToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { PasswordInput } from '../components/PasswordInput';
 import { getTenantSlugForApi } from '../tenancy/tenantContext';
 
 function classNames(...xs) {
@@ -126,8 +127,7 @@ export function LoginAdminPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-stone-600 dark:text-stone-400">Contraseña</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         className={classNames(
                                             'mt-2 w-full rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 px-4 py-2 text-stone-900 dark:text-stone-50 placeholder:text-stone-500',
                                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',

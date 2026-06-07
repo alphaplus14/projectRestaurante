@@ -4,6 +4,7 @@ import { masterApiFetch } from '../auth/masterApiClient';
 import { clearMasterToken } from '../auth/masterAuthStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { getBaseDomain } from '../tenancy/tenantContext';
+import { validateTenantSlugInput } from '../utils/tenantSlug';
 
 const STATUS_LABEL = {
     pending: { text: 'Pendiente', className: 'text-amber-700 dark:text-amber-300' },
@@ -22,6 +23,7 @@ export function MasterDashboardPage() {
     const [tenants, setTenants] = useState([]);
     const [email, setEmail] = useState('');
     const [slug, setSlug] = useState('');
+    const slugValidation = validateTenantSlugInput(slug);
     const [banner, setBanner] = useState('');
     const [lastLink, setLastLink] = useState('');
     const [busy, setBusy] = useState(false);
@@ -50,6 +52,12 @@ export function MasterDashboardPage() {
 
     async function crearInvitacion(e) {
         e.preventDefault();
+        const check = validateTenantSlugInput(slug);
+        if (!check.ok) {
+            setBanner(check.error);
+            return;
+        }
+
         setBusy(true);
         setBanner('');
         setLastLink('');
@@ -58,14 +66,13 @@ export function MasterDashboardPage() {
                 method: 'POST',
                 body: JSON.stringify({
                     email: email.trim(),
-                    slug: slug.trim().toLowerCase(),
+                    slug: check.normalized,
                 }),
             });
             setLastLink(res?.data?.onboarding_url || '');
-            let msg = res?.message || 'Invitación creada.';
-            if (res?.data?.email_sent === false && res?.data?.email_error) {
-                msg += ` (${res.data.email_error})`;
-            }
+            const msg = res?.data?.email_sent === false && res?.data?.email_error
+                ? `${res?.message || 'Invitación creada.'} ${res.data.email_error}`
+                : (res?.message || 'Invitación creada.');
             setBanner(msg);
             setEmail('');
             setSlug('');
@@ -85,10 +92,9 @@ export function MasterDashboardPage() {
                 method: 'POST',
             });
             setLastLink(res?.data?.onboarding_url || '');
-            let msg = res?.message || 'Invitación reenviada.';
-            if (res?.data?.email_sent === false && res?.data?.email_error) {
-                msg += ` (${res.data.email_error})`;
-            }
+            const msg = res?.data?.email_sent === false && res?.data?.email_error
+                ? `${res?.message || 'Invitación reenviada.'} ${res.data.email_error}`
+                : (res?.message || 'Invitación reenviada.');
             setBanner(msg);
             await load();
         } catch (err) {
@@ -162,22 +168,49 @@ export function MasterDashboardPage() {
                                 className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950"
                             />
                         </label>
-                        <label className="text-sm">
+                        <label className="text-sm sm:col-span-2">
                             <span className="text-stone-500">Subdominio (slug)</span>
                             <input
                                 type="text"
                                 required
-                                pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                                placeholder="mi-restaurante"
+                                placeholder="mi-restaurante o ñapita"
                                 value={slug}
                                 onChange={(e) => setSlug(e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950"
+                                aria-invalid={slug.length > 0 && !slugValidation.ok}
+                                aria-describedby="slug-help slug-error"
+                                className={`mt-1 w-full rounded-lg border px-3 py-2 bg-stone-50 dark:bg-stone-950 ${
+                                    slug.length > 0 && !slugValidation.ok
+                                        ? 'border-red-400 dark:border-red-500/60'
+                                        : 'border-stone-200 dark:border-stone-700'
+                                }`}
                             />
+                            <p id="slug-help" className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+                                Letras (incluida ñ), números y guiones. Sin emojis ni símbolos (@, #, %…).
+                                {slugValidation.ok && slugValidation.normalized ? (
+                                    <span className="block mt-1 text-violet-700 dark:text-violet-400">
+                                        URL:{' '}
+                                        <strong>
+                                            {slugValidation.normalized}.{getBaseDomain()}
+                                        </strong>
+                                        {(slug.includes('ñ') || slug.includes('Ñ')) && (
+                                            <span className="text-stone-500 dark:text-stone-400"> — la ñ se guarda como n</span>
+                                        )}
+                                    </span>
+                                ) : null}
+                            </p>
+                            {slug.length > 0 && slugValidation.error ? (
+                                <p id="slug-error" className="mt-1 text-xs text-red-600 dark:text-red-400" role="alert">
+                                    {slugValidation.error}
+                                    {slugValidation.hint ? (
+                                        <span className="block text-stone-500 dark:text-stone-400 mt-0.5">{slugValidation.hint}</span>
+                                    ) : null}
+                                </p>
+                            ) : null}
                         </label>
-                        <div className="flex items-end">
+                        <div className="flex items-end sm:col-span-2 sm:max-w-xs">
                             <button
                                 type="submit"
-                                disabled={busy}
+                                disabled={busy || (slug.length > 0 && !slugValidation.ok)}
                                 className="w-full rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-semibold py-2.5 text-sm disabled:opacity-50"
                             >
                                 {busy ? 'Creando…' : 'Invitar cliente'}
