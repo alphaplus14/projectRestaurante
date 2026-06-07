@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
 use App\Http\Controllers\Api\Master\MasterInvitationController;
+use App\Http\Controllers\Api\Master\MasterTenantAccessController;
 use App\Http\Controllers\Api\Master\OnboardingController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -45,6 +46,8 @@ Route::prefix('master')->group(function () {
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
         Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
+        Route::post('tenants/{tenant}/suspend', [MasterTenantAccessController::class, 'suspend']);
+        Route::post('tenants/{tenant}/extend-access', [MasterTenantAccessController::class, 'extendAccess']);
     });
 });
 
