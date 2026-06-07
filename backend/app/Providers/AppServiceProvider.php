@@ -24,7 +24,14 @@ class AppServiceProvider extends ServiceProvider
 
         Lang::addLines(
             [
-                'validation.uploaded' => 'No se pudo subir :attribute (el límite de PHP en este equipo suele ser 2MB por archivo). Prueba con una imagen más pequeña o arranca Laravel con: composer run serve-uploads',
+                'auth.failed' => 'Credenciales inválidas.',
+                'passwords.sent' => 'Si el correo pertenece a un administrador activo, recibirás un enlace para restablecer la contraseña.',
+                'passwords.reset' => 'Contraseña actualizada correctamente.',
+                'passwords.token' => 'El enlace de recuperación no es válido o ya expiró.',
+                'passwords.user' => 'No encontramos un administrador con ese correo.',
+                'passwords.throttled' => 'Espera un momento antes de volver a solicitar el enlace.',
+                'validation.uploaded' => 'No se pudo subir la imagen. Puede ser demasiado pesada para el servidor; prueba con un archivo más liviano o continúa sin logo.',
+                'validation.max.file' => 'La imagen es demasiado pesada. Elige un archivo más liviano o continúa sin logo.',
             ],
             app()->getLocale(),
         );

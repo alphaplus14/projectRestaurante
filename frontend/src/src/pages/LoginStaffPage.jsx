@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { apiFetch } from '../auth/apiClient';
 
@@ -20,6 +20,7 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 
 import { StaffRolePicker } from '../components/StaffRolePicker';
 import { StaffRoleIcon } from '../components/StaffRoleIcons';
+import { PasswordInput } from '../components/PasswordInput';
 
 import { getTenantSlugForApi } from '../tenancy/tenantContext';
 
@@ -49,6 +50,8 @@ export function LoginStaffPage() {
 
     const navigate = useNavigate();
 
+    const location = useLocation();
+
     const [searchParams, setSearchParams] = useSearchParams();
 
     const isTenantApp = useMemo(() => Boolean(getTenantSlugForApi()), []);
@@ -75,6 +78,18 @@ export function LoginStaffPage() {
 
     const [error, setError] = useState('');
 
+    const [loginStep, setLoginStep] = useState('credentials');
+
+    const [challengeToken, setChallengeToken] = useState('');
+
+    const [totpCode, setTotpCode] = useState('');
+
+    const [useRecovery, setUseRecovery] = useState(false);
+
+    const [recoveryCode, setRecoveryCode] = useState('');
+
+    const resetSuccess = location.state?.resetSuccess || '';
+
 
 
     const deviceName = useMemo(() => `${config.query}-${navigator.platform || 'web'}`, [config.query]);
@@ -92,6 +107,16 @@ export function LoginStaffPage() {
         setCorreo(creds.correo);
 
         setPassword(creds.password);
+
+        setLoginStep('credentials');
+
+        setChallengeToken('');
+
+        setTotpCode('');
+
+        setUseRecovery(false);
+
+        setRecoveryCode('');
 
         setSearchParams({ rol: STAFF_ROLES[nextRol].query }, { replace: true });
 
@@ -111,6 +136,46 @@ export function LoginStaffPage() {
 
         try {
 
+            if (loginStep === 'two_factor' && rol === 'ADMINISTRADOR') {
+
+                const data = await apiFetch('/api/auth/two-factor-challenge', {
+
+                    method: 'POST',
+
+                    body: JSON.stringify({
+
+                        challenge_token: challengeToken,
+
+                        code: useRecovery ? undefined : totpCode.trim(),
+
+                        recovery_code: useRecovery ? recoveryCode.trim() : undefined,
+
+                        device_name: deviceName,
+
+                    }),
+
+                });
+
+
+
+                if (!data?.token) {
+
+                    throw new Error('Verificación OK, pero no llegó token.');
+
+                }
+
+
+
+                setToken(data.token);
+
+                navigate(config.redirect, { replace: true });
+
+                return;
+
+            }
+
+
+
             const data = await apiFetch(config.endpoint, {
 
                 method: 'POST',
@@ -118,6 +183,24 @@ export function LoginStaffPage() {
                 body: JSON.stringify({ correo, password, device_name: deviceName }),
 
             });
+
+
+
+            if (data?.two_factor && data?.challenge_token) {
+
+                setChallengeToken(data.challenge_token);
+
+                setLoginStep('two_factor');
+
+                setTotpCode('');
+
+                setRecoveryCode('');
+
+                setUseRecovery(false);
+
+                return;
+
+            }
 
 
 
@@ -323,9 +406,13 @@ export function LoginStaffPage() {
 
                             <form className="mt-6 space-y-5" onSubmit={onSubmit}>
 
-                                <StaffRolePicker value={rol} onChange={onRolChange} disabled={loading} />
+                                {loginStep === 'credentials' ? (
+                                    <StaffRolePicker value={rol} onChange={onRolChange} disabled={loading} />
+                                ) : null}
 
 
+
+                                {loginStep === 'credentials' ? (
 
                                 <div className="space-y-4 pt-1 border-t border-stone-200/80 dark:border-white/10">
 
@@ -379,11 +466,9 @@ export function LoginStaffPage() {
 
                                         </label>
 
-                                        <input
+                                        <PasswordInput
 
                                             id="staff-password"
-
-                                            type="password"
 
                                             className={classNames(
 
@@ -401,9 +486,114 @@ export function LoginStaffPage() {
 
                                         />
 
+                                        {rol === 'ADMINISTRADOR' ? (
+                                            <p className="mt-2 text-right">
+                                                <Link
+                                                    to="/staff/olvide-contrasena"
+                                                    className="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+                                                >
+                                                    ¿Olvidaste tu contraseña?
+                                                </Link>
+                                            </p>
+                                        ) : null}
+
                                     </div>
 
                                 </div>
+
+                                ) : (
+
+                                <div className="space-y-4 pt-1 border-t border-stone-200/80 dark:border-white/10">
+
+                                    <div className="rounded-xl border border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/25 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+
+                                        Verificación en dos pasos: ingresa el código de tu app de autenticación.
+
+                                    </div>
+
+                                    {!useRecovery ? (
+                                        <div>
+                                            <label
+                                                htmlFor="staff-2fa-code"
+                                                className="block text-sm font-medium text-stone-700 dark:text-stone-200"
+                                            >
+                                                Código de 6 dígitos
+                                            </label>
+                                            <input
+                                                id="staff-2fa-code"
+                                                inputMode="numeric"
+                                                autoComplete="one-time-code"
+                                                maxLength={6}
+                                                value={totpCode}
+                                                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                className={classNames(
+                                                    'mt-2 w-full rounded-xl bg-stone-100/70 dark:bg-stone-950/50 border border-stone-200 dark:border-white/10 px-3 py-2.5 text-center text-lg font-mono tracking-widest text-stone-900 dark:text-stone-50',
+                                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
+                                                )}
+                                                placeholder="000000"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label
+                                                htmlFor="staff-recovery-code"
+                                                className="block text-sm font-medium text-stone-700 dark:text-stone-200"
+                                            >
+                                                Código de recuperación
+                                            </label>
+                                            <input
+                                                id="staff-recovery-code"
+                                                autoComplete="off"
+                                                value={recoveryCode}
+                                                onChange={(e) => setRecoveryCode(e.target.value)}
+                                                className={classNames(
+                                                    'mt-2 w-full rounded-xl bg-stone-100/70 dark:bg-stone-950/50 border border-stone-200 dark:border-white/10 px-3 py-2.5 font-mono text-stone-900 dark:text-stone-50',
+                                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
+                                                )}
+                                                placeholder="xxxx-xxxx"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        className="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline"
+                                        onClick={() => {
+                                            setUseRecovery((v) => !v);
+                                            setTotpCode('');
+                                            setRecoveryCode('');
+                                            setError('');
+                                        }}
+                                    >
+                                        {useRecovery ? 'Usar código de la app' : 'Usar código de recuperación'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="block text-xs text-stone-600 dark:text-stone-400 hover:underline"
+                                        onClick={() => {
+                                            setLoginStep('credentials');
+                                            setChallengeToken('');
+                                            setTotpCode('');
+                                            setRecoveryCode('');
+                                            setUseRecovery(false);
+                                            setError('');
+                                        }}
+                                    >
+                                        Volver al inicio de sesión
+                                    </button>
+
+                                </div>
+
+                                )}
+
+
+
+                                {resetSuccess ? (
+                                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                                        {resetSuccess}
+                                    </div>
+                                ) : null}
 
 
 
@@ -437,7 +627,11 @@ export function LoginStaffPage() {
 
                                 >
 
-                                    {loading ? 'Ingresando…' : config.submitLabel}
+                                    {loading
+                                        ? 'Ingresando…'
+                                        : loginStep === 'two_factor'
+                                          ? 'Verificar y entrar'
+                                          : config.submitLabel}
 
                                 </button>
 

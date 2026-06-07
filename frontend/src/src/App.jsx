@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginStaffPage } from './pages/LoginStaffPage';
+import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
+import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
 import { CocinaInventarioPage } from './pages/CocinaInventarioPage';
 import { CocinaMenuPage } from './pages/CocinaMenuPage';
@@ -79,6 +81,8 @@ export function App() {
 
             {/* Personal del restaurante */}
             <Route path="/staff" element={<LoginStaffPage />} />
+            <Route path="/staff/olvide-contrasena" element={<AdminForgotPasswordPage />} />
+            <Route path="/restablecer-contrasena" element={<AdminResetPasswordPage />} />
             <Route path="/login-admin" element={<Navigate to="/staff?rol=admin" replace />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/login-mesero" element={<Navigate to="/staff?rol=mesero" replace />} />

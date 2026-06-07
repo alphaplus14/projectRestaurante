@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PasswordInput } from '../components/PasswordInput';
 import { useNavigate } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { setMasterToken } from '../auth/masterAuthStorage';
@@ -69,8 +70,7 @@ export function MasterLoginPage() {
                     </label>
                     <label className="block text-sm">
                         <span className="text-stone-600 dark:text-stone-400">Contraseña</span>
-                        <input
-                            type="password"
+                        <PasswordInput
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Master;
 use App\Http\Controllers\Controller;
 use App\Models\Master\OnboardingInvitation;
 use App\Models\Master\Tenant;
+use App\Services\Tenancy\OnboardingInvitationMailer;
 use App\Services\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantUrl;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +35,7 @@ class OnboardingController extends Controller
         ]);
     }
 
-    public function complete(Request $request, string $token, TenantProvisioner $provisioner): JsonResponse
+    public function complete(Request $request, string $token, TenantProvisioner $provisioner, OnboardingInvitationMailer $mailer): JsonResponse
     {
         config(['database.default' => 'master']);
 
@@ -96,9 +97,22 @@ class OnboardingController extends Controller
             $tenant->refresh();
 
             $appUrl = $tenant->tenantAppUrl();
+            $summaryEmail = $mailer->sendActivationSummary([
+                'admin_correo' => $payload['admin_correo'],
+                'nombre_comercial' => (string) $tenant->nombre_comercial,
+                'tenant_url' => $appUrl,
+                'admin_login' => $appUrl.'/login-admin',
+                'admin_productos_url' => $appUrl.'/admin/productos',
+                'staff_url' => $appUrl.'/staff',
+                'cliente_url' => $appUrl.'/cliente',
+            ]);
+
+            $message = $summaryEmail['sent']
+                ? 'Restaurante configurado correctamente. Te enviamos un correo con el resumen de accesos.'
+                : 'Restaurante configurado correctamente.';
 
             return response()->json([
-                'message' => 'Restaurante configurado correctamente.',
+                'message' => $message,
                 'data' => [
                     'slug' => $tenant->slug,
                     'nombre_comercial' => $tenant->nombre_comercial,
@@ -107,6 +121,8 @@ class OnboardingController extends Controller
                     'cliente_url' => $appUrl.'/cliente',
                     'staff_url' => $appUrl.'/staff',
                     'admin_correo' => $payload['admin_correo'],
+                    'summary_email_sent' => $summaryEmail['sent'],
+                    'summary_email_error' => $summaryEmail['error'],
                 ],
             ]);
         } catch (\Throwable $e) {

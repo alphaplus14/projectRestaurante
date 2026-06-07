@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { PasswordInput } from '../components/PasswordInput';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -99,8 +100,7 @@ export function LoginCajeroPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-stone-700 dark:text-stone-200">Contraseña</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         className={classNames(
                                             'mt-2 w-full rounded-xl bg-stone-100/70 dark:bg-stone-950/50 border px-3 py-2.5 outline-none',
                                             'border-stone-200 dark:border-white/10 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-400/15',

@@ -83,11 +83,6 @@ class AuthController extends Controller
         return $this->issueToken($request, requiredRole: 'CAJERO');
     }
 
-    public function loginAdmin(Request $request)
-    {
-        return $this->issueToken($request, requiredRole: 'ADMINISTRADOR');
-    }
-
     public function me(Request $request)
     {
         /** @var Usuario $usuario */

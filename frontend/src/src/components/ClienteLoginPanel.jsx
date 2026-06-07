@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
+import { PasswordInput } from './PasswordInput';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -204,8 +205,7 @@ export function ClienteLoginPanel({
                         <label className="block text-sm font-medium text-stone-800 dark:text-neutral-200">
                             Contraseña
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             autoComplete="current-password"
                             required
@@ -301,8 +301,7 @@ export function ClienteLoginPanel({
                         <label className="block text-xs font-medium text-stone-800 dark:text-neutral-200">
                             Contraseña <span className="text-stone-500 font-normal">(mín. 8)</span>
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             required
                             minLength={8}
@@ -315,8 +314,7 @@ export function ClienteLoginPanel({
                         <label className="block text-xs font-medium text-stone-800 dark:text-neutral-200">
                             Confirmar contraseña
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             required
                             minLength={8}
