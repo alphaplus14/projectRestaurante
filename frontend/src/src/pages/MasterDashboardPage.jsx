@@ -2,21 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { clearMasterToken } from '../auth/masterAuthStorage';
+import { MasterTenantCard } from '../components/MasterTenantCard';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { getBaseDomain } from '../tenancy/tenantContext';
 import { validateTenantSlugInput } from '../utils/tenantSlug';
-
-const STATUS_LABEL = {
-    pending: { text: 'Pendiente', className: 'text-amber-700 dark:text-amber-300' },
-    provisioning: { text: 'Configurando…', className: 'text-violet-700 dark:text-violet-300' },
-    active: { text: 'Activo', className: 'text-emerald-700 dark:text-emerald-300' },
-    failed: { text: 'Falló', className: 'text-red-700 dark:text-red-300' },
-    suspended: { text: 'Suspendido', className: 'text-stone-600 dark:text-stone-400' },
-};
-
-function statusOf(s) {
-    return STATUS_LABEL[s] || { text: s, className: 'text-stone-600' };
-}
 
 export function MasterDashboardPage() {
     const navigate = useNavigate();
@@ -28,6 +17,7 @@ export function MasterDashboardPage() {
     const [lastLink, setLastLink] = useState('');
     const [busy, setBusy] = useState(false);
     const [resendingId, setResendingId] = useState(null);
+    const [accessActionId, setAccessActionId] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
@@ -122,6 +112,45 @@ export function MasterDashboardPage() {
 
     const canResend = (status) => ['pending', 'failed', 'provisioning'].includes(status);
 
+    const canManageAccess = (tenant) =>
+        tenant.onboarding_completed_at && ['active', 'suspended'].includes(tenant.status);
+
+    async function desactivarAcceso(tenant) {
+        const nombre = tenant.nombre_comercial || tenant.slug;
+        if (!window.confirm(`¿Desactivar el acceso de "${nombre}"? El cliente no podrá entrar a su subdominio.`)) {
+            return;
+        }
+
+        setAccessActionId(tenant.id);
+        setBanner('');
+        try {
+            const res = await masterApiFetch(`/api/master/tenants/${tenant.id}/suspend`, { method: 'POST' });
+            setBanner(res?.message || 'Acceso desactivado.');
+            await load();
+        } catch (err) {
+            setBanner(err?.message || 'No se pudo desactivar el acceso.');
+        } finally {
+            setAccessActionId(null);
+        }
+    }
+
+    async function extenderAcceso(tenant, months) {
+        setAccessActionId(`${tenant.id}-${months}`);
+        setBanner('');
+        try {
+            const res = await masterApiFetch(`/api/master/tenants/${tenant.id}/extend-access`, {
+                method: 'POST',
+                body: JSON.stringify({ months }),
+            });
+            setBanner(res?.message || `Acceso extendido ${months} mes(es).`);
+            await load();
+        } catch (err) {
+            setBanner(err?.message || 'No se pudo extender el acceso.');
+        } finally {
+            setAccessActionId(null);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-50">
             <header className="border-b border-stone-200 dark:border-stone-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -144,7 +173,7 @@ export function MasterDashboardPage() {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+            <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
                 {banner ? (
                     <div className="rounded-xl border border-violet-500/30 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-sm">
                         {banner}
@@ -232,78 +261,45 @@ export function MasterDashboardPage() {
                     ) : null}
                 </section>
 
-                <section className="space-y-3">
-                    <h2 className="font-semibold">Restaurantes</h2>
+                <section className="space-y-4">
+                    <div className="flex items-end justify-between gap-3">
+                        <div>
+                            <h2 className="font-semibold text-lg">Restaurantes</h2>
+                            <p className="text-sm text-stone-500 dark:text-stone-400">
+                                {loading ? 'Cargando clientes…' : `${tenants.length} cliente${tenants.length === 1 ? '' : 's'} registrado${tenants.length === 1 ? '' : 's'}`}
+                            </p>
+                        </div>
+                    </div>
                     {loading ? (
-                        <p className="text-sm text-stone-500">Cargando…</p>
+                        <div className="space-y-3">
+                            {[1, 2].map((i) => (
+                                <div
+                                    key={i}
+                                    className="h-40 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 animate-pulse"
+                                />
+                            ))}
+                        </div>
                     ) : tenants.length === 0 ? (
-                        <p className="text-sm text-stone-500">Aún no hay clientes. Crea la primera invitación arriba.</p>
+                        <div className="rounded-2xl border border-dashed border-stone-300 dark:border-stone-700 bg-white/60 dark:bg-stone-900/40 px-6 py-10 text-center">
+                            <p className="text-sm text-stone-600 dark:text-stone-400">Aún no hay clientes.</p>
+                            <p className="text-xs text-stone-500 mt-1">Crea la primera invitación en el formulario de arriba.</p>
+                        </div>
                     ) : (
-                        <ul className="space-y-2">
-                            {tenants.map((t) => {
-                                const st = statusOf(t.status);
-                                return (
-                                    <li
-                                        key={t.id}
-                                        className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 py-3 space-y-2"
-                                    >
-                                        <div className="flex flex-wrap justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="font-medium">{t.nombre_comercial || t.slug}</p>
-                                                <p className="text-xs text-stone-500">{t.contact_email}</p>
-                                                <p className="text-xs text-stone-500">
-                                                    {t.slug}.{getBaseDomain()} —{' '}
-                                                    <span className={`font-medium ${st.className}`}>{st.text}</span>
-                                                </p>
-                                                {t.provision_error ? (
-                                                    <p className="text-xs text-red-600 mt-1">{t.provision_error}</p>
-                                                ) : null}
-                                                {t.onboarding_completed_at ? (
-                                                    <p className="text-xs text-stone-500 mt-1">
-                                                        Activado: {new Date(t.onboarding_completed_at).toLocaleString('es-CO')}
-                                                    </p>
-                                                ) : null}
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2 shrink-0">
-                                                {canResend(t.status) ? (
-                                                    <button
-                                                        type="button"
-                                                        disabled={resendingId === t.id}
-                                                        onClick={() => reenviarInvitacion(t.id)}
-                                                        className="text-sm font-medium text-violet-700 dark:text-violet-400 disabled:opacity-50"
-                                                    >
-                                                        {resendingId === t.id
-                                                            ? 'Enviando…'
-                                                            : t.status === 'provisioning'
-                                                              ? 'Reenviar / reiniciar'
-                                                              : 'Reenviar correo'}
-                                                    </button>
-                                                ) : null}
-                                                {t.status === 'active' ? (
-                                                    <>
-                                                        <a
-                                                            href={t.admin_login}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-sm text-amber-700 dark:text-amber-400"
-                                                        >
-                                                            Panel admin
-                                                        </a>
-                                                        <a
-                                                            href={t.cliente_url}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-sm text-emerald-700 dark:text-emerald-400"
-                                                        >
-                                                            Sitio clientes
-                                                        </a>
-                                                    </>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    </li>
-                                );
-                            })}
+                        <ul className="space-y-4">
+                            {tenants.map((t) => (
+                                <MasterTenantCard
+                                    key={t.id}
+                                    tenant={t}
+                                    baseDomain={getBaseDomain()}
+                                    resendingId={resendingId}
+                                    accessActionId={accessActionId}
+                                    canResend={canResend}
+                                    canManageAccess={canManageAccess}
+                                    onResend={reenviarInvitacion}
+                                    onExtend={extenderAcceso}
+                                    onSuspend={desactivarAcceso}
+                                />
+                            ))}
                         </ul>
                     )}
                 </section>

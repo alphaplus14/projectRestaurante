@@ -53,13 +53,30 @@ class IdentifyTenant
 
         $tenant = Tenant::query()
             ->where('slug', $subdomain)
-            ->where('status', 'active')
             ->first();
 
         if (! $tenant) {
             return response()->json([
+                'message' => 'Restaurante no encontrado.',
+            ], 404);
+        }
+
+        if ($tenant->status === 'suspended') {
+            return response()->json([
+                'message' => 'El acceso a este restaurante fue desactivado. Contacta al proveedor del software.',
+            ], 403);
+        }
+
+        if ($tenant->status !== 'active') {
+            return response()->json([
                 'message' => 'Restaurante no encontrado o aún no está activo.',
             ], 404);
+        }
+
+        if ($tenant->access_expires_at && $tenant->access_expires_at->isPast()) {
+            return response()->json([
+                'message' => 'La licencia de este restaurante venció. Contacta al proveedor para renovar el acceso.',
+            ], 403);
         }
 
         TenantConnectionManager::connect($tenant);
