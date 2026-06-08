@@ -163,23 +163,6 @@ export function ClienteLoginPanel({
                 </button>
             </div>
 
-            {tenantSlug ? (
-                <div className="mt-4 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-neutral-950/50 px-3 py-2 text-xs text-stone-600 dark:text-neutral-400">
-                    Iniciarás sesión en:{' '}
-                    <strong className="text-stone-800 dark:text-neutral-200">{tenantSlug}</strong>
-                    {window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? (
-                        <span className="block mt-1 text-stone-500 dark:text-neutral-500">
-                            En desarrollo sin subdominio. Si tu cuenta es de otro restaurante, usa{' '}
-                            <code className="text-[11px]">{tenantSlug}.localhost:5173</code>
-                        </span>
-                    ) : null}
-                </div>
-            ) : (
-                <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
-                    No se detectó el restaurante. Abre el enlace de tu local (ej. mi-local.localhost:5173).
-                </div>
-            )}
-
             <button
                 type="button"
                 disabled={loading}
