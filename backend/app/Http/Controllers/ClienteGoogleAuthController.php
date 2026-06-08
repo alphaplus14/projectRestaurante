@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cargo;
+use App\Models\Master\Tenant;
 use App\Models\Usuario;
+use App\Support\OAuth\TenantOAuthState;
+use App\Support\Tenancy\TenantContext;
+use App\Support\Tenancy\TenantGate;
+use App\Support\Tenancy\TenantUrl;
 use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,20 +21,55 @@ use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirect;
 
 class ClienteGoogleAuthController extends Controller
 {
+    public function __construct(
+        private readonly TenantGate $tenantGate,
+        private readonly TenantOAuthState $oauthState,
+    ) {}
+
     public function redirect(Request $request): SymfonyRedirect
     {
         $redirectAfter = $this->sanitizeFrontendPath($request->query('redirect', '/cliente/carta'));
+        $tenantSlug = $this->resolveTenantSlugForOAuth($request);
+        $frontend = $this->frontendForSlug($tenantSlug);
 
-        // Sin sesión: evita fallos cuando el front (localhost:5173) y el callback (127.0.0.1:8000) no comparten cookie.
+        if (! $this->googleOAuthConfigured()) {
+            return redirect($this->oauthCallbackUrl($frontend, [
+                'error' => 'Google no está configurado en el servidor. Añade GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y GOOGLE_REDIRECT_URI en backend/.env (ver GOOGLE_OAUTH.md).',
+            ]));
+        }
+
+        $access = $this->tenantGate->resolveAccessibleTenant($tenantSlug);
+        if (! isset($access['tenant'])) {
+            $frontend = $this->frontendForSlug($tenantSlug);
+
+            return redirect($this->oauthCallbackUrl($frontend, [
+                'error' => $access['message'],
+            ]));
+        }
+
         return $this->googleSocialite()
-            ->with(['state' => $this->encodeOAuthState($redirectAfter)])
+            ->with(['state' => $this->oauthState->encode($redirectAfter, $access['tenant']->slug)])
             ->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
     {
-        $frontend = rtrim((string) config('app.frontend_url'), '/');
-        $redirectPath = $this->decodeOAuthState($request->query('state'));
+        $state = $this->oauthState->decode(
+            $request->query('state'),
+            fn (?string $path) => $this->sanitizeFrontendPath($path),
+        );
+
+        if (! $state['valid']) {
+            $frontend = rtrim((string) config('app.frontend_url'), '/');
+
+            return redirect($this->oauthCallbackUrl($frontend, [
+                'error' => 'La sesión de Google no es válida o expiró. Vuelve a intentar desde el login del restaurante.',
+            ]));
+        }
+
+        $redirectPath = $state['redirect'];
+        $tenantSlug = $state['tenant'];
+        $frontend = $this->frontendForSlug($tenantSlug);
 
         try {
             $googleUser = $this->googleSocialite()->user();
@@ -37,6 +77,7 @@ class ClienteGoogleAuthController extends Controller
             Log::error('Google OAuth callback failed', [
                 'message' => $e->getMessage(),
                 'class' => $e::class,
+                'tenant' => $tenantSlug,
             ]);
 
             $message = config('app.debug')
@@ -54,6 +95,13 @@ class ClienteGoogleAuthController extends Controller
             ]));
         }
 
+        $connected = $this->tenantGate->connectAccessibleTenant($tenantSlug);
+        if (! $connected instanceof Tenant) {
+            return redirect($this->oauthCallbackUrl($frontend, [
+                'error' => $connected['message'],
+            ]));
+        }
+
         try {
             $usuario = $this->resolveClienteFromGoogle($googleUser);
         } catch (\RuntimeException $e) {
@@ -68,6 +116,27 @@ class ClienteGoogleAuthController extends Controller
             'token' => $token,
             'redirect' => $redirectPath,
         ]));
+    }
+
+    private function resolveTenantSlugForOAuth(Request $request): ?string
+    {
+        $fromQuery = $this->tenantGate->normalizeSlug($request->query('tenant'));
+        if ($fromQuery !== null) {
+            return $fromQuery;
+        }
+
+        return $this->tenantGate->resolveSlugFromRequest($request);
+    }
+
+    private function frontendForSlug(?string $slug): string
+    {
+        $slug = $this->tenantGate->normalizeSlug($slug);
+
+        if ($slug !== null && TenantContext::isMulti()) {
+            return rtrim(TenantUrl::appForSlug($slug), '/');
+        }
+
+        return rtrim((string) config('app.frontend_url'), '/');
     }
 
     private function resolveClienteFromGoogle(\Laravel\Socialite\Contracts\User $googleUser): Usuario
@@ -184,6 +253,17 @@ class ClienteGoogleAuthController extends Controller
         return $frontend.'/cliente/oauth-callback?'.http_build_query($params);
     }
 
+    private function googleOAuthConfigured(): bool
+    {
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+        $redirect = config('services.google.redirect');
+
+        return is_string($clientId) && $clientId !== ''
+            && is_string($clientSecret) && $clientSecret !== ''
+            && is_string($redirect) && $redirect !== '';
+    }
+
     private function googleSocialite(): SocialiteProvider
     {
         $driver = Socialite::driver('google')->stateless();
@@ -214,35 +294,4 @@ class ClienteGoogleAuthController extends Controller
         return null;
     }
 
-    private function encodeOAuthState(string $redirectPath): string
-    {
-        $payload = json_encode(['redirect' => $redirectPath], JSON_THROW_ON_ERROR);
-
-        return rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
-    }
-
-    private function decodeOAuthState(?string $state): string
-    {
-        if (! is_string($state) || $state === '') {
-            return '/cliente/carta';
-        }
-
-        try {
-            $b64 = strtr($state, '-_', '+/');
-            $pad = strlen($b64) % 4;
-            if ($pad > 0) {
-                $b64 .= str_repeat('=', 4 - $pad);
-            }
-            $json = base64_decode($b64, true);
-            if ($json === false) {
-                return '/cliente/carta';
-            }
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-            $redirect = is_array($data) ? ($data['redirect'] ?? null) : null;
-
-            return $this->sanitizeFrontendPath(is_string($redirect) ? $redirect : '/cliente/carta');
-        } catch (\Throwable) {
-            return '/cliente/carta';
-        }
-    }
 }

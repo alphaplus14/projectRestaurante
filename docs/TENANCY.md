@@ -37,6 +37,33 @@ cd backend
 php artisan master:migrate --seed
 ```
 
+### 3b. Parches en tenants ya existentes
+
+Tras actualizar el código, aplica migraciones pendientes en **todas** las BD `rest_*`:
+
+```bash
+cd backend
+php artisan tenants:migrate-patches
+# o solo un cliente:
+php artisan tenants:migrate-patches --slug=chispa
+```
+
+Si el panel admin devuelve **500** en `/api/admin/dashboard` o `/api/admin/ventas/notificaciones`, suele faltar la migración `add_estado_cancelacion_to_venta` en ese tenant.
+
+### Esquema plantilla (`restaurante.sql`)
+
+Debe mantenerse al día con `database/migrations/tenant_patches/`. Tras la Fase 4 P0 incluye, entre otros:
+
+| Elemento | Uso |
+|----------|-----|
+| `usuario.google_id` | OAuth Google cliente |
+| `usuario.two_factor_*` | 2FA admin |
+| `pedido_detalle.cancelado_*` | Cancelación de ítems en cocina |
+| `producto_estado_log` | Alertas menú cocina → mesero |
+| `producto.imagen` | Fotos en carta |
+
+Los tenants **nuevos** se clonan de la plantilla y luego ejecutan `tenant_patches`. Los **existentes** solo necesitan `tenants:migrate-patches`.
+
 ### 4. Frontend (Vite)
 
 En `frontend/.env` o `.env.local`:
@@ -54,6 +81,8 @@ VITE_DEV_TENANT_SLUG=   # opcional si usas 127.0.0.1 sin subdominio
 | Master | http://master.localhost:5173/master/login |
 | Onboarding | http://localhost:5173/onboarding/{token} |
 | Cliente activo | http://{slug}.localhost:5173/cliente |
+
+El frontend **redirige** si abres Master u onboarding desde el subdominio equivocado (`RequireMasterHost`, `RequireOnboardingHost`).
 
 Chrome resuelve `*.localhost` sin editar `hosts`.
 
@@ -101,7 +130,7 @@ Si SMTP falla, Master sigue mostrando el enlace para copiarlo manualmente.
 3. Cliente recibe correo → abre `/onboarding/{token}`.  
 4. **Onboarding en 3 pasos:** datos del local → usuario administrador → confirmar.  
 5. Se crea BD `rest_mi_sushi` + admin; pantalla de éxito con checklist (panel, carta, personal, sitio público).  
-6. Cliente entra en http://mi-sushi.localhost:5173/login-admin con el correo y contraseña que definió.  
+6. Cliente entra en http://mi-sushi.localhost:5173/staff?rol=admin con el correo y contraseña que definió.  
 
 ### C. Desarrollo sin subdominio (opcional)
 
@@ -114,9 +143,29 @@ VITE_TENANT_DEFAULT_SLUG=mi-sushi
 
 Así `127.0.0.1:5173` envía el header `X-Tenant-Slug` al API.
 
+**Producción:** `X-Tenant-Slug` y `?tenant=` solo funcionan en entornos `local` / `testing`. En `production` el tenant **debe** resolverse por subdominio (`mi-sushi.tudominio.com`).
+
 ### D. Reenviar invitación
 
 En Master, restaurantes en estado **pending**, **failed** o **provisioning** → botón **Reenviar correo** (genera enlace nuevo).
+
+### E. Licencia y acceso (Master)
+
+| Acción | Efecto |
+|--------|--------|
+| **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` |
+| **Desactivar acceso** | `status = suspended` → API del restaurante responde 403 |
+
+Variables:
+
+```env
+# Meses al completar onboarding (0 = sin vencimiento)
+TENANT_DEFAULT_LICENSE_MONTHS=1
+```
+
+Clientes antiguos pueden tener `access_expires_at` null (sin límite) hasta que Master asigne meses.
+
+Más contexto: [ROADMAP.md](./ROADMAP.md), [AUTH.md](./AUTH.md).
 
 ## Flujo resumido
 

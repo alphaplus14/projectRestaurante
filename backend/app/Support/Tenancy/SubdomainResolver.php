@@ -29,8 +29,16 @@ class SubdomainResolver
         return $sub;
     }
 
+    /**
+     * Slug por cabecera o query — solo en local/testing (desarrollo sin subdominio).
+     * En producción el tenant se resuelve únicamente por subdominio del host.
+     */
     public static function devSlugFromRequest(Request $request): ?string
     {
+        if (! app()->environment(['local', 'testing'])) {
+            return null;
+        }
+
         $header = $request->header('X-Tenant-Slug');
         if (is_string($header) && $header !== '') {
             return strtolower(trim($header));

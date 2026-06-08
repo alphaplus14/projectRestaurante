@@ -31,10 +31,19 @@ class TenantProvisioner
      */
     public function provision(Tenant $tenant, array $payload): void
     {
+        // Estado REAL antes de marcar 'provisioning': nunca debemos borrar la BD
+        // de un tenant ya 'active'. Solo se reintenta sobre 'pending'/'failed'.
+        $estadoPrevio = $tenant->status;
+
+        if ($estadoPrevio === 'active') {
+            throw new \RuntimeException('El tenant ya está activo; aprovisionar de nuevo borraría sus datos. Operación bloqueada.');
+        }
+
         $tenant->update(['status' => 'provisioning', 'provision_error' => null]);
 
         try {
-            if (in_array($tenant->status, ['failed', 'provisioning'], true)) {
+            // Limpieza segura solo cuando aún no se había completado el aprovisionamiento.
+            if (in_array($estadoPrevio, ['failed', 'provisioning', 'pending'], true)) {
                 $this->dropDatabaseIfExists($tenant->db_name);
             }
 
@@ -76,11 +85,34 @@ class TenantProvisioner
     public function dropDatabaseIfExists(string $dbName): void
     {
         $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $dbName);
-        if ($safe !== $dbName) {
+        if ($safe === '' || $safe !== $dbName) {
             throw new \InvalidArgumentException('Nombre de base de datos inválido.');
         }
 
-        DB::statement("DROP DATABASE IF EXISTS `{$safe}`");
+        $this->assertDroppableDatabase($safe);
+
+        // El DROP siempre apunta al servidor master, igual que la creación del tenant.
+        DB::connection('master')->statement("DROP DATABASE IF EXISTS `{$safe}`");
+    }
+
+    /**
+     * Última barrera de seguridad: jamás borrar la BD master, la plantilla
+     * ni la conexión por defecto, aunque alguien las pase por error.
+     */
+    private function assertDroppableDatabase(string $dbName): void
+    {
+        $reservadas = array_filter([
+            config('database.connections.master.database'),
+            config('database.connections.tenant.database'),
+            config('tenancy.template_database'),
+            env('DB_DATABASE'),
+        ]);
+
+        foreach ($reservadas as $reservada) {
+            if (strcasecmp((string) $reservada, $dbName) === 0) {
+                throw new \RuntimeException("Operación destructiva bloqueada: '{$dbName}' es una base de datos protegida.");
+            }
+        }
     }
 
     public function createDatabaseIfMissing(string $dbName): void

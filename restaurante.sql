@@ -167,6 +167,9 @@ CREATE TABLE `pedido_detalle` (
   `precio_unitario` decimal(10,2) NOT NULL COMMENT 'Snapshot del precio al pedir',
   `nota` varchar(255) DEFAULT NULL COMMENT 'Sin cebolla, término, etc.',
   `estado_item` enum('PENDIENTE','EN_PREPARACION','LISTO','CANCELADO') NOT NULL DEFAULT 'PENDIENTE',
+  `motivo_cancelacion` varchar(500) DEFAULT NULL,
+  `cancelado_en` datetime DEFAULT NULL,
+  `cancelado_por_idUsuario` int(11) DEFAULT NULL,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -184,7 +187,24 @@ CREATE TABLE `producto` (
   `tipo` enum('PLATO','BEBIDA','COMBO') NOT NULL DEFAULT 'PLATO',
   `categoria_idCategoria` int(11) NOT NULL,
   `receta_idReceta` int(11) DEFAULT NULL COMMENT 'NULL si no descuenta inventario por receta',
-  `activo` tinyint(1) NOT NULL DEFAULT 1
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `imagen` varchar(512) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `producto_estado_log`
+--
+
+CREATE TABLE `producto_estado_log` (
+  `idLog` bigint(20) UNSIGNED NOT NULL,
+  `producto_idProducto` int(11) NOT NULL,
+  `activo` tinyint(1) NOT NULL,
+  `usuario_idUsuario` int(11) NOT NULL,
+  `creado_en` datetime NOT NULL,
+  `atendida_en` datetime DEFAULT NULL,
+  `mesero_atendio_idUsuario` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -259,7 +279,11 @@ CREATE TABLE `usuario` (
   `cedula` varchar(32) NOT NULL,
   `telefono` varchar(40) NOT NULL,
   `correo` varchar(190) NOT NULL,
+  `google_id` varchar(64) DEFAULT NULL,
   `password` varchar(255) NOT NULL COMMENT 'Hash (bcrypt/argon2) desde la aplicación',
+  `two_factor_secret` text DEFAULT NULL,
+  `two_factor_recovery_codes` text DEFAULT NULL,
+  `two_factor_confirmed_at` timestamp NULL DEFAULT NULL,
   `cargos_idCargo` int(11) NOT NULL,
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `creado_en` datetime NOT NULL DEFAULT current_timestamp()
@@ -278,7 +302,12 @@ CREATE TABLE `venta` (
   `impuesto_o_servicio` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total` decimal(10,2) NOT NULL,
   `registrada_en` datetime NOT NULL DEFAULT current_timestamp(),
-  `cajero_idUsuario` int(11) DEFAULT NULL COMMENT 'Administrador o usuario autorizado'
+  `cajero_idUsuario` int(11) DEFAULT NULL COMMENT 'Administrador o usuario autorizado',
+  `estado` varchar(20) NOT NULL DEFAULT 'ACTIVA',
+  `motivo_cancelacion` text DEFAULT NULL,
+  `cancelada_en` datetime DEFAULT NULL,
+  `cancelada_por_idUsuario` int(11) DEFAULT NULL,
+  `admin_visto` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -363,7 +392,18 @@ ALTER TABLE `pedido_detalle`
   ADD PRIMARY KEY (`idPedidoDetalle`),
   ADD KEY `fk_pd_pedido` (`pedido_idPedido`),
   ADD KEY `fk_pd_producto` (`producto_idProducto`),
-  ADD KEY `idx_pd_estado` (`estado_item`);
+  ADD KEY `idx_pd_estado` (`estado_item`),
+  ADD KEY `fk_pd_cancelado_por` (`cancelado_por_idUsuario`);
+
+--
+-- Indexes for table `producto_estado_log`
+--
+ALTER TABLE `producto_estado_log`
+  ADD PRIMARY KEY (`idLog`),
+  ADD KEY `fk_pel_producto` (`producto_idProducto`),
+  ADD KEY `fk_pel_usuario` (`usuario_idUsuario`),
+  ADD KEY `fk_pel_mesero` (`mesero_atendio_idUsuario`),
+  ADD KEY `idx_pel_producto_creado` (`producto_idProducto`,`creado_en`);
 
 --
 -- Indexes for table `producto`
@@ -409,6 +449,7 @@ ALTER TABLE `usuario`
   ADD PRIMARY KEY (`idUsuario`),
   ADD UNIQUE KEY `uq_usuario_correo` (`correo`),
   ADD UNIQUE KEY `uq_usuario_cedula` (`cedula`),
+  ADD UNIQUE KEY `uq_usuario_google_id` (`google_id`),
   ADD KEY `fk_usuario_cargos` (`cargos_idCargo`);
 
 --
@@ -418,7 +459,8 @@ ALTER TABLE `venta`
   ADD PRIMARY KEY (`idVenta`),
   ADD UNIQUE KEY `uq_venta_pedido` (`pedido_idPedido`),
   ADD KEY `idx_venta_fecha` (`registrada_en`),
-  ADD KEY `fk_venta_cajero` (`cajero_idUsuario`);
+  ADD KEY `fk_venta_cajero` (`cajero_idUsuario`),
+  ADD KEY `fk_venta_cancelada_por` (`cancelada_por_idUsuario`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -483,6 +525,12 @@ ALTER TABLE `pedido_detalle`
 --
 ALTER TABLE `producto`
   MODIFY `idProducto` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `producto_estado_log`
+--
+ALTER TABLE `producto_estado_log`
+  MODIFY `idLog` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `receta`
@@ -556,7 +604,16 @@ ALTER TABLE `pedido`
 --
 ALTER TABLE `pedido_detalle`
   ADD CONSTRAINT `fk_pd_pedido` FOREIGN KEY (`pedido_idPedido`) REFERENCES `pedido` (`idPedido`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_pd_producto` FOREIGN KEY (`producto_idProducto`) REFERENCES `producto` (`idProducto`);
+  ADD CONSTRAINT `fk_pd_producto` FOREIGN KEY (`producto_idProducto`) REFERENCES `producto` (`idProducto`),
+  ADD CONSTRAINT `fk_pd_cancelado_por` FOREIGN KEY (`cancelado_por_idUsuario`) REFERENCES `usuario` (`idUsuario`);
+
+--
+-- Constraints for table `producto_estado_log`
+--
+ALTER TABLE `producto_estado_log`
+  ADD CONSTRAINT `fk_pel_producto` FOREIGN KEY (`producto_idProducto`) REFERENCES `producto` (`idProducto`),
+  ADD CONSTRAINT `fk_pel_usuario` FOREIGN KEY (`usuario_idUsuario`) REFERENCES `usuario` (`idUsuario`),
+  ADD CONSTRAINT `fk_pel_mesero` FOREIGN KEY (`mesero_atendio_idUsuario`) REFERENCES `usuario` (`idUsuario`);
 
 --
 -- Constraints for table `producto`
@@ -590,6 +647,7 @@ ALTER TABLE `usuario`
 --
 ALTER TABLE `venta`
   ADD CONSTRAINT `fk_venta_cajero` FOREIGN KEY (`cajero_idUsuario`) REFERENCES `usuario` (`idUsuario`),
+  ADD CONSTRAINT `fk_venta_cancelada_por` FOREIGN KEY (`cancelada_por_idUsuario`) REFERENCES `usuario` (`idUsuario`),
   ADD CONSTRAINT `fk_venta_pedido` FOREIGN KEY (`pedido_idPedido`) REFERENCES `pedido` (`idPedido`);
 COMMIT;
 

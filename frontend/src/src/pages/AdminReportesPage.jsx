@@ -3,7 +3,7 @@ import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
 import { adminAlertError } from "../utils/adminAlerts";
 
-const BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
 
 // ── helpers ────────────────────────────────────────────
 function formatCOP(n) {
@@ -204,7 +204,7 @@ function VentasHoy() {
       if (filtros.hora_desde) params.set("hora_desde", filtros.hora_desde);
       if (filtros.hora_hasta) params.set("hora_hasta", filtros.hora_hasta);
       if (filtros.metodo) params.set("metodo", filtros.metodo);
-      const res = await apiFetch(`${BASE}/admin/reportes/ventas-hoy?${params}`);
+      const res = await apiFetch(`${API_BASE}/admin/reportes/ventas-hoy?${params}`);
       setData(res);
     } catch (err) {
       void adminAlertError(err, "Ventas del día");
@@ -328,7 +328,7 @@ function VentasPorRango() {
     setLoading(true);
     try {
       const res = await apiFetch(
-        `${BASE}/admin/reportes/ventas?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
+        `${API_BASE}/admin/reportes/ventas?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
       );
       setData(res);
     } catch (err) {
@@ -464,7 +464,7 @@ function RankingProductos() {
       if (fechas.desde) params.set("fecha_desde", fechas.desde);
       if (fechas.hasta) params.set("fecha_hasta", fechas.hasta);
       const res = await apiFetch(
-        `${BASE}/admin/reportes/productos-mas-vendidos?${params}`,
+        `${API_BASE}/admin/reportes/productos-mas-vendidos?${params}`,
       );
       setData(res);
     } catch (err) {

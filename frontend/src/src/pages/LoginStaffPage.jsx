@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -90,7 +90,18 @@ export function LoginStaffPage() {
 
     const resetSuccess = location.state?.resetSuccess || '';
 
-
+    useEffect(() => {
+        if (initialRol !== 'ADMINISTRADOR') return;
+        try {
+            const stored = sessionStorage.getItem('admin_login_error');
+            if (stored) {
+                setError(stored);
+                sessionStorage.removeItem('admin_login_error');
+            }
+        } catch {
+            /* ignore */
+        }
+    }, [initialRol]);
 
     const deviceName = useMemo(() => `${config.query}-${navigator.platform || 'web'}`, [config.query]);
 
@@ -217,9 +228,14 @@ export function LoginStaffPage() {
             navigate(config.redirect, { replace: true });
 
         } catch (err) {
-
-            setError(err?.message || 'No se pudo iniciar sesión.');
-
+            const msg = err?.message || 'No se pudo iniciar sesión.';
+            if (err?.status === 403 && err?.data?.message?.includes('solo para')) {
+                setError(`Este correo no corresponde al rol ${config.label}. Elige el área correcta arriba.`);
+            } else if (err?.status === 403 && err?.data?.code?.startsWith('tenant_')) {
+                setError(err?.data?.message || msg);
+            } else {
+                setError(msg);
+            }
         } finally {
 
             setLoading(false);
@@ -393,14 +409,20 @@ export function LoginStaffPage() {
 
 
                             {tenantSlug ? (
-
                                 <div className="mt-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/50 px-3 py-2 text-xs text-stone-600 dark:text-stone-400">
-
                                     Restaurante: <strong className="text-stone-800 dark:text-stone-200">{tenantSlug}</strong>
-
+                                    {window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? (
+                                        <span className="block mt-1">
+                                            Desarrollo sin subdominio: las credenciales deben existir en <strong>{tenantSlug}</strong>.
+                                            Si tu local es otro, abre <code className="text-[11px]">tu-slug.localhost:5173/staff</code>.
+                                        </span>
+                                    ) : null}
                                 </div>
-
-                            ) : null}
+                            ) : (
+                                <div className="mt-4 rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                                    No se detectó el restaurante. Usa el subdominio de tu local o configura VITE_DEV_TENANT_SLUG.
+                                </div>
+                            )}
 
 
 

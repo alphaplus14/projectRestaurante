@@ -28,6 +28,9 @@ class ReporteController extends Controller
             ->join('pedido as p', 'p.idPedido', '=', 'v.pedido_idPedido')
             ->join('mesa as m', 'm.idMesa', '=', 'p.mesa_idMesa')
             ->leftJoin('pago as pg', 'pg.venta_idVenta', '=', 'v.idVenta')
+            ->where(function ($q) {
+                $q->where('v.estado', 'ACTIVA')->orWhereNull('v.estado');
+            })
             ->whereDate('v.registrada_en', $hoy)
             ->select(
                 'v.idVenta',
@@ -93,6 +96,9 @@ class ReporteController extends Controller
             ->join('pedido as p', 'p.idPedido', '=', 'v.pedido_idPedido')
             ->join('mesa as m', 'm.idMesa', '=', 'p.mesa_idMesa')
             ->leftJoin('pago as pg', 'pg.venta_idVenta', '=', 'v.idVenta')
+            ->where(function ($q) {
+                $q->where('v.estado', 'ACTIVA')->orWhereNull('v.estado');
+            })
             ->whereBetween(DB::raw('DATE(v.registrada_en)'), [
                 $validated['fecha_desde'],
                 $validated['fecha_hasta'],
@@ -121,6 +127,9 @@ class ReporteController extends Controller
 
         // Agrupación por día para gráfica
         $porDia = DB::table('venta')
+            ->where(function ($q) {
+                $q->where('estado', 'ACTIVA')->orWhereNull('estado');
+            })
             ->whereBetween(DB::raw('DATE(registrada_en)'), [
                 $validated['fecha_desde'],
                 $validated['fecha_hasta'],

@@ -3,7 +3,7 @@ import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
 import { adminAlertError } from "../utils/adminAlerts";
 
-const BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
 
 // ── helpers ────────────────────────────────────────────
 function classNames(...xs) {
@@ -383,7 +383,7 @@ function ModalHistorial({ ingrediente, onClose }) {
 
   useEffect(() => {
     apiFetch(
-      `${BASE}/admin/inventario/ingredientes/${ingrediente.idIngrediente}/movimientos`,
+      `${API_BASE}/admin/inventario/ingredientes/${ingrediente.idIngrediente}/movimientos`,
     )
       .then(setData)
       .catch((err) => {
@@ -540,7 +540,7 @@ function StockGeneral({ data, onRecargar }) {
     try {
       if (draft.idIngrediente) {
         await apiFetch(
-          `${BASE}/admin/inventario/ingredientes/${draft.idIngrediente}`,
+          `${API_BASE}/admin/inventario/ingredientes/${draft.idIngrediente}`,
           {
             method: "PUT",
             body: JSON.stringify({
@@ -551,7 +551,7 @@ function StockGeneral({ data, onRecargar }) {
           },
         );
       } else {
-        await apiFetch(`${BASE}/admin/inventario/ingredientes`, {
+        await apiFetch(`${API_BASE}/admin/inventario/ingredientes`, {
           method: "POST",
           body: JSON.stringify({
             nombreIngrediente: draft.nombreIngrediente,
@@ -574,7 +574,7 @@ function StockGeneral({ data, onRecargar }) {
     setSaving(true);
     try {
       await apiFetch(
-        `${BASE}/admin/inventario/ingredientes/${ingredSelec.idIngrediente}/movimiento`,
+        `${API_BASE}/admin/inventario/ingredientes/${ingredSelec.idIngrediente}/movimiento`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -1088,8 +1088,8 @@ export function AdminInventarioPage() {
     setLoading(true);
     try {
       const [inv, alr] = await Promise.all([
-        apiFetch(`${BASE}/admin/inventario/ingredientes`),
-        apiFetch(`${BASE}/admin/inventario/alertas`),
+        apiFetch(`${API_BASE}/admin/inventario/ingredientes`),
+        apiFetch(`${API_BASE}/admin/inventario/alertas`),
       ]);
       setData(inv);
       setAlertas(alr);
@@ -1104,7 +1104,7 @@ export function AdminInventarioPage() {
     setHistorialLoading(true);
     try {
       const qs = buildHistorialQuery(soloCocina, filtros);
-      const res = await apiFetch(`${BASE}/admin/inventario/movimientos${qs}`);
+      const res = await apiFetch(`${API_BASE}/admin/inventario/movimientos${qs}`);
       setHistorial(res);
     } catch (err) {
       void adminAlertError(err, "Historial de inventario");

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
+import { getTenantSlugForApi } from '../tenancy/tenantContext';
 import { PasswordInput } from './PasswordInput';
 
 function classNames(...xs) {
@@ -32,6 +33,7 @@ export function ClienteLoginPanel({
     const [error, setError] = useState('');
 
     const deviceName = useMemo(() => `web-${navigator.platform || 'browser'}`, []);
+    const tenantSlug = useMemo(() => getTenantSlugForApi(), []);
 
     function cambiarModo(next) {
         setModo(next);
@@ -42,9 +44,14 @@ export function ClienteLoginPanel({
 
     function irAGoogle() {
         const dest = redirectPath ?? '/cliente';
+        const tenant = getTenantSlugForApi();
         // Ir directo al backend evita problemas de cookies entre localhost:5173 y 127.0.0.1:8000
         const apiOrigin = import.meta.env.DEV ? 'http://127.0.0.1:8000' : '';
-        window.location.href = `${apiOrigin}/auth/google/cliente?redirect=${encodeURIComponent(dest)}`;
+        const params = new URLSearchParams({ redirect: dest });
+        if (tenant) {
+            params.set('tenant', tenant);
+        }
+        window.location.href = `${apiOrigin}/auth/google/cliente?${params.toString()}`;
     }
 
     function completarSesion(data) {
@@ -69,7 +76,14 @@ export function ClienteLoginPanel({
             });
             completarSesion(data);
         } catch (err) {
-            setError(err?.message || 'No se pudo iniciar sesión.');
+            const msg = err?.message || 'No se pudo iniciar sesión.';
+            if (err?.status === 403 && err?.data?.message?.includes('solo para CLIENTE')) {
+                setError('Este correo es de personal del restaurante. Usa /staff para entrar como empleado.');
+            } else if (err?.status === 400 && !tenantSlug) {
+                setError('No se identificó el restaurante. Abre el sitio desde el subdominio de tu local o configura VITE_DEV_TENANT_SLUG.');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -148,6 +162,23 @@ export function ClienteLoginPanel({
                     Registrarse
                 </button>
             </div>
+
+            {tenantSlug ? (
+                <div className="mt-4 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-neutral-950/50 px-3 py-2 text-xs text-stone-600 dark:text-neutral-400">
+                    Iniciarás sesión en:{' '}
+                    <strong className="text-stone-800 dark:text-neutral-200">{tenantSlug}</strong>
+                    {window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? (
+                        <span className="block mt-1 text-stone-500 dark:text-neutral-500">
+                            En desarrollo sin subdominio. Si tu cuenta es de otro restaurante, usa{' '}
+                            <code className="text-[11px]">{tenantSlug}.localhost:5173</code>
+                        </span>
+                    ) : null}
+                </div>
+            ) : (
+                <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                    No se detectó el restaurante. Abre el enlace de tu local (ej. mi-local.localhost:5173).
+                </div>
+            )}
 
             <button
                 type="button"

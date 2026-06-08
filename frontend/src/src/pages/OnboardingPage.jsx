@@ -233,7 +233,7 @@ function OnboardingSuccess({ done, meta, onGoAdmin, summaryEmailNote }) {
         {
             title: 'Configura tu carta',
             desc: 'En Admin → Productos, crea categorías y platos que verán tus clientes.',
-            href: done.admin_login ? `${done.admin_login.replace('/login-admin', '/admin/productos')}` : null,
+            href: done.tenant_url ? `${done.tenant_url}/admin/productos` : null,
         },
         {
             title: 'Crea mesas y personal',
@@ -404,7 +404,7 @@ export function OnboardingPage() {
     function goAdmin(doneData) {
         const slug = doneData?.slug || meta?.slug;
         if (slug) setDevTenantSlug(slug);
-        window.location.assign(doneData?.admin_login || (slug ? tenantAppOrigin(slug) + '/login-admin' : '/login-admin'));
+        window.location.assign(doneData?.admin_login || (slug ? tenantAppOrigin(slug) + '/staff?rol=admin' : '/staff?rol=admin'));
     }
 
     async function onSubmit() {

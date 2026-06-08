@@ -3,37 +3,32 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
-use App\Http\Responses\Fortify\AdminLoginResponse;
-use App\Models\Usuario;
 use App\Support\Tenancy\TenantUrl;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Fortify\Actions\AttemptToAuthenticate;
-use Laravel\Fortify\Actions\CanonicalizeUsername;
-use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
-use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 use Laravel\Fortify\Fortify;
-use Laravel\Fortify\Http\Requests\LoginRequest;
 
+/**
+ * Fortify se usa solo para: reset de contraseña, acciones TOTP (2FA) y rate limiters.
+ * El login admin vive en AdminAuthController (API + Sanctum).
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(LoginResponseContract::class, AdminLoginResponse::class);
+        Fortify::ignoreRoutes();
+
         $this->app->singleton(ResetsUserPasswords::class, ResetUserPassword::class);
     }
 
     public function boot(): void
     {
-        Fortify::ignoreRoutes();
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
@@ -63,36 +58,6 @@ class FortifyServiceProvider extends ServiceProvider
                 ->action('Crear nueva contraseña', $url)
                 ->line("Este enlace caduca en {$minutes} minutos.")
                 ->line('Si no solicitaste esto, ignora este correo.');
-        });
-
-        Fortify::authenticateUsing(function (Request $request) {
-            $correo = strtolower(trim((string) $request->input(Fortify::username(), '')));
-
-            $usuario = Usuario::query()
-                ->with('cargo')
-                ->where('correo', $correo)
-                ->where('activo', true)
-                ->first();
-
-            if (! $usuario || ! Hash::check((string) $request->password, (string) $usuario->password)) {
-                return null;
-            }
-
-            if ($usuario->cargo?->nombre !== 'ADMINISTRADOR') {
-                throw new HttpResponseException(response()->json([
-                    'message' => 'Este login es solo para ADMINISTRADOR.',
-                ], 403));
-            }
-
-            return $usuario;
-        });
-
-        Fortify::authenticateThrough(function (LoginRequest $request) {
-            return array_filter([
-                config('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
-                config('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
-                AttemptToAuthenticate::class,
-            ]);
         });
 
         RateLimiter::for('login', function (Request $request) {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { staffLoginUrl } from '../auth/staffLogin';
-import { clearToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
 
@@ -49,6 +49,7 @@ const ADMIN_NAV_ITEMS = [
     { to: '/admin/meseros', label: 'Meseros', icon: 'mesero.png' },
     { to: '/admin/cocineros', label: 'Cocineros', icon: 'cocinero.png' },
     { to: '/admin/cajeros', label: 'Cajeros', icon: 'mesero.png' },
+    { to: '/admin/ventas', label: 'Ventas', icon: 'ventas icono.png', badgeKey: 'ventas' },
     { to: '/admin/reportes', label: 'Reportes', icon: 'reportes.png' },
     { to: '/admin/inventario', label: 'Inventario', icon: 'inventario.png' },
     { to: '/admin/finanzas', label: 'Finanzas', icon: 'finanzas.png' },
@@ -56,13 +57,13 @@ const ADMIN_NAV_ITEMS = [
     { to: '/admin/configuracion', label: 'Configuración', icon: 'configuracion.png' },
 ];
 
-function SidebarItem({ to, label, icon, collapsed }) {
+function SidebarItem({ to, label, icon, collapsed, badge }) {
     return (
         <NavLink
             to={to}
             className={({ isActive }) =>
                 classNames(
-                    'flex items-center rounded-lg py-2 text-sm transition-colors',
+                    'flex items-center rounded-lg py-2 text-sm transition-colors relative',
                     collapsed ? 'justify-center px-2' : 'gap-3 px-3',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                     isActive ? 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-50' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-50',
@@ -70,12 +71,19 @@ function SidebarItem({ to, label, icon, collapsed }) {
             }
             title={collapsed ? label : undefined}
         >
-            <img
-                src={`${ADMIN_NAV_ICON_DIR}/${icon}`}
-                alt=""
-                className="h-5 w-5 shrink-0 object-contain opacity-90 dark:invert"
-                aria-hidden
-            />
+            <span className="relative shrink-0">
+                <img
+                    src={`${ADMIN_NAV_ICON_DIR}/${icon}`}
+                    alt=""
+                    className="h-5 w-5 object-contain opacity-90 dark:invert"
+                    aria-hidden
+                />
+                {badge > 0 ? (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                        {badge > 9 ? '9+' : badge}
+                    </span>
+                ) : null}
+            </span>
             <span className={classNames('truncate', collapsed ? 'hidden' : 'block')}>{label}</span>
         </NavLink>
     );
@@ -86,6 +94,7 @@ export function AdminLayout({ title, children }) {
     const [collapsed, setCollapsed] = usePersistedBoolean('admin_sidebar_collapsed', false);
     const [marcaNombre, setMarcaNombre] = useState('Ñapa');
     const [marcaLogo, setMarcaLogo] = useState(null);
+    const [ventasNotificaciones, setVentasNotificaciones] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
@@ -105,14 +114,29 @@ export function AdminLayout({ title, children }) {
             }
         }
 
+        async function loadNotificacionesVentas() {
+            try {
+                const res = await apiFetch('/api/admin/ventas/notificaciones');
+                if (!cancelled) setVentasNotificaciones(Number(res?.cancelaciones_sin_ver) || 0);
+            } catch {
+                if (!cancelled) setVentasNotificaciones(0);
+            }
+        }
+
         loadMarca();
+        void loadNotificacionesVentas();
+        const id = setInterval(() => void loadNotificacionesVentas(), 30000);
         const onActualizada = () => {
             void loadMarca();
         };
+        const onVentasVistas = () => setVentasNotificaciones(0);
         window.addEventListener('napa:config-actualizada', onActualizada);
+        window.addEventListener('napa:ventas-vistas', onVentasVistas);
         return () => {
             cancelled = true;
+            clearInterval(id);
             window.removeEventListener('napa:config-actualizada', onActualizada);
+            window.removeEventListener('napa:ventas-vistas', onVentasVistas);
         };
     }, []);
 
@@ -121,7 +145,7 @@ export function AdminLayout({ title, children }) {
     async function solicitarCerrarSesion() {
         const ok = await confirmStaffLogout();
         if (!ok) return;
-        clearToken();
+        await logoutTenantSession();
         navigate(staffLoginUrl('ADMINISTRADOR'), { replace: true });
     }
 
@@ -205,7 +229,14 @@ export function AdminLayout({ title, children }) {
                         ) : null}
 
                         {ADMIN_NAV_ITEMS.map((item) => (
-                            <SidebarItem key={item.to} {...item} collapsed={collapsed} />
+                            <SidebarItem
+                                key={item.to}
+                                to={item.to}
+                                label={item.label}
+                                icon={item.icon}
+                                collapsed={collapsed}
+                                badge={item.badgeKey === 'ventas' ? ventasNotificaciones : 0}
+                            />
                         ))}
                     </div>
                 </aside>

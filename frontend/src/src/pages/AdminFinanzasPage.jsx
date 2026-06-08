@@ -3,7 +3,7 @@ import { apiFetch } from "../auth/apiClient";
 import { AdminLayout } from "../layouts/AdminLayout";
 import { adminAlertError } from "../utils/adminAlerts";
 
-const BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
 
 // ── helpers ────────────────────────────────────────────
 function formatCOP(n) {
@@ -405,7 +405,7 @@ function TabGastos() {
       if (filtros.fecha_desde) params.set("fecha_desde", filtros.fecha_desde);
       if (filtros.fecha_hasta) params.set("fecha_hasta", filtros.fecha_hasta);
       if (filtros.categoria) params.set("categoria", filtros.categoria);
-      const res = await apiFetch(`${BASE}/admin/finanzas/gastos?${params}`);
+      const res = await apiFetch(`${API_BASE}/admin/finanzas/gastos?${params}`);
       setData(res);
     } catch (err) {
       void adminAlertError(err, "Gastos");
@@ -451,12 +451,12 @@ function TabGastos() {
         metodo: draft.metodo || null,
       };
       if (draft.idGasto) {
-        await apiFetch(`${BASE}/admin/finanzas/gastos/${draft.idGasto}`, {
+        await apiFetch(`${API_BASE}/admin/finanzas/gastos/${draft.idGasto}`, {
           method: "PUT",
           body: JSON.stringify(body),
         });
       } else {
-        await apiFetch(`${BASE}/admin/finanzas/gastos`, {
+        await apiFetch(`${API_BASE}/admin/finanzas/gastos`, {
           method: "POST",
           body: JSON.stringify(body),
         });
@@ -473,7 +473,7 @@ function TabGastos() {
   async function eliminar() {
     setSaving(true);
     try {
-      await apiFetch(`${BASE}/admin/finanzas/gastos/${gastoElim.idGasto}`, {
+      await apiFetch(`${API_BASE}/admin/finanzas/gastos/${gastoElim.idGasto}`, {
         method: "DELETE",
       });
       setModalElim(false);
@@ -669,7 +669,7 @@ function TabPyG() {
     setLoading(true);
     try {
       const res = await apiFetch(
-        `${BASE}/admin/finanzas/pyg?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
+        `${API_BASE}/admin/finanzas/pyg?fecha_desde=${fechas.desde}&fecha_hasta=${fechas.hasta}`,
       );
       setData(res);
     } catch (err) {
