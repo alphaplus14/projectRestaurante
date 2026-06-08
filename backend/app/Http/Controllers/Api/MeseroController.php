@@ -13,6 +13,7 @@ use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class MeseroController extends Controller
 {
@@ -118,7 +119,10 @@ class MeseroController extends Controller
         $listos = $this->pedidosListosData($request);
 
         $llamadas = CocinaLlamadaMesero::query()
-            ->with('cocinero:idUsuario,nombre,apellido')
+            ->with([
+                'cocinero:idUsuario,nombre,apellido',
+                'cajero:idUsuario,nombre,apellido',
+            ])
             ->whereNull('atendida_en')
             ->where('creado_en', '>=', now()->subHours(4))
             ->orderByDesc('creado_en')
@@ -139,7 +143,13 @@ class MeseroController extends Controller
             'llamadas_cocina' => $llamadas->map(fn (CocinaLlamadaMesero $l) => [
                 'id' => $l->id,
                 'creado_en' => $l->creado_en?->toIso8601String(),
-                'cocinero_nombre' => trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina',
+                'origen' => $l->cajero_idUsuario ? 'CAJERO' : 'COCINA',
+                'cocinero_nombre' => $l->cajero_idUsuario
+                    ? (trim(($l->cajero->nombre ?? '').' '.($l->cajero->apellido ?? '')) ?: 'Caja')
+                    : (trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina'),
+                'solicitante_nombre' => $l->cajero_idUsuario
+                    ? (trim(($l->cajero->nombre ?? '').' '.($l->cajero->apellido ?? '')) ?: 'Caja')
+                    : (trim(($l->cocinero->nombre ?? '').' '.($l->cocinero->apellido ?? '')) ?: 'Cocina'),
             ]),
             'cambios_menu' => $cambiosMenu->map(fn (ProductoEstadoLog $log) => [
                 'id' => $log->idLog,
@@ -539,9 +549,8 @@ class MeseroController extends Controller
             abort(401, 'No autenticado.');
         }
 
-        if ((int) $pedido->mesero_idUsuario !== (int) $user->getAuthIdentifier()) {
-            abort(403, 'No autorizado para este pedido.');
-        }
+        // Autorización centralizada en PedidoPolicy (dueño del pedido).
+        Gate::forUser($user)->authorize('gestionar', $pedido);
     }
 
     /**

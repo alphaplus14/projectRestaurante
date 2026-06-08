@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { clearToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const PASOS = [
@@ -545,8 +545,8 @@ export function ClienteReservasPage() {
         }
     }
 
-    function cerrarSesion() {
-        clearToken();
+    async function cerrarSesion() {
+        await logoutTenantSession();
         navigate('/cliente', { replace: true });
     }
 

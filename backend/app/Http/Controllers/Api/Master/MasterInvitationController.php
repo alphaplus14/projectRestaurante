@@ -33,7 +33,7 @@ class MasterInvitationController extends Controller
                 'status' => $t->status,
                 'provision_error' => $t->provision_error,
                 'tenant_url' => $t->isAccessActive() ? $t->tenantAppUrl() : null,
-                'admin_login' => $t->isAccessActive() ? $t->tenantAppUrl().'/login-admin' : null,
+                'admin_login' => $t->isAccessActive() ? $t->tenantAppUrl().'/staff?rol=admin' : null,
                 'cliente_url' => $t->isAccessActive() ? $t->tenantAppUrl().'/cliente' : null,
                 'created_at' => $t->created_at?->toIso8601String(),
                 'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),

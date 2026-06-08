@@ -13,6 +13,7 @@ class CocinaLlamadaMesero extends Model
 
     protected $fillable = [
         'cocinero_idUsuario',
+        'cajero_idUsuario',
         'creado_en',
         'atendida_en',
         'mesero_idUsuario',
@@ -29,6 +30,11 @@ class CocinaLlamadaMesero extends Model
     public function cocinero(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'cocinero_idUsuario', 'idUsuario');
+    }
+
+    public function cajero(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'cajero_idUsuario', 'idUsuario');
     }
 
     public function mesero(): BelongsTo

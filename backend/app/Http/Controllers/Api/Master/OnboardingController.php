@@ -10,6 +10,7 @@ use App\Services\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class OnboardingController extends Controller
 {
@@ -101,7 +102,7 @@ class OnboardingController extends Controller
                 'admin_correo' => $payload['admin_correo'],
                 'nombre_comercial' => (string) $tenant->nombre_comercial,
                 'tenant_url' => $appUrl,
-                'admin_login' => $appUrl.'/login-admin',
+                'admin_login' => $appUrl.'/staff?rol=admin',
                 'admin_productos_url' => $appUrl.'/admin/productos',
                 'staff_url' => $appUrl.'/staff',
                 'cliente_url' => $appUrl.'/cliente',
@@ -117,7 +118,7 @@ class OnboardingController extends Controller
                     'slug' => $tenant->slug,
                     'nombre_comercial' => $tenant->nombre_comercial,
                     'tenant_url' => $appUrl,
-                    'admin_login' => $appUrl.'/login-admin',
+                    'admin_login' => $appUrl.'/staff?rol=admin',
                     'cliente_url' => $appUrl.'/cliente',
                     'staff_url' => $appUrl.'/staff',
                     'admin_correo' => $payload['admin_correo'],
@@ -126,8 +127,15 @@ class OnboardingController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
+            Log::error('Onboarding complete failed', [
+                'tenant_id' => $tenant->id,
+                'slug' => $tenant->slug,
+                'message' => $e->getMessage(),
+                'class' => $e::class,
+            ]);
+
             return response()->json([
-                'message' => 'No se pudo completar la configuración: '.$e->getMessage(),
+                'message' => 'No se pudo completar la configuración. Si persiste, contacta al proveedor del software.',
             ], 500);
         }
     }
@@ -185,7 +193,7 @@ class OnboardingController extends Controller
                     'nombre_comercial' => $tenant->nombre_comercial,
                     'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
                     'tenant_url' => $appUrl,
-                    'admin_login' => $appUrl.'/login-admin',
+                    'admin_login' => $appUrl.'/staff?rol=admin',
                     'cliente_url' => $appUrl.'/cliente',
                     'staff_url' => $appUrl.'/staff',
                 ],

@@ -31,10 +31,12 @@ class AdminDashboardController extends Controller
         $weekEnd = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
         $ingresosMes = (float) Venta::query()
+            ->activas()
             ->whereBetween('registrada_en', [$monthStart, $monthEnd])
             ->sum('total');
 
         $numVentasMes = (int) Venta::query()
+            ->activas()
             ->whereBetween('registrada_en', [$monthStart, $monthEnd])
             ->count();
 

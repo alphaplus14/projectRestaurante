@@ -24,9 +24,13 @@ class UsuarioController extends Controller
     {
         $rolFiltro = $request->query('rol');
 
+        /** @var Usuario|null $authUser */
+        $authUser = $request->user();
+
         $query = Usuario::query()
             ->with(['cargo:idCargo,nombre'])
             ->whereHas('cargo', fn($q) => $q->whereIn('nombre', self::ROLES_PERMITIDOS))
+            ->when($authUser, fn ($q) => $q->where('idUsuario', '!=', $authUser->idUsuario))
             ->orderByDesc('activo')
             ->orderBy('nombre')
             ->orderBy('apellido');
@@ -54,7 +58,7 @@ class UsuarioController extends Controller
             'cedula' => ['required', 'string', 'max:32', Rule::unique('usuario', 'cedula')],
             'telefono' => ['required', 'string', 'max:40'],
             'correo' => ['required', 'email', 'max:190', Rule::unique('usuario', 'correo')],
-            'password' => ['required', 'string', 'min:6', 'max:120'],
+            'password' => ['required', 'string', 'min:8', 'max:120'],
             'rol' => ['required', 'string', Rule::in(self::ROLES_PERMITIDOS)],
             'activo' => ['sometimes', 'boolean'],
         ]);
@@ -95,6 +99,12 @@ class UsuarioController extends Controller
     {
         $usuario->loadMissing('cargo');
 
+        if ($this->isSelf($request, $usuario)) {
+            return response()->json([
+                'message' => 'No puedes editar tu propia cuenta desde esta sección.',
+            ], 409);
+        }
+
         // Solo se pueden editar usuarios gestionables
         if (!in_array($usuario->cargo?->nombre, self::ROLES_PERMITIDOS, true)) {
             return response()->json([
@@ -118,7 +128,7 @@ class UsuarioController extends Controller
                 'max:190',
                 Rule::unique('usuario', 'correo')->ignore($usuario->idUsuario, 'idUsuario')
             ],
-            'password' => ['nullable', 'string', 'min:6', 'max:120'],
+            'password' => ['nullable', 'string', 'min:8', 'max:120'],
             'rol' => ['required', 'string', Rule::in(self::ROLES_PERMITIDOS)],
             'activo' => ['sometimes', 'boolean'],
         ]);
@@ -143,11 +153,14 @@ class UsuarioController extends Controller
             $usuario->password = Hash::make((string) $data['password']);
         }
 
+        $wasActive = (bool) $usuario->activo;
+
         if (array_key_exists('activo', $data)) {
             $usuario->activo = (bool) $data['activo'];
         }
 
         $usuario->save();
+        $this->revokeTokensIfDeactivated($usuario, $wasActive);
         $usuario->load(['cargo:idCargo,nombre']);
 
         return response()->json([
@@ -164,6 +177,12 @@ class UsuarioController extends Controller
     {
         $usuario->loadMissing('cargo');
 
+        if ($this->isSelf($request, $usuario)) {
+            return response()->json([
+                'message' => 'No puedes deshabilitar tu propia cuenta.',
+            ], 409);
+        }
+
         if (!in_array($usuario->cargo?->nombre, self::ROLES_PERMITIDOS, true)) {
             return response()->json([
                 'message' => 'Este usuario no puede modificarse desde este endpoint.',
@@ -174,8 +193,10 @@ class UsuarioController extends Controller
             'activo' => ['required', 'boolean'],
         ]);
 
+        $wasActive = (bool) $usuario->activo;
         $usuario->activo = (bool) $data['activo'];
         $usuario->save();
+        $this->revokeTokensIfDeactivated($usuario, $wasActive);
 
         return response()->json([
             'message' => $usuario->activo ? 'Usuario habilitado.' : 'Usuario deshabilitado.',
@@ -184,6 +205,21 @@ class UsuarioController extends Controller
     }
 
     // -------------------------------------------------------------------------
+
+    private function revokeTokensIfDeactivated(Usuario $usuario, bool $wasActive): void
+    {
+        if ($wasActive && ! $usuario->activo) {
+            $usuario->tokens()->delete();
+        }
+    }
+
+    private function isSelf(Request $request, Usuario $usuario): bool
+    {
+        /** @var Usuario|null $authUser */
+        $authUser = $request->user();
+
+        return $authUser && (int) $authUser->idUsuario === (int) $usuario->idUsuario;
+    }
 
     private function serialize(Usuario $u): array
     {

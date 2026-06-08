@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminReservaController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
+use App\Http\Controllers\Api\AdminVentaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
 use App\Http\Controllers\Api\CocinaPedidoController;
@@ -35,10 +36,12 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::prefix('master')->group(function () {
-    Route::post('auth/login', [MasterAuthController::class, 'login']);
+    Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
 
-    Route::get('onboarding/{token}', [OnboardingController::class, 'show']);
-    Route::post('onboarding/{token}', [OnboardingController::class, 'complete']);
+    Route::get('onboarding/{token}', [OnboardingController::class, 'show'])
+        ->middleware('throttle:onboarding');
+    Route::post('onboarding/{token}', [OnboardingController::class, 'complete'])
+        ->middleware('throttle:onboarding-complete');
 
     Route::middleware('auth.master')->group(function () {
         Route::get('auth/me', [MasterAuthController::class, 'me']);
@@ -61,18 +64,23 @@ Route::middleware('tenant.identify')->group(function () {
     Route::get('public/productos-carta', [ProductoController::class, 'catalogoPublico']);
 
     Route::prefix('auth')->group(function () {
-        Route::post('login', [AuthController::class, 'login']);
-        Route::post('login-cliente', [AuthController::class, 'loginCliente']);
-        Route::post('register-cliente', [AuthController::class, 'registerCliente']);
-        Route::post('login-cocina', [AuthController::class, 'loginCocina']);
-        Route::post('login-mesero', [AuthController::class, 'loginMesero']);
-        Route::post('login-cajero', [AuthController::class, 'loginCajero']);
+        // Staff y cliente: límite por IP + correo (AUTH_RATE_LIMIT en .env).
+        Route::middleware('throttle:auth')->group(function () {
+            Route::post('login', [AuthController::class, 'login']);
+            Route::post('login-cliente', [AuthController::class, 'loginCliente']);
+            Route::post('register-cliente', [AuthController::class, 'registerCliente']);
+            Route::post('login-cocina', [AuthController::class, 'loginCocina']);
+            Route::post('login-mesero', [AuthController::class, 'loginMesero']);
+            Route::post('login-cajero', [AuthController::class, 'loginCajero']);
+            Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
+            Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
+        });
+
+        // Admin: login propio + 2FA (Fortify rate limiters).
         Route::post('login-admin', [AdminAuthController::class, 'login'])
             ->middleware('throttle:login');
         Route::post('two-factor-challenge', [AdminAuthController::class, 'twoFactorChallenge'])
             ->middleware('throttle:two-factor');
-        Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
-        Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -108,7 +116,13 @@ Route::middleware('tenant.identify')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:CAJERO'])->prefix('cajero')->group(function () {
         Route::get('cuentas-pendientes', [CajeroController::class, 'cuentasPendientes']);
+        Route::get('perfil', [CajeroController::class, 'perfil']);
+        Route::get('reservas', [CajeroController::class, 'reservas']);
+        Route::post('llamar-mesero', [CajeroController::class, 'llamarMesero']);
+        Route::get('mesas', [CajeroController::class, 'mesas']);
+        Route::get('ventas', [CajeroController::class, 'ventas']);
         Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+        Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/cobrar', [CajeroController::class, 'cobrar']);
     });
@@ -131,6 +145,10 @@ Route::middleware('tenant.identify')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('ventas', [AdminVentaController::class, 'index']);
+        Route::get('ventas/notificaciones', [AdminVentaController::class, 'notificacionesPendientes']);
+        Route::post('ventas/notificaciones/marcar-vistas', [AdminVentaController::class, 'marcarNotificacionesVistas']);
 
         Route::get('reservas', [AdminReservaController::class, 'index']);
         Route::get('pedidos-platos-cancelados', [AdminPedidoCancelacionController::class, 'index']);
