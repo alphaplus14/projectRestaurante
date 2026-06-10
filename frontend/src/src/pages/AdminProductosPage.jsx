@@ -203,6 +203,11 @@ export function AdminProductosPage() {
         }
     });
 
+    const [eliminados, setEliminados] = useState([]);
+    const [eliminadosLoading, setEliminadosLoading] = useState(false);
+    const [totalEliminados, setTotalEliminados] = useState(0);
+    const [restaurandoId, setRestaurandoId] = useState(null);
+
     const [isOpen, setIsOpen] = useState(false);
     const [listaPorCategoriaAbierta, setListaPorCategoriaAbierta] = useState(false);
     const [draft, setDraft] = useState(emptyDraft());
@@ -283,6 +288,7 @@ export function AdminProductosPage() {
             const data = await apiFetch('/api/admin/productos');
             setProductos(Array.isArray(data?.data) ? data.data : []);
             setCategorias(Array.isArray(data?.categorias) ? data.categorias : []);
+            setTotalEliminados(Number(data?.total_eliminados) || 0);
         } catch (err) {
             void adminAlertError(err, 'No se pudieron cargar los productos');
         } finally {
@@ -290,10 +296,28 @@ export function AdminProductosPage() {
         }
     }
 
+    const cargarEliminados = useCallback(async () => {
+        setEliminadosLoading(true);
+        try {
+            const data = await apiFetch('/api/admin/productos?eliminados=1');
+            setEliminados(Array.isArray(data?.data) ? data.data : []);
+            setTotalEliminados(Number(data?.total_eliminados) || 0);
+        } catch (err) {
+            void adminAlertError(err, 'No se pudieron cargar los platos borrados');
+        } finally {
+            setEliminadosLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (tab !== 'eliminados') return;
+        void cargarEliminados();
+    }, [tab, cargarEliminados]);
 
     function setViewModePersist(next) {
         setViewMode(next);
@@ -419,7 +443,7 @@ export function AdminProductosPage() {
 
     async function deleteProducto(p) {
         const ok = window.confirm(
-            `¿Eliminar "${p.nombreProducto}"?\n\nSi el producto tiene pedidos asociados, el sistema no permitirá eliminarlo.`,
+            `¿Eliminar "${p.nombreProducto}"?\n\nNo se borra de la base de datos: dejará de mostrarse en el menú y podrás restaurarlo desde «Platos borrados».`,
         );
         if (!ok) return;
 
@@ -428,6 +452,18 @@ export function AdminProductosPage() {
             await load();
         } catch (err) {
             void adminAlertError(err, 'No se pudo eliminar el producto');
+        }
+    }
+
+    async function restaurarProducto(p) {
+        setRestaurandoId(p.idProducto);
+        try {
+            await apiFetch(`/api/admin/productos/${p.idProducto}/restaurar`, { method: 'POST' });
+            await Promise.all([cargarEliminados(), load()]);
+        } catch (err) {
+            void adminAlertError(err, 'No se pudo restaurar el producto');
+        } finally {
+            setRestaurandoId(null);
         }
     }
 
@@ -475,6 +511,16 @@ export function AdminProductosPage() {
                             )}
                         >
                             Historial
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTab('eliminados')}
+                            className={classNames(
+                                'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                                tab === 'eliminados' ? 'bg-red-700 text-stone-50' : 'text-stone-600 dark:text-stone-400',
+                            )}
+                        >
+                            Platos borrados{totalEliminados > 0 ? ` (${totalEliminados})` : ''}
                         </button>
                     </div>
                 </div>
@@ -542,7 +588,73 @@ export function AdminProductosPage() {
                 ) : null}
             </div>
 
-            {tab === 'historial' ? (
+            {tab === 'eliminados' ? (
+                <div className="mt-6 max-w-6xl space-y-4">
+                    <p className="text-sm text-stone-600 dark:text-stone-400">
+                        Platos eliminados del menú. Siguen guardados en la base de datos y puedes restaurarlos en cualquier
+                        momento; al restaurarlos vuelven a quedar activos en el menú.
+                    </p>
+                    {eliminadosLoading ? (
+                        <div className="py-16 text-center text-stone-500">Cargando platos borrados…</div>
+                    ) : (
+                        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm min-w-[640px]">
+                                    <thead className="text-stone-600 dark:text-stone-400">
+                                        <tr className="border-b border-stone-200 dark:border-stone-800">
+                                            <th className="text-left font-medium px-4 py-3 w-14">Foto</th>
+                                            <th className="text-left font-medium px-4 py-3">Producto</th>
+                                            <th className="text-left font-medium px-4 py-3">Categoría</th>
+                                            <th className="text-right font-medium px-4 py-3">Precio</th>
+                                            <th className="text-left font-medium px-4 py-3">Eliminado el</th>
+                                            <th className="text-right font-medium px-4 py-3">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
+                                        {eliminados.map((p) => (
+                                            <tr key={p.idProducto} className="hover:bg-stone-100/70 dark:hover:bg-stone-800/35">
+                                                <td className="px-4 py-3 align-middle">
+                                                    <ProductThumb imagenUrl={p.imagenUrl} nombre={p.nombreProducto} size="sm" />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-medium">{p.nombreProducto}</div>
+                                                    {p.descripcion ? (
+                                                        <div className="mt-0.5 text-stone-600 dark:text-stone-500 line-clamp-1">{p.descripcion}</div>
+                                                    ) : null}
+                                                </td>
+                                                <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{categoriaNombre(p)}</td>
+                                                <td className="px-4 py-3 text-right">{formatCOP(p.precio)}</td>
+                                                <td className="px-4 py-3 text-stone-600 dark:text-stone-400 text-xs whitespace-nowrap">
+                                                    {formatFechaHora(p.eliminado_en)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => restaurarProducto(p)}
+                                                            disabled={restaurandoId === p.idProducto}
+                                                            className="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-60 text-stone-50 font-semibold focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                        >
+                                                            {restaurandoId === p.idProducto ? 'Restaurando…' : 'Restaurar'}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {eliminados.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-12 text-center text-stone-600 dark:text-stone-500">
+                                                    No hay platos borrados.
+                                                </td>
+                                            </tr>
+                                        ) : null}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : tab === 'historial' ? (
                 <PanelHistorialActivo
                     historial={historial}
                     loading={historialLoading}
@@ -666,7 +778,7 @@ export function AdminProductosPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => deleteProducto(p)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                    className="px-3 py-2 rounded-lg bg-red-700/10 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-700/20 dark:hover:bg-red-900/50 focus-visible:ring-2 focus-visible:ring-red-500"
                                                 >
                                                     Eliminar
                                                 </button>
@@ -741,7 +853,7 @@ export function AdminProductosPage() {
                                     </button>
                                     <button
                                         onClick={() => deleteProducto(p)}
-                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500 text-sm font-medium"
+                                        className="flex-1 min-w-[100px] px-3 py-2 rounded-lg bg-red-700/10 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-700/20 dark:hover:bg-red-900/50 focus-visible:ring-2 focus-visible:ring-red-500 text-sm font-medium"
                                     >
                                         Eliminar
                                     </button>

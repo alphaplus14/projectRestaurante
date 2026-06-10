@@ -67,6 +67,7 @@ class ProductoController extends Controller
                 'categoria:idCategoria,nombre,orden,activa',
             ])
             ->where('producto.activo', true)
+            ->whereNull('producto.eliminado_en')
             ->whereHas('categoria', fn ($q) => $q->where('activa', true))
             ->join('categoria', 'producto.categoria_idCategoria', '=', 'categoria.idCategoria')
             ->orderBy('categoria.orden')

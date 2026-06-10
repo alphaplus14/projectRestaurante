@@ -7,20 +7,31 @@ use App\Models\Mesa;
 use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class AdminMesaController extends Controller
 {
     private const ABIERTOS = ['PENDIENTE', 'EN_PREPARACION', 'LISTO'];
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $verEliminadas = $request->boolean('eliminadas');
+
         $mesas = Mesa::query()
+            ->when(
+                $verEliminadas,
+                fn ($q) => $q->whereNotNull('eliminada_en'),
+                fn ($q) => $q->whereNull('eliminada_en'),
+            )
             ->orderBy('numero')
             ->get();
 
+        $totalEliminadas = (int) Mesa::query()->whereNotNull('eliminada_en')->count();
+
         return response()->json([
             'data' => $mesas->map(fn (Mesa $m) => $this->serializeMesa($m)),
+            'total_eliminadas' => $totalEliminadas,
         ]);
     }
 
@@ -30,6 +41,17 @@ class AdminMesaController extends Controller
         $request->merge([
             'nombre' => is_string($nom) && trim($nom) !== '' ? trim($nom) : null,
         ]);
+
+        $numeroEliminada = Mesa::query()
+            ->where('numero', (int) $request->input('numero'))
+            ->whereNotNull('eliminada_en')
+            ->exists();
+
+        if ($numeroEliminada) {
+            return response()->json([
+                'message' => 'Ese número pertenece a una mesa borrada. Restáurala desde «Mesas borradas» o usa otro número.',
+            ], 422);
+        }
 
         $data = $request->validate([
             'numero' => ['required', 'integer', 'min:1', 'max:9999', Rule::unique('mesa', 'numero')],
@@ -104,20 +126,53 @@ class AdminMesaController extends Controller
         ]);
     }
 
+    /**
+     * Borrado suave: la mesa se oculta del panel y deja de estar disponible,
+     * pero se conserva en la base de datos (junto con su historial).
+     */
     public function destroy(Mesa $mesa): JsonResponse
     {
-        $tienePedidos = Pedido::query()->where('mesa_idMesa', $mesa->idMesa)->exists();
+        if ($mesa->eliminada_en !== null) {
+            return response()->json(['message' => 'Esta mesa ya fue eliminada.'], 422);
+        }
 
-        if ($tienePedidos) {
+        $pedidoAbierto = Pedido::query()
+            ->where('mesa_idMesa', $mesa->idMesa)
+            ->whereIn('estado', self::ABIERTOS)
+            ->exists();
+
+        if ($pedidoAbierto) {
             return response()->json([
-                'message' => 'No se puede eliminar: la mesa tiene historial de pedidos. Desactívala en su lugar.',
+                'message' => 'No puedes eliminar la mesa mientras tenga un pedido abierto.',
             ], 422);
         }
 
-        $mesa->delete();
+        $mesa->eliminada_en = Carbon::now();
+        $mesa->activa = false;
+        $mesa->save();
 
         return response()->json([
-            'message' => 'Mesa eliminada.',
+            'message' => 'Mesa eliminada. Puedes restaurarla desde «Mesas borradas».',
+            'data' => $this->serializeMesa($mesa),
+        ]);
+    }
+
+    /**
+     * Restaura una mesa borrada (vuelve visible y activa).
+     */
+    public function restaurar(Mesa $mesa): JsonResponse
+    {
+        if ($mesa->eliminada_en === null) {
+            return response()->json(['message' => 'Esta mesa no está eliminada.'], 422);
+        }
+
+        $mesa->eliminada_en = null;
+        $mesa->activa = true;
+        $mesa->save();
+
+        return response()->json([
+            'message' => 'Mesa restaurada.',
+            'data' => $this->serializeMesa($mesa),
         ]);
     }
 
@@ -161,6 +216,7 @@ class AdminMesaController extends Controller
             'capacidad' => $mesa->capacidad,
             'estado' => $mesa->estado,
             'activa' => (bool) $mesa->activa,
+            'eliminada_en' => $mesa->eliminada_en?->toIso8601String(),
         ];
     }
 }
