@@ -15,6 +15,8 @@ import {
 } from '../auth/staffLogin';
 
 import { setToken } from '../auth/authStorage';
+import { clearSessionEndedState } from '../auth/sessionNavigation';
+import { useSessionEndedNotice } from '../auth/useSessionEndedNotice';
 
 import { ThemeToggle } from '../theme/ThemeToggle';
 
@@ -89,6 +91,7 @@ export function LoginStaffPage() {
     const [recoveryCode, setRecoveryCode] = useState('');
 
     const resetSuccess = location.state?.resetSuccess || '';
+    const sessionEndedNotice = useSessionEndedNotice();
 
     useEffect(() => {
         if (initialRol !== 'ADMINISTRADOR') return;
@@ -178,6 +181,7 @@ export function LoginStaffPage() {
 
 
                 setToken(data.token);
+                clearSessionEndedState();
 
                 navigate(config.redirect, { replace: true });
 
@@ -224,6 +228,7 @@ export function LoginStaffPage() {
 
 
             setToken(data.token);
+            clearSessionEndedState();
 
             navigate(config.redirect, { replace: true });
 
@@ -617,7 +622,11 @@ export function LoginStaffPage() {
                                     </div>
                                 ) : null}
 
-
+                                {sessionEndedNotice ? (
+                                    <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                                        {sessionEndedNotice}
+                                    </div>
+                                ) : null}
 
                                 {error ? (
 

@@ -3,6 +3,8 @@ import { PasswordInput } from '../components/PasswordInput';
 import { useNavigate } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { setMasterToken } from '../auth/masterAuthStorage';
+import { clearSessionEndedState } from '../auth/sessionNavigation';
+import { useSessionEndedNotice } from '../auth/useSessionEndedNotice';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function MasterLoginPage() {
@@ -11,6 +13,7 @@ export function MasterLoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
+    const sessionEndedNotice = useSessionEndedNotice();
 
     async function onSubmit(e) {
         e.preventDefault();
@@ -22,6 +25,7 @@ export function MasterLoginPage() {
                 body: JSON.stringify({ email, password }),
             });
             setMasterToken(res.token);
+            clearSessionEndedState();
             navigate('/master/dashboard', { replace: true });
         } catch (err) {
             const msg = err?.message || 'No se pudo iniciar sesión.';
@@ -57,6 +61,11 @@ export function MasterLoginPage() {
                             Recomendado: <code className="text-violet-600">http://master.localhost:5173/master/login</code>
                         </p>
                     </div>
+                    {sessionEndedNotice ? (
+                        <p className="text-sm rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-amber-900 dark:text-amber-100">
+                            {sessionEndedNotice}
+                        </p>
+                    ) : null}
                     {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
                     <label className="block text-sm">
                         <span className="text-stone-600 dark:text-stone-400">Correo</span>

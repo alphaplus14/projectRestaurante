@@ -1,5 +1,7 @@
 import { apiFetch } from './apiClient';
 import { clearToken, getToken } from './authStorage';
+import { clearMasterToken, getMasterToken } from './masterAuthStorage';
+import { masterApiFetch } from './masterApiClient';
 
 /**
  * Cierra sesión en el servidor (Sanctum) y borra el token local.
@@ -14,4 +16,15 @@ export async function logoutTenantSession() {
         /* sesión ya inválida o sin red */
     }
     clearToken();
+}
+
+export async function logoutMasterSession() {
+    try {
+        if (getMasterToken()) {
+            await masterApiFetch('/api/master/auth/logout', { method: 'POST' });
+        }
+    } catch {
+        /* ignore */
+    }
+    clearMasterToken();
 }

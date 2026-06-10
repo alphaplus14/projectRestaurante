@@ -43,6 +43,7 @@ import { RequireCliente } from './auth/RequireCliente';
 import { RequireMaster } from './auth/RequireMaster';
 import { RequireMasterHost } from './auth/RequireMasterHost';
 import { RequireOnboardingHost } from './auth/RequireOnboardingHost';
+import { SessionHistoryGuard } from './auth/SessionHistoryGuard';
 
 function RootRedirect() {
     if (isMasterHost()) {
@@ -60,6 +61,7 @@ function CatchAllRedirect() {
 
 export function App() {
     return (
+        <SessionHistoryGuard>
         <Routes>
             <Route path="/" element={<RootRedirect />} />
 
@@ -304,5 +306,6 @@ export function App() {
 
             <Route path="*" element={<CatchAllRedirect />} />
         </Routes>
+        </SessionHistoryGuard>
     );
 }
