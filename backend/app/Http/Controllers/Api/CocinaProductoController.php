@@ -19,6 +19,7 @@ class CocinaProductoController extends Controller
         $productos = Producto::query()
             ->with(['categoria:idCategoria,nombre,orden,activa'])
             ->join('categoria', 'producto.categoria_idCategoria', '=', 'categoria.idCategoria')
+            ->whereNull('producto.eliminado_en')
             ->orderBy('categoria.orden')
             ->orderBy('categoria.nombre')
             ->orderBy('producto.nombreProducto')
@@ -33,6 +34,10 @@ class CocinaProductoController extends Controller
 
     public function setActivo(Request $request, Producto $producto): JsonResponse
     {
+        if ($producto->eliminado_en !== null) {
+            return response()->json(['message' => 'Este plato fue eliminado del menú.'], 422);
+        }
+
         $data = $request->validate([
             'activo' => ['required', 'boolean'],
         ]);

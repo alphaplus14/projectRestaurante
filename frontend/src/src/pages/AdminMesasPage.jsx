@@ -38,6 +38,9 @@ const ESTADO_PEDIDO = {
 export function AdminMesasPage() {
     const [loading, setLoading] = useState(true);
     const [mesas, setMesas] = useState([]);
+    const [vista, setVista] = useState('activas');
+    const [totalEliminadas, setTotalEliminadas] = useState(0);
+    const [restaurandoId, setRestaurandoId] = useState(null);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState(emptyForm());
 
@@ -49,11 +52,13 @@ export function AdminMesasPage() {
     const [histRows, setHistRows] = useState([]);
     const [histLoading, setHistLoading] = useState(false);
 
-    async function load() {
+    async function load(vistaActual = vista) {
         setLoading(true);
         try {
-            const data = await apiFetch('/api/admin/mesas');
+            const params = vistaActual === 'eliminadas' ? '?eliminadas=1' : '';
+            const data = await apiFetch(`/api/admin/mesas${params}`);
             setMesas(Array.isArray(data?.data) ? data.data : []);
+            setTotalEliminadas(Number(data?.total_eliminadas) || 0);
         } catch (err) {
             void adminAlertError(err, 'No se pudieron cargar las mesas');
         } finally {
@@ -62,9 +67,9 @@ export function AdminMesasPage() {
     }
 
     useEffect(() => {
-        load();
+        load(vista);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [vista]);
 
     async function crearMesa(e) {
         e.preventDefault();
@@ -139,7 +144,7 @@ export function AdminMesasPage() {
     async function eliminarMesa(m) {
         if (
             !window.confirm(
-                `¿Eliminar la mesa "${m.nombre || `#${m.numero}`}"?\n\nSolo se permite si no tiene pedidos registrados.`,
+                `¿Eliminar la mesa "${m.nombre || `#${m.numero}`}"?\n\nNo se borra de la base de datos: dejará de mostrarse y podrás restaurarla desde «Mesas borradas».`,
             )
         ) {
             return;
@@ -149,6 +154,18 @@ export function AdminMesasPage() {
             await load();
         } catch (err) {
             void adminAlertError(err, 'No se pudo eliminar la mesa');
+        }
+    }
+
+    async function restaurarMesa(m) {
+        setRestaurandoId(m.idMesa);
+        try {
+            await apiFetch(`/api/admin/mesas/${m.idMesa}/restaurar`, { method: 'POST' });
+            await load();
+        } catch (err) {
+            void adminAlertError(err, 'No se pudo restaurar la mesa');
+        } finally {
+            setRestaurandoId(null);
         }
     }
 
@@ -241,8 +258,36 @@ export function AdminMesasPage() {
                 </div>
 
                 <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
-                    <div className="px-5 py-4 border-b border-stone-200 dark:border-stone-800">
-                        <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">Mesas registradas</h2>
+                    <div className="px-5 py-4 border-b border-stone-200 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-50">
+                            {vista === 'eliminadas' ? 'Mesas borradas' : 'Mesas registradas'}
+                        </h2>
+                        <div className="flex gap-1 bg-stone-100 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl p-1">
+                            <button
+                                type="button"
+                                onClick={() => setVista('activas')}
+                                className={classNames(
+                                    'px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-amber-500',
+                                    vista === 'activas'
+                                        ? 'bg-orange-700 text-stone-50'
+                                        : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60',
+                                )}
+                            >
+                                Registradas
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setVista('eliminadas')}
+                                className={classNames(
+                                    'px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-amber-500',
+                                    vista === 'eliminadas'
+                                        ? 'bg-red-700 text-stone-50'
+                                        : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800/60',
+                                )}
+                            >
+                                Mesas borradas{totalEliminadas > 0 ? ` (${totalEliminadas})` : ''}
+                            </button>
+                        </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm min-w-[640px]">
@@ -252,7 +297,7 @@ export function AdminMesasPage() {
                                     <th className="text-left font-medium px-4 py-3">Nombre</th>
                                     <th className="text-left font-medium px-4 py-3">Capacidad</th>
                                     <th className="text-left font-medium px-4 py-3">Estado</th>
-                                    <th className="text-left font-medium px-4 py-3">En sistema</th>
+                                    <th className="text-left font-medium px-4 py-3">{vista === 'eliminadas' ? 'Eliminada el' : 'En sistema'}</th>
                                     <th className="text-right font-medium px-4 py-3">Acciones</th>
                                 </tr>
                             </thead>
@@ -274,7 +319,9 @@ export function AdminMesasPage() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {m.activa ? (
+                                            {vista === 'eliminadas' ? (
+                                                <span className="text-stone-600 dark:text-stone-400 text-xs">{formatFechaHora(m.eliminada_en)}</span>
+                                            ) : m.activa ? (
                                                 <span className="inline-flex rounded-full border border-amber-500/30 bg-amber-600/15 px-2 py-0.5 text-xs text-amber-900 dark:text-amber-200">
                                                     Activa
                                                 </span>
@@ -286,39 +333,61 @@ export function AdminMesasPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end flex-wrap gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => abrirHistorial(m)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                                >
-                                                    Ver historial
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(m)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleActiva(m)}
-                                                    className={classNames(
-                                                        'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
-                                                        m.activa
-                                                            ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                                                            : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30',
-                                                    )}
-                                                >
-                                                    {m.activa ? 'Desactivar' : 'Activar'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => eliminarMesa(m)}
-                                                    className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
-                                                >
-                                                    Eliminar
-                                                </button>
+                                                {vista === 'eliminadas' ? (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => abrirHistorial(m)}
+                                                            className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                        >
+                                                            Ver historial
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => restaurarMesa(m)}
+                                                            disabled={restaurandoId === m.idMesa}
+                                                            className="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-60 text-stone-50 font-semibold focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                        >
+                                                            {restaurandoId === m.idMesa ? 'Restaurando…' : 'Restaurar'}
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => abrirHistorial(m)}
+                                                            className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                        >
+                                                            Ver historial
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEdit(m)}
+                                                            className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-800/60 focus-visible:ring-2 focus-visible:ring-amber-500"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleActiva(m)}
+                                                            className={classNames(
+                                                                'px-3 py-2 rounded-lg font-medium focus-visible:ring-2 focus-visible:ring-amber-500',
+                                                                m.activa
+                                                                    ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
+                                                                    : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/30',
+                                                            )}
+                                                        >
+                                                            {m.activa ? 'Desactivar' : 'Activar'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => eliminarMesa(m)}
+                                                            className="px-3 py-2 rounded-lg bg-red-700/10 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-700/20 dark:hover:bg-red-900/50 focus-visible:ring-2 focus-visible:ring-red-500"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -326,7 +395,9 @@ export function AdminMesasPage() {
                                 {mesas.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-4 py-12 text-center text-stone-600 dark:text-stone-500">
-                                            No hay mesas. Crea la primera arriba.
+                                            {vista === 'eliminadas'
+                                                ? 'No hay mesas borradas.'
+                                                : 'No hay mesas. Crea la primera arriba.'}
                                         </td>
                                     </tr>
                                 ) : null}

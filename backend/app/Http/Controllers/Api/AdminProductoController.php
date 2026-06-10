@@ -9,6 +9,7 @@ use App\Models\ProductoEstadoLog;
 use App\Services\ProductoActivoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -19,9 +20,16 @@ class AdminProductoController extends Controller
     ) {}
     public function index(Request $request): JsonResponse
     {
+        $verEliminados = $request->boolean('eliminados');
+
         $productos = Producto::query()
             ->with(['categoria:idCategoria,nombre,orden,activa'])
             ->join('categoria', 'producto.categoria_idCategoria', '=', 'categoria.idCategoria')
+            ->when(
+                $verEliminados,
+                fn ($q) => $q->whereNotNull('producto.eliminado_en'),
+                fn ($q) => $q->whereNull('producto.eliminado_en'),
+            )
             ->orderBy('categoria.orden')
             ->orderBy('categoria.nombre')
             ->orderBy('producto.nombreProducto')
@@ -33,9 +41,12 @@ class AdminProductoController extends Controller
             ->orderBy('nombre')
             ->get(['idCategoria', 'nombre', 'orden', 'activa']);
 
+        $totalEliminados = (int) Producto::query()->whereNotNull('eliminado_en')->count();
+
         return response()->json([
             'data' => $productos->map(fn (Producto $p) => $this->serializeProducto($p)),
             'categorias' => $categorias,
+            'total_eliminados' => $totalEliminados,
         ]);
     }
 
@@ -50,6 +61,18 @@ class AdminProductoController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $nombreEliminado = Producto::query()
+            ->where('nombreProducto', trim((string) $request->input('nombreProducto')))
+            ->where('categoria_idCategoria', $request->input('categoria_idCategoria'))
+            ->whereNotNull('eliminado_en')
+            ->exists();
+
+        if ($nombreEliminado) {
+            return response()->json([
+                'message' => 'Ya existe un plato borrado con ese nombre en esa categoría. Restáuralo desde «Platos borrados» o usa otro nombre.',
+            ], 422);
+        }
+
         $data = $this->validatePayload($request);
         unset($data['imagen']);
 
@@ -91,6 +114,10 @@ class AdminProductoController extends Controller
      */
     public function setActivo(Request $request, Producto $producto): JsonResponse
     {
+        if ($producto->eliminado_en !== null) {
+            return response()->json(['message' => 'Este producto fue eliminado. Restáuralo desde «Platos borrados».'], 422);
+        }
+
         $data = $request->validate([
             'activo' => ['required', 'boolean'],
         ]);
@@ -178,21 +205,41 @@ class AdminProductoController extends Controller
     }
 
     /**
-     * Eliminar (solo si no tiene detalles de pedidos).
+     * Borrado suave: el plato se oculta del menú y del panel, pero se conserva
+     * en la base de datos (junto con su imagen e historial de pedidos).
      */
     public function destroy(Producto $producto): JsonResponse
     {
-        if ($producto->pedidoDetalles()->exists()) {
-            return response()->json([
-                'message' => 'Este producto tiene pedidos asociados. No se puede eliminar; desactívalo.',
-            ], 409);
+        if ($producto->eliminado_en !== null) {
+            return response()->json(['message' => 'Este producto ya fue eliminado.'], 422);
         }
 
-        $this->deleteStoredImage($producto->imagen);
-        $producto->delete();
+        $producto->eliminado_en = Carbon::now();
+        $producto->activo = false;
+        $producto->save();
 
         return response()->json([
-            'message' => 'Producto eliminado.',
+            'message' => 'Producto eliminado. Puedes restaurarlo desde «Platos borrados».',
+            'data' => $this->serializeProducto($producto->fresh(['categoria:idCategoria,nombre,orden,activa'])),
+        ]);
+    }
+
+    /**
+     * Restaura un plato borrado (vuelve visible y activo).
+     */
+    public function restaurar(Producto $producto): JsonResponse
+    {
+        if ($producto->eliminado_en === null) {
+            return response()->json(['message' => 'Este producto no está eliminado.'], 422);
+        }
+
+        $producto->eliminado_en = null;
+        $producto->activo = true;
+        $producto->save();
+
+        return response()->json([
+            'message' => 'Producto restaurado.',
+            'data' => $this->serializeProducto($producto->fresh(['categoria:idCategoria,nombre,orden,activa'])),
         ]);
     }
 
@@ -252,6 +299,7 @@ class AdminProductoController extends Controller
             'imagenUrl' => $imagenUrl,
             'tipo' => $p->tipo,
             'activo' => (bool) $p->activo,
+            'eliminado_en' => $p->eliminado_en?->toIso8601String(),
             'categoria_idCategoria' => $p->categoria_idCategoria,
             'receta_idReceta' => $p->receta_idReceta,
             'categoria' => $p->categoria ? [

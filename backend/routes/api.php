@@ -160,6 +160,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::put('mesas/{mesa:idMesa}', [AdminMesaController::class, 'update']);
         Route::patch('mesas/{mesa:idMesa}/activo', [AdminMesaController::class, 'setActivo']);
         Route::delete('mesas/{mesa:idMesa}', [AdminMesaController::class, 'destroy']);
+        Route::post('mesas/{mesa:idMesa}/restaurar', [AdminMesaController::class, 'restaurar']);
         Route::get('mesas/{mesa:idMesa}/historial', [AdminMesaController::class, 'historialPedidos']);
 
         Route::get('productos', [AdminProductoController::class, 'index']);
@@ -169,6 +170,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::match(['put', 'post'], 'productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
         Route::patch('productos/{producto:idProducto}/activo', [AdminProductoController::class, 'setActivo']);
         Route::delete('productos/{producto:idProducto}', [AdminProductoController::class, 'destroy']);
+        Route::post('productos/{producto:idProducto}/restaurar', [AdminProductoController::class, 'restaurar']);
 
         Route::get('meseros', [AdminMeseroController::class, 'index']);
         Route::post('meseros', [AdminMeseroController::class, 'store']);
