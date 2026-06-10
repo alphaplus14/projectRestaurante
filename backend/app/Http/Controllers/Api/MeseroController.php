@@ -423,6 +423,49 @@ class MeseroController extends Controller
     }
 
     /**
+     * Mesero envía la cuenta a caja para que el cajero la cobre.
+     * Puede reenviarse para reflejar cambios (platos agregados o eliminados).
+     */
+    public function enviarACaja(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizeMesero($request, $pedido);
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json([
+                'message' => 'Este pedido ya está cerrado o cancelado.',
+            ], 422);
+        }
+
+        $tieneItems = $pedido->detalles()
+            ->where('estado_item', '!=', 'CANCELADO')
+            ->exists();
+
+        if (! $tieneItems) {
+            return response()->json([
+                'message' => 'Agrega al menos un plato antes de enviar la cuenta a caja.',
+            ], 422);
+        }
+
+        $reenvio = $pedido->enviado_caja_en !== null;
+
+        $pedido->enviado_caja_en = now();
+        $pedido->actualizado_en = now();
+        $pedido->save();
+
+        $pedido->refresh()->load([
+            'mesa:idMesa,numero,nombre',
+            'detalles' => fn ($q) => $q->orderBy('idPedidoDetalle')->with('producto:idProducto,nombreProducto,tipo'),
+        ]);
+
+        return response()->json([
+            'data' => $this->serializePedidoCompleto($pedido),
+            'message' => $reenvio
+                ? 'Cuenta actualizada en caja. El cajero verá los cambios.'
+                : 'Cuenta enviada a caja. El cajero ya puede cobrarla.',
+        ]);
+    }
+
+    /**
      * Cancelar pedido abierto (cliente se va, error, etc.) y liberar la mesa.
      */
     public function cancelarPedido(Request $request, Pedido $pedido): JsonResponse
@@ -597,6 +640,7 @@ class MeseroController extends Controller
             'notas' => $pedido->notas,
             'motivo_cancelacion' => $pedido->motivo_cancelacion,
             'cancelado_en' => $pedido->cancelado_en?->toIso8601String(),
+            'enviado_caja_en' => $pedido->enviado_caja_en?->toIso8601String(),
             'creado_en' => $pedido->creado_en?->toIso8601String(),
             'actualizado_en' => $pedido->actualizado_en?->toIso8601String(),
             'mesa' => $pedido->mesa ? [
