@@ -54,11 +54,14 @@ class TenantProvisioner
             $this->seedTenantBootstrap($payload);
             $this->finalizeTenantData($payload);
 
+            $defaultMonths = (int) config('tenancy.default_license_months', 1);
+
             $tenant->update([
                 'status' => 'active',
                 'nombre_comercial' => $payload['nombre_comercial'],
                 'provisioned_at' => now(),
                 'onboarding_completed_at' => now(),
+                'access_expires_at' => $defaultMonths > 0 ? now()->addMonths($defaultMonths) : null,
                 'provision_error' => null,
             ]);
         } catch (Throwable $e) {

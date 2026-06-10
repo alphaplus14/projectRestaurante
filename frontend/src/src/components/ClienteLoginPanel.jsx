@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
+import { getTenantSlugForApi } from '../tenancy/tenantContext';
+import { PasswordInput } from './PasswordInput';
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -31,6 +33,7 @@ export function ClienteLoginPanel({
     const [error, setError] = useState('');
 
     const deviceName = useMemo(() => `web-${navigator.platform || 'browser'}`, []);
+    const tenantSlug = useMemo(() => getTenantSlugForApi(), []);
 
     function cambiarModo(next) {
         setModo(next);
@@ -41,9 +44,14 @@ export function ClienteLoginPanel({
 
     function irAGoogle() {
         const dest = redirectPath ?? '/cliente';
+        const tenant = getTenantSlugForApi();
         // Ir directo al backend evita problemas de cookies entre localhost:5173 y 127.0.0.1:8000
         const apiOrigin = import.meta.env.DEV ? 'http://127.0.0.1:8000' : '';
-        window.location.href = `${apiOrigin}/auth/google/cliente?redirect=${encodeURIComponent(dest)}`;
+        const params = new URLSearchParams({ redirect: dest });
+        if (tenant) {
+            params.set('tenant', tenant);
+        }
+        window.location.href = `${apiOrigin}/auth/google/cliente?${params.toString()}`;
     }
 
     function completarSesion(data) {
@@ -68,7 +76,14 @@ export function ClienteLoginPanel({
             });
             completarSesion(data);
         } catch (err) {
-            setError(err?.message || 'No se pudo iniciar sesión.');
+            const msg = err?.message || 'No se pudo iniciar sesión.';
+            if (err?.status === 403 && err?.data?.message?.includes('solo para CLIENTE')) {
+                setError('Este correo es de personal del restaurante. Usa /staff para entrar como empleado.');
+            } else if (err?.status === 400 && !tenantSlug) {
+                setError('No se identificó el restaurante. Abre el sitio desde el subdominio de tu local o configura VITE_DEV_TENANT_SLUG.');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -204,8 +219,7 @@ export function ClienteLoginPanel({
                         <label className="block text-sm font-medium text-stone-800 dark:text-neutral-200">
                             Contraseña
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             autoComplete="current-password"
                             required
@@ -301,8 +315,7 @@ export function ClienteLoginPanel({
                         <label className="block text-xs font-medium text-stone-800 dark:text-neutral-200">
                             Contraseña <span className="text-stone-500 font-normal">(mín. 8)</span>
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             required
                             minLength={8}
@@ -315,8 +328,7 @@ export function ClienteLoginPanel({
                         <label className="block text-xs font-medium text-stone-800 dark:text-neutral-200">
                             Confirmar contraseña
                         </label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className={inputClass}
                             required
                             minLength={8}

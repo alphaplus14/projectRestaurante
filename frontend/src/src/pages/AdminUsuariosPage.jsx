@@ -211,8 +211,8 @@ export function AdminUsuariosPage() {
               Usuarios y roles
             </h1>
             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-              Crea, edita o deshabilita usuarios. Puedes cambiar su rol en
-              cualquier momento.
+              Crea, edita o deshabilita usuarios del equipo. Tu propia cuenta no
+              aparece aquí.
             </p>
           </div>
           <button

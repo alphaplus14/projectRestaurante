@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginStaffPage } from './pages/LoginStaffPage';
+import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
+import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import { CocinaPedidosPage } from './pages/CocinaPedidosPage';
 import { CocinaInventarioPage } from './pages/CocinaInventarioPage';
 import { CocinaMenuPage } from './pages/CocinaMenuPage';
@@ -32,14 +34,24 @@ import { isMasterHost } from './tenancy/tenantContext';
 import { ClienteCartaPage } from './pages/ClienteCartaPage';
 import { ClienteReservasPage } from './pages/ClienteReservasPage';
 import { ClienteOAuthCallbackPage } from './pages/ClienteOAuthCallbackPage';
+import { TenantAccessBlockedPage } from './pages/TenantAccessBlockedPage';
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireCajero } from './auth/RequireCajero';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { RequireCliente } from './auth/RequireCliente';
 import { RequireMaster } from './auth/RequireMaster';
+import { RequireMasterHost } from './auth/RequireMasterHost';
+import { RequireOnboardingHost } from './auth/RequireOnboardingHost';
 
 function RootRedirect() {
+    if (isMasterHost()) {
+        return <Navigate to="/master" replace />;
+    }
+    return <Navigate to="/cliente" replace />;
+}
+
+function CatchAllRedirect() {
     if (isMasterHost()) {
         return <Navigate to="/master" replace />;
     }
@@ -51,23 +63,47 @@ export function App() {
         <Routes>
             <Route path="/" element={<RootRedirect />} />
 
-            {/* Plataforma Master + onboarding (sin subdominio de tenant) */}
-            <Route path="/master" element={<Navigate to="/master/login" replace />} />
-            <Route path="/master/login" element={<MasterLoginPage />} />
+            {/* Plataforma Master + onboarding (hosts restringidos) */}
+            <Route
+                path="/master"
+                element={
+                    <RequireMasterHost>
+                        <Navigate to="/master/login" replace />
+                    </RequireMasterHost>
+                }
+            />
+            <Route
+                path="/master/login"
+                element={
+                    <RequireMasterHost>
+                        <MasterLoginPage />
+                    </RequireMasterHost>
+                }
+            />
             <Route
                 path="/master/dashboard"
                 element={
-                    <RequireMaster>
-                        <MasterDashboardPage />
-                    </RequireMaster>
+                    <RequireMasterHost>
+                        <RequireMaster>
+                            <MasterDashboardPage />
+                        </RequireMaster>
+                    </RequireMasterHost>
                 }
             />
-            <Route path="/onboarding/:token" element={<OnboardingPage />} />
+            <Route
+                path="/onboarding/:token"
+                element={
+                    <RequireOnboardingHost>
+                        <OnboardingPage />
+                    </RequireOnboardingHost>
+                }
+            />
 
             {/* Sitio clientes (público + sesión cliente) */}
             <Route path="/cliente" element={<LandingPage />} />
             <Route path="/cliente/login" element={<LoginClientePage />} />
             <Route path="/cliente/oauth-callback" element={<ClienteOAuthCallbackPage />} />
+            <Route path="/acceso-bloqueado" element={<TenantAccessBlockedPage />} />
             <Route path="/login" element={<Navigate to="/cliente/login" replace />} />
             <Route path="/blank" element={<Navigate to="/cliente/carta" replace />} />
             <Route path="/cliente/carta" element={<ClienteCartaPage />} />
@@ -82,6 +118,8 @@ export function App() {
 
             {/* Personal del restaurante */}
             <Route path="/staff" element={<LoginStaffPage />} />
+            <Route path="/staff/olvide-contrasena" element={<AdminForgotPasswordPage />} />
+            <Route path="/restablecer-contrasena" element={<AdminResetPasswordPage />} />
             <Route path="/login-admin" element={<Navigate to="/staff?rol=admin" replace />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/login-mesero" element={<Navigate to="/staff?rol=mesero" replace />} />
@@ -264,7 +302,7 @@ export function App() {
                 }
             />
 
-            <Route path="*" element={<Navigate to="/cliente" replace />} />
+            <Route path="*" element={<CatchAllRedirect />} />
         </Routes>
     );
 }

@@ -1,13 +1,173 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { setDevTenantSlug, tenantAppOrigin } from '../tenancy/tenantContext';
+import { PasswordInput } from '../components/PasswordInput';
 
 const STEPS = [
     { id: 1, title: 'Tu local' },
     { id: 2, title: 'Administrador' },
     { id: 3, title: 'Confirmar' },
 ];
+
+const LOGO_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp';
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function LogoUploadField({ file, previewUrl, error, onSelect, onClear }) {
+    const inputId = useId();
+    const inputRef = useRef(null);
+    const [dragOver, setDragOver] = useState(false);
+
+    function validateAndSelect(nextFile) {
+        if (!nextFile) return;
+
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowed.includes(nextFile.type)) {
+            onSelect(null, 'Formato no válido. Usa JPG, PNG o WebP.');
+            return;
+        }
+
+        onSelect(nextFile, null);
+    }
+
+    function onInputChange(e) {
+        validateAndSelect(e.target.files?.[0] ?? null);
+        e.target.value = '';
+    }
+
+    function onDrop(e) {
+        e.preventDefault();
+        setDragOver(false);
+        validateAndSelect(e.dataTransfer.files?.[0] ?? null);
+    }
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                <label htmlFor={inputId} className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                    Logo de tu restaurante
+                </label>
+                <span className="rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                    Opcional
+                </span>
+            </div>
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+                Aparecerá en el panel de administración y en la carta que ven tus clientes. JPG, PNG o WebP.
+            </p>
+
+            <div
+                className={[
+                    'rounded-xl border-2 border-dashed p-4 transition-colors',
+                    dragOver
+                        ? 'border-violet-500 bg-violet-50/80 dark:bg-violet-950/30'
+                        : error
+                          ? 'border-red-400/70 bg-red-50/50 dark:bg-red-950/20'
+                          : file
+                            ? 'border-violet-400/50 bg-violet-50/40 dark:bg-violet-950/20'
+                            : 'border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950/50',
+                ].join(' ')}
+                onDragEnter={(e) => {
+                    e.preventDefault();
+                    setDragOver(true);
+                }}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                }}
+                onDrop={onDrop}
+            >
+                <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
+                    <div
+                        className={[
+                            'h-24 w-24 shrink-0 rounded-xl border overflow-hidden flex items-center justify-center',
+                            file
+                                ? 'border-violet-300 dark:border-violet-700 bg-white dark:bg-stone-900'
+                                : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900',
+                        ].join(' ')}
+                        aria-hidden={!previewUrl}
+                    >
+                        {previewUrl ? (
+                            <img src={previewUrl} alt="Vista previa del logo" className="h-full w-full object-contain p-1" />
+                        ) : (
+                            <svg className="h-10 w-10 text-stone-300 dark:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                                <rect x="3" y="5" width="18" height="14" rx="2" />
+                                <circle cx="8.5" cy="10" r="1.5" fill="currentColor" stroke="none" />
+                                <path d="M21 15l-5-5L5 19" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        )}
+                    </div>
+
+                    <div className="flex-1 w-full text-center sm:text-left space-y-3">
+                        {file ? (
+                            <>
+                                <div>
+                                    <p className="text-sm font-medium text-stone-800 dark:text-stone-200 break-all">{file.name}</p>
+                                    <p className="text-xs text-stone-500 mt-0.5">{formatFileSize(file.size)}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                                    <button
+                                        type="button"
+                                        onClick={() => inputRef.current?.click()}
+                                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-xs font-medium hover:bg-stone-100 dark:hover:bg-stone-800"
+                                    >
+                                        Cambiar imagen
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={onClear}
+                                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                    >
+                                        Quitar
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm text-stone-700 dark:text-stone-300">
+                                    Arrastra tu logo aquí o búscalo en tu dispositivo
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => inputRef.current?.click()}
+                                    className="inline-flex items-center gap-2 rounded-lg bg-violet-700 hover:bg-violet-600 text-white px-4 py-2 text-sm font-semibold"
+                                >
+                                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                                        <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    Elegir imagen
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <input
+                ref={inputRef}
+                id={inputId}
+                type="file"
+                accept={LOGO_ACCEPT}
+                onChange={onInputChange}
+                className="sr-only"
+            />
+
+            {error ? (
+                <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+                    {error}
+                </p>
+            ) : null}
+        </div>
+    );
+}
 
 function cleanTokenParam(raw) {
     if (!raw) return '';
@@ -48,7 +208,19 @@ function StepIndicator({ current }) {
     );
 }
 
-function OnboardingSuccess({ done, meta, onGoAdmin }) {
+function buildSummaryEmailNote(data) {
+    if (!data) return '';
+    if (data.summary_email_sent) {
+        const correo = data.admin_correo || 'tu correo';
+        return `Enviamos un resumen a ${correo} para que guardes los accesos y próximos pasos.`;
+    }
+    if (data.summary_email_error) {
+        return 'No pudimos enviar el correo de resumen. Guarda esta pantalla o copia los enlaces de abajo.';
+    }
+    return '';
+}
+
+function OnboardingSuccess({ done, meta, onGoAdmin, summaryEmailNote }) {
     const slug = done.slug || meta?.slug;
     const checklist = [
         {
@@ -61,7 +233,7 @@ function OnboardingSuccess({ done, meta, onGoAdmin }) {
         {
             title: 'Configura tu carta',
             desc: 'En Admin → Productos, crea categorías y platos que verán tus clientes.',
-            href: done.admin_login ? `${done.admin_login.replace('/login-admin', '/admin/productos')}` : null,
+            href: done.tenant_url ? `${done.tenant_url}/admin/productos` : null,
         },
         {
             title: 'Crea mesas y personal',
@@ -89,6 +261,9 @@ function OnboardingSuccess({ done, meta, onGoAdmin }) {
                         <a href={done.tenant_url} className="text-sm text-violet-700 dark:text-violet-400 font-medium break-all">
                             {done.tenant_url}
                         </a>
+                    ) : null}
+                    {summaryEmailNote ? (
+                        <p className="text-xs text-stone-500 dark:text-stone-400 pt-1">{summaryEmailNote}</p>
                     ) : null}
                 </div>
 
@@ -156,6 +331,8 @@ export function OnboardingPage() {
         admin_telefono: '',
     });
     const [logo, setLogo] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoError, setLogoError] = useState('');
 
     const loadMeta = useCallback(async () => {
         if (!token) {
@@ -193,6 +370,16 @@ export function OnboardingPage() {
     }, [loadMeta]);
 
     useEffect(() => {
+        if (!logo) {
+            setLogoPreview(null);
+            return undefined;
+        }
+        const url = URL.createObjectURL(logo);
+        setLogoPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [logo]);
+
+    useEffect(() => {
         if (reason !== 'provisioning' || !token) return undefined;
 
         const id = setInterval(() => {
@@ -217,7 +404,7 @@ export function OnboardingPage() {
     function goAdmin(doneData) {
         const slug = doneData?.slug || meta?.slug;
         if (slug) setDevTenantSlug(slug);
-        window.location.assign(doneData?.admin_login || (slug ? tenantAppOrigin(slug) + '/login-admin' : '/login-admin'));
+        window.location.assign(doneData?.admin_login || (slug ? tenantAppOrigin(slug) + '/staff?rol=admin' : '/staff?rol=admin'));
     }
 
     async function onSubmit() {
@@ -273,7 +460,14 @@ export function OnboardingPage() {
     }
 
     if (done || reason === 'done') {
-        return <OnboardingSuccess done={done || {}} meta={meta} onGoAdmin={() => goAdmin(done)} />;
+        return (
+            <OnboardingSuccess
+                done={done || {}}
+                meta={meta}
+                onGoAdmin={() => goAdmin(done)}
+                summaryEmailNote={buildSummaryEmailNote(done)}
+            />
+        );
     }
 
     if (reason === 'provisioning') {
@@ -384,15 +578,19 @@ export function OnboardingPage() {
                                 onChange={onChange}
                                 className="w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950 text-sm"
                             />
-                            <label className="block text-sm">
-                                <span className="text-stone-500">Logo (opcional)</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setLogo(e.target.files?.[0] ?? null)}
-                                    className="mt-1 w-full text-sm"
-                                />
-                            </label>
+                            <LogoUploadField
+                                file={logo}
+                                previewUrl={logoPreview}
+                                error={logoError}
+                                onSelect={(nextFile, err) => {
+                                    setLogo(nextFile);
+                                    setLogoError(err || '');
+                                }}
+                                onClear={() => {
+                                    setLogo(null);
+                                    setLogoError('');
+                                }}
+                            />
                         </fieldset>
                     ) : null}
 
@@ -429,9 +627,8 @@ export function OnboardingPage() {
                                 onChange={onChange}
                                 className="w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950 text-sm"
                             />
-                            <input
+                            <PasswordInput
                                 name="admin_password"
-                                type="password"
                                 required
                                 minLength={8}
                                 placeholder="Contraseña (mín. 8 caracteres) *"
@@ -470,6 +667,25 @@ export function OnboardingPage() {
                                 <div className="flex justify-between gap-3 px-3 py-2">
                                     <dt className="text-stone-500">Correo admin</dt>
                                     <dd className="font-medium text-right break-all">{form.admin_correo}</dd>
+                                </div>
+                                <div className="flex justify-between items-center gap-3 px-3 py-2">
+                                    <dt className="text-stone-500">Logo</dt>
+                                    <dd className="font-medium text-right flex items-center gap-2 justify-end">
+                                        {logoPreview ? (
+                                            <>
+                                                <img
+                                                    src={logoPreview}
+                                                    alt=""
+                                                    className="h-8 w-8 rounded-md border border-stone-200 dark:border-stone-700 object-contain bg-white dark:bg-stone-900"
+                                                />
+                                                <span className="text-xs text-stone-600 dark:text-stone-400 max-w-[10rem] truncate">
+                                                    {logo?.name}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="text-stone-400">Sin logo</span>
+                                        )}
+                                    </dd>
                                 </div>
                             </dl>
                             <p className="text-xs text-stone-500">

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { clearToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
 import { FacturaModal } from '../components/FacturaModal';
@@ -226,14 +226,14 @@ export function CajeroAjustesPage() {
         if (pagina > totalPaginas) setPagina(totalPaginas);
     }, [pagina, totalPaginas]);
 
-    function onSalir() {
-        clearToken();
+    async function onSalir() {
+        await logoutTenantSession();
         window.location.href = '/staff?rol=cajero';
     }
 
     async function solicitarSalir() {
         const ok = await confirmStaffLogout();
-        if (ok) onSalir();
+        if (ok) await onSalir();
     }
 
     async function confirmarCancelarVenta(motivo) {

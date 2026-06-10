@@ -1,6 +1,16 @@
 import { getToken } from './authStorage';
 import { formatApiErrorForUser } from '../utils/friendlyApiError';
 import { getTenantSlugForApi } from '../tenancy/tenantContext';
+import {
+    detectTenantAccessBlock,
+    redirectToTenantAccessBlocked,
+    shouldHandleTenantAccessRedirect,
+} from '../utils/tenantAccess';
+
+/** Login/registro: no enviar token viejo ni redirigir a /acceso-bloqueado (mostrar error en el formulario). */
+function isAuthEntryPath(path) {
+    return /^\/api\/auth\/(login(?:-|$)|register-|forgot-password|reset-password|two-factor)/.test(path);
+}
 
 export async function apiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
@@ -12,7 +22,7 @@ export async function apiFetch(path, options = {}) {
     }
 
     const token = getToken();
-    if (token && !headers.has('Authorization')) {
+    if (token && !isAuthEntryPath(path) && !headers.has('Authorization')) {
         headers.set('Authorization', `Bearer ${token}`);
     }
 
@@ -30,6 +40,14 @@ export async function apiFetch(path, options = {}) {
     if (!res.ok) {
         const dataObj = isJson && data && typeof data === 'object' ? data : null;
         const rawText = typeof data === 'string' ? data : null;
+
+        if (shouldHandleTenantAccessRedirect() && !isAuthEntryPath(path)) {
+            const blocked = detectTenantAccessBlock(res.status, dataObj);
+            if (blocked) {
+                redirectToTenantAccessBlocked(blocked.reason, blocked.message);
+            }
+        }
+
         const message = formatApiErrorForUser(res.status, dataObj, rawText);
 
         const err = new Error(message);

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { clearToken, getToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
@@ -447,8 +448,8 @@ export function ClienteCartaPage() {
         setProductoDetalle(null);
     }
 
-    function cerrarSesion() {
-        clearToken();
+    async function cerrarSesion() {
+        await logoutTenantSession();
         navigate('/cliente', { replace: true });
     }
 

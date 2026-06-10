@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\AdminPasswordResetController;
+use App\Http\Controllers\Api\AdminTwoFactorController;
 use App\Http\Controllers\Api\AdminCajeroController;
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\CajeroController;
@@ -19,6 +22,7 @@ use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
 use App\Http\Controllers\Api\Master\MasterInvitationController;
+use App\Http\Controllers\Api\Master\MasterTenantAccessController;
 use App\Http\Controllers\Api\Master\OnboardingController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -34,8 +38,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('master')->group(function () {
     Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
 
-    Route::get('onboarding/{token}', [OnboardingController::class, 'show']);
-    Route::post('onboarding/{token}', [OnboardingController::class, 'complete']);
+    Route::get('onboarding/{token}', [OnboardingController::class, 'show'])
+        ->middleware('throttle:onboarding');
+    Route::post('onboarding/{token}', [OnboardingController::class, 'complete'])
+        ->middleware('throttle:onboarding-complete');
 
     Route::middleware('auth.master')->group(function () {
         Route::get('auth/me', [MasterAuthController::class, 'me']);
@@ -43,6 +49,8 @@ Route::prefix('master')->group(function () {
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
         Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
+        Route::post('tenants/{tenant}/suspend', [MasterTenantAccessController::class, 'suspend']);
+        Route::post('tenants/{tenant}/extend-access', [MasterTenantAccessController::class, 'extendAccess']);
     });
 });
 
@@ -56,7 +64,7 @@ Route::middleware('tenant.identify')->group(function () {
     Route::get('public/productos-carta', [ProductoController::class, 'catalogoPublico']);
 
     Route::prefix('auth')->group(function () {
-        // Limita intentos de autenticación para frenar fuerza bruta (por IP + correo).
+        // Staff y cliente: límite por IP + correo (AUTH_RATE_LIMIT en .env).
         Route::middleware('throttle:auth')->group(function () {
             Route::post('login', [AuthController::class, 'login']);
             Route::post('login-cliente', [AuthController::class, 'loginCliente']);
@@ -64,8 +72,15 @@ Route::middleware('tenant.identify')->group(function () {
             Route::post('login-cocina', [AuthController::class, 'loginCocina']);
             Route::post('login-mesero', [AuthController::class, 'loginMesero']);
             Route::post('login-cajero', [AuthController::class, 'loginCajero']);
-            Route::post('login-admin', [AuthController::class, 'loginAdmin']);
+            Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
+            Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
         });
+
+        // Admin: login propio + 2FA (Fortify rate limiters).
+        Route::post('login-admin', [AdminAuthController::class, 'login'])
+            ->middleware('throttle:login');
+        Route::post('two-factor-challenge', [AdminAuthController::class, 'twoFactorChallenge'])
+            ->middleware('throttle:two-factor');
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -195,5 +210,11 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('usuarios', [UsuarioController::class, 'store']);
         Route::put('usuarios/{usuario:idUsuario}', [UsuarioController::class, 'update']);
         Route::patch('usuarios/{usuario:idUsuario}/activo', [UsuarioController::class, 'setActivo']);
+
+        Route::get('two-factor/status', [AdminTwoFactorController::class, 'status']);
+        Route::post('two-factor/enable', [AdminTwoFactorController::class, 'enable']);
+        Route::post('two-factor/confirm', [AdminTwoFactorController::class, 'confirm']);
+        Route::post('two-factor/recovery-codes', [AdminTwoFactorController::class, 'recoveryCodes']);
+        Route::delete('two-factor/disable', [AdminTwoFactorController::class, 'disable']);
     });
 });

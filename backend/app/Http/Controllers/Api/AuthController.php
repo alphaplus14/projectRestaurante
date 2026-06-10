@@ -83,11 +83,6 @@ class AuthController extends Controller
         return $this->issueToken($request, requiredRole: 'CAJERO');
     }
 
-    public function loginAdmin(Request $request)
-    {
-        return $this->issueToken($request, requiredRole: 'ADMINISTRADOR');
-    }
-
     public function me(Request $request)
     {
         /** @var Usuario $usuario */
@@ -116,9 +111,11 @@ class AuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:120'],
         ]);
 
+        $correo = strtolower(trim($data['correo']));
+
         $usuario = Usuario::query()
             ->with('cargo')
-            ->where('correo', $data['correo'])
+            ->where('correo', $correo)
             ->where('activo', true)
             ->first();
 
@@ -131,6 +128,13 @@ class AuthController extends Controller
         if ($requiredRole !== null && ($usuario->cargo?->nombre !== $requiredRole)) {
             return response()->json([
                 'message' => "Este login es solo para {$requiredRole}.",
+            ], 403);
+        }
+
+        // Admin debe usar login-admin (2FA). El login genérico no puede emitir token de administrador.
+        if ($requiredRole === null && $usuario->cargo?->nombre === 'ADMINISTRADOR') {
+            return response()->json([
+                'message' => 'Los administradores deben iniciar sesión desde /staff?rol=admin (login con verificación en dos pasos si está activa).',
             ], 403);
         }
 
