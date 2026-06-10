@@ -4,6 +4,7 @@ import { apiFetch } from '../auth/apiClient';
 import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
+import { FacturaModal } from '../components/FacturaModal';
 
 const METODOS_PAGO = [
     { value: 'EFECTIVO', label: 'Efectivo' },
@@ -13,11 +14,6 @@ const METODOS_PAGO = [
 ];
 
 const BILLETES_COLOMBIA = [2000, 5000, 10000, 20000, 50000, 100000];
-
-const ESTADO_LABEL = {
-    LISTO: 'Listo en cocina',
-    ENTREGADO: 'Entregado al salón',
-};
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -372,6 +368,8 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
     const restante = Math.max(0, total - sumPagos);
     const exceso = Math.max(0, sumPagos - total);
     const cuadra = Math.abs(sumPagos - total) < 0.01 && total > 0;
+    const listoParaCobro = cuenta.listo_para_cobro !== false;
+    const puedeCobrar = listoParaCobro && total > 0 && sumPagos + 0.01 >= total;
 
     function updatePago(idx, field, value) {
         setPagos((prev) => prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)));
@@ -410,8 +408,12 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
             setError('Agrega al menos un pago.');
             return;
         }
-        if (!cuadra) {
-            setError('La suma de pagos debe coincidir con el total.');
+        if (!listoParaCobro) {
+            setError('Aún hay platos en cocina. Espera a que estén listos para cobrar.');
+            return;
+        }
+        if (!puedeCobrar) {
+            setError('El total recibido no puede ser menor al total a cobrar.');
             return;
         }
         onConfirm({
@@ -450,6 +452,12 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
                         <p className="text-xs text-stone-500 dark:text-stone-400">
                             Mesero: {cuenta.mesero.nombre} {cuenta.mesero.apellido}
                         </p>
+                    ) : null}
+
+                    {!listoParaCobro ? (
+                        <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-200">
+                            Aún hay platos en cocina. Podrás cobrar cuando todos estén listos.
+                        </div>
                     ) : null}
 
                     <ul className="rounded-xl border border-stone-200 dark:border-stone-800 divide-y divide-stone-200 dark:divide-stone-800 text-sm max-h-48 overflow-y-auto">
@@ -601,23 +609,37 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
                         ))}
                     </div>
 
-                    <div className="flex justify-between items-center rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50 px-4 py-3 text-sm">
-                        <span className="font-semibold text-stone-900 dark:text-stone-50">Total a cobrar</span>
-                        <span className="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">{formatMoney(total)}</span>
+                    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/50 px-4 py-3 text-sm space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="font-semibold text-stone-900 dark:text-stone-50">Total a cobrar</span>
+                            <span className="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">{formatMoney(total)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-stone-600 dark:text-stone-400">
+                            <span>Total recibido</span>
+                            <span className="tabular-nums">{formatMoney(sumPagos)}</span>
+                        </div>
+                        {exceso > 0 ? (
+                            <div className="flex justify-between items-center pt-2 border-t border-stone-200 dark:border-stone-800">
+                                <span className="font-semibold text-amber-700 dark:text-amber-300">Devolución al cliente</span>
+                                <span className="text-base font-bold text-amber-700 dark:text-amber-300 tabular-nums">
+                                    {formatMoney(exceso)}
+                                </span>
+                            </div>
+                        ) : null}
                     </div>
 
                     <div
                         className={classNames(
                             'rounded-lg px-3 py-2 text-sm tabular-nums',
-                            cuadra
+                            puedeCobrar
                                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-900/50'
                                 : 'bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-900/50',
                         )}
                     >
-                        {cuadra
-                            ? 'Pagos cuadran con el total.'
-                            : exceso > 0
-                              ? `Exceso de ${formatMoney(exceso)}`
+                        {exceso > 0
+                            ? `Recibes ${formatMoney(sumPagos)} y devuelves ${formatMoney(exceso)} de vuelto.`
+                            : cuadra
+                              ? 'Pagos cuadran con el total.'
                               : `Faltan ${formatMoney(restante)}`}
                     </div>
 
@@ -629,7 +651,7 @@ function CobrarModal({ open, cuenta, busy, onClose, onConfirm }) {
 
                     <button
                         type="button"
-                        disabled={busy || !cuadra}
+                        disabled={busy || !puedeCobrar}
                         onClick={handleConfirm}
                         className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 text-sm disabled:opacity-50"
                     >
@@ -659,6 +681,8 @@ export function CajeroCajaPage() {
     const [reservasError, setReservasError] = useState('');
     const [modalLlamarMesero, setModalLlamarMesero] = useState(false);
     const [llamandoMesero, setLlamandoMesero] = useState(false);
+    const [facturaModal, setFacturaModal] = useState(false);
+    const [facturaActiva, setFacturaActiva] = useState(null);
 
     const fetchPendientes = useCallback(async ({ silent = false } = {}) => {
         if (!silent) setLoadingPendientes(true);
@@ -757,6 +781,10 @@ export function CajeroCajaPage() {
             setModalAbierto(false);
             setCuentaActiva(null);
             setBanner(res?.message || 'Cuenta cobrada.');
+            if (res?.factura) {
+                setFacturaActiva(res.factura);
+                setFacturaModal(true);
+            }
             await fetchPendientes({ silent: true });
         } catch (e) {
             setBanner(e?.message || 'No se pudo registrar el cobro.');
@@ -776,7 +804,12 @@ export function CajeroCajaPage() {
     }
 
     const pendientesOrdenadas = useMemo(
-        () => [...cuentas].sort((a, b) => new Date(a.actualizado_en) - new Date(b.actualizado_en)),
+        () =>
+            [...cuentas].sort(
+                (a, b) =>
+                    new Date(a.enviado_caja_en || a.actualizado_en) -
+                    new Date(b.enviado_caja_en || b.actualizado_en),
+            ),
         [cuentas],
     );
 
@@ -817,6 +850,14 @@ export function CajeroCajaPage() {
                             />
                         </button>
                         <ThemeToggle />
+                        <Link
+                            to="/cajero/facturas"
+                            aria-label="Historial de facturas"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/50 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/70 dark:hover:bg-stone-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+                        >
+                            <img src="/admin navbar icons/ventas icono.png" alt="" className="h-4 w-4 shrink-0 object-contain dark:invert opacity-90" />
+                            <span className="whitespace-nowrap">Facturas</span>
+                        </Link>
                         <Link
                             to="/cajero/ajustes"
                             aria-label="Ajustes, ventas y mesas"
@@ -859,7 +900,7 @@ export function CajeroCajaPage() {
                 ) : pendientesOrdenadas.length === 0 ? (
                     <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-10 text-center">
                         <p className="text-stone-600 dark:text-stone-400">No hay cuentas pendientes de cobro.</p>
-                        <p className="mt-2 text-sm text-stone-500">Aparecerán cuando cocina termine y el mesero retire el pedido.</p>
+                        <p className="mt-2 text-sm text-stone-500">Aparecerán cuando el mesero envíe la cuenta a caja.</p>
                     </div>
                 ) : (
                     <ul className="space-y-3">
@@ -872,11 +913,23 @@ export function CajeroCajaPage() {
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <div className="font-semibold text-stone-900 dark:text-stone-50">
-                                                {formatMesa(c.mesa)}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="font-semibold text-stone-900 dark:text-stone-50">
+                                                    {formatMesa(c.mesa)}
+                                                </span>
+                                                <span
+                                                    className={classNames(
+                                                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+                                                        c.listo_para_cobro
+                                                            ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200'
+                                                            : 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
+                                                    )}
+                                                >
+                                                    {c.listo_para_cobro ? 'Lista para cobrar' : 'En cocina'}
+                                                </span>
                                             </div>
                                             <div className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                                                Pedido #{c.idPedido} · {ESTADO_LABEL[c.estado] || c.estado}
+                                                Pedido #{c.idPedido}
                                             </div>
                                             {c.mesero ? (
                                                 <div className="mt-0.5 text-xs text-stone-500">
@@ -888,7 +941,9 @@ export function CajeroCajaPage() {
                                             <div className="font-bold text-blue-700 dark:text-blue-300 tabular-nums">
                                                 {formatMoney(c.subtotal)}
                                             </div>
-                                            <div className="mt-1 text-xs text-stone-500">{formatTime(c.actualizado_en)}</div>
+                                            <div className="mt-1 text-xs text-stone-500">
+                                                Enviada {formatTime(c.enviado_caja_en || c.actualizado_en)}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="mt-2 text-xs text-stone-500">
@@ -931,6 +986,11 @@ export function CajeroCajaPage() {
                 busy={llamandoMesero}
                 onClose={() => !llamandoMesero && setModalLlamarMesero(false)}
                 onConfirm={() => void onLlamarMesero()}
+            />
+            <FacturaModal
+                open={facturaModal}
+                factura={facturaActiva}
+                onClose={() => setFacturaModal(false)}
             />
         </div>
     );

@@ -8,6 +8,7 @@ use App\Models\Mesa;
 use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\Reserva;
+use App\Models\RestauranteConfig;
 use App\Models\Usuario;
 use App\Models\Venta;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +24,8 @@ class CajeroController extends Controller
     public function cuentasPendientes(): JsonResponse
     {
         $pedidos = Pedido::query()
-            ->whereIn('estado', ['LISTO', 'ENTREGADO'])
+            ->whereNotNull('enviado_caja_en')
+            ->whereNotIn('estado', ['CERRADO', 'CANCELADO'])
             ->whereDoesntHave('venta')
             ->with([
                 'mesa:idMesa,numero,nombre',
@@ -33,10 +35,8 @@ class CajeroController extends Controller
                     ->orderBy('idPedidoDetalle')
                     ->with('producto:idProducto,nombreProducto'),
             ])
-            ->orderBy('actualizado_en')
-            ->get()
-            ->filter(fn (Pedido $p) => $this->pedidoListoParaCobro($p))
-            ->values();
+            ->orderBy('enviado_caja_en')
+            ->get();
 
         return response()->json([
             'data' => $pedidos->map(fn (Pedido $p) => $this->serializeCuentaResumen($p)),
@@ -45,9 +45,15 @@ class CajeroController extends Controller
 
     public function showPedido(Pedido $pedido): JsonResponse
     {
-        if (! in_array($pedido->estado, ['LISTO', 'ENTREGADO'], true)) {
+        if ($pedido->enviado_caja_en === null) {
             return response()->json([
-                'message' => 'Este pedido no está listo para cobrar.',
+                'message' => 'El mesero aún no ha enviado esta cuenta a caja.',
+            ], 422);
+        }
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json([
+                'message' => 'Este pedido ya está cerrado o cancelado.',
             ], 422);
         }
 
@@ -66,12 +72,6 @@ class CajeroController extends Controller
                 ->with('producto:idProducto,nombreProducto,tipo'),
         ]);
 
-        if (! $this->pedidoListoParaCobro($pedido)) {
-            return response()->json([
-                'message' => 'Aún hay platos en cocina. Espera a que estén listos.',
-            ], 422);
-        }
-
         return response()->json([
             'data' => $this->serializeCuentaDetalle($pedido),
         ]);
@@ -82,9 +82,15 @@ class CajeroController extends Controller
         /** @var Usuario $cajero */
         $cajero = $request->user();
 
-        if (! in_array($pedido->estado, ['LISTO', 'ENTREGADO'], true)) {
+        if ($pedido->enviado_caja_en === null) {
             return response()->json([
-                'message' => 'Este pedido no está listo para cobrar.',
+                'message' => 'El mesero aún no ha enviado esta cuenta a caja.',
+            ], 422);
+        }
+
+        if (in_array($pedido->estado, ['CERRADO', 'CANCELADO'], true)) {
+            return response()->json([
+                'message' => 'Este pedido ya está cerrado o cancelado.',
             ], 422);
         }
 
@@ -119,27 +125,38 @@ class CajeroController extends Controller
         $total = round($subtotal + $impuesto, 2);
         $sumPagos = round(collect($data['pagos'])->sum(fn ($p) => (float) $p['valor']), 2);
 
-        if (abs($sumPagos - $total) > 0.01) {
+        // Se permite recibir de más (el cliente paga con un billete grande): el
+        // excedente queda como devolución/vuelto. Lo que no se permite es pagar de menos.
+        if ($sumPagos + 0.01 < $total) {
             return response()->json([
-                'message' => 'La suma de los pagos debe coincidir con el total a cobrar.',
+                'message' => 'El total recibido no puede ser menor al total a cobrar.',
                 'total_esperado' => $total,
                 'total_pagos' => $sumPagos,
             ], 422);
         }
 
+        $recibido = $sumPagos;
+        $cambio = round($recibido - $total, 2);
+
         $ahora = now();
 
-        $venta = DB::transaction(function () use ($pedido, $cajero, $data, $subtotal, $impuesto, $total, $ahora) {
+        $venta = DB::transaction(function () use ($pedido, $cajero, $data, $subtotal, $impuesto, $total, $recibido, $cambio, $ahora) {
             $venta = Venta::create([
                 'pedido_idPedido' => $pedido->idPedido,
                 'subtotal' => $subtotal,
                 'impuesto_o_servicio' => $impuesto,
                 'total' => $total,
+                'recibido' => $recibido,
+                'cambio' => $cambio,
                 'registrada_en' => $ahora,
                 'cajero_idUsuario' => $cajero->idUsuario,
                 'estado' => 'ACTIVA',
                 'admin_visto' => true,
             ]);
+
+            // El consecutivo de factura se deriva del id (único y secuencial).
+            $venta->numero_factura = 'FAC-'.str_pad((string) $venta->idVenta, 6, '0', STR_PAD_LEFT);
+            $venta->save();
 
             foreach ($data['pagos'] as $pagoData) {
                 Pago::create([
@@ -178,7 +195,24 @@ class CajeroController extends Controller
         return response()->json([
             'message' => 'Cuenta cobrada. La mesa quedó libre.',
             'data' => $this->serializeVenta($venta),
+            'factura' => $this->serializeFactura($venta),
         ], 201);
+    }
+
+    /**
+     * Factura detallada de una venta (para ver/imprimir desde el historial).
+     */
+    public function factura(Request $request, Venta $venta): JsonResponse
+    {
+        /** @var Usuario $cajero */
+        $cajero = $request->user();
+
+        // Solo el cajero dueño de la venta puede consultar su factura.
+        Gate::forUser($cajero)->authorize('ver', $venta);
+
+        return response()->json([
+            'data' => $this->serializeFactura($venta),
+        ]);
     }
 
     public function ventasHoy(Request $request): JsonResponse
@@ -340,8 +374,11 @@ class CajeroController extends Controller
         $data = $request->validate([
             'desde' => ['nullable', 'date'],
             'hasta' => ['nullable', 'date'],
+            'hora_desde' => ['nullable', 'date_format:H:i'],
+            'hora_hasta' => ['nullable', 'date_format:H:i'],
             'nombre' => ['nullable', 'string', 'max:120'],
             'producto' => ['nullable', 'string', 'max:120'],
+            'numero' => ['nullable', 'string', 'max:40'],
             'metodo' => ['nullable', 'string', 'in:EFECTIVO,TARJETA,NEQUI,DAVIPLATA'],
         ]);
 
@@ -389,6 +426,19 @@ class CajeroController extends Controller
             $query->whereHas('pagos', function ($q) use ($metodo) {
                 $q->where('metodo', $metodo);
             });
+        }
+
+        if (! empty($data['numero'])) {
+            $numero = $data['numero'];
+            $query->where('numero_factura', 'like', "%{$numero}%");
+        }
+
+        if (! empty($data['hora_desde'])) {
+            $query->whereRaw('TIME(registrada_en) >= ?', [$data['hora_desde'].':00']);
+        }
+
+        if (! empty($data['hora_hasta'])) {
+            $query->whereRaw('TIME(registrada_en) <= ?', [$data['hora_hasta'].':59']);
         }
 
         $ventas = $query->get();
@@ -476,6 +526,8 @@ class CajeroController extends Controller
             'estado' => $pedido->estado,
             'creado_en' => $pedido->creado_en?->toIso8601String(),
             'actualizado_en' => $pedido->actualizado_en?->toIso8601String(),
+            'enviado_caja_en' => $pedido->enviado_caja_en?->toIso8601String(),
+            'listo_para_cobro' => $this->pedidoListoParaCobro($pedido),
             'subtotal' => round($subtotal, 2),
             'num_lineas' => $lineas->count(),
             'total_unidades' => $unidades,
@@ -523,10 +575,13 @@ class CajeroController extends Controller
 
         return [
             'idVenta' => $venta->idVenta,
+            'numero_factura' => $venta->numero_factura,
             'estado' => $venta->estado ?? 'ACTIVA',
             'subtotal' => $venta->subtotal,
             'impuesto_o_servicio' => $venta->impuesto_o_servicio,
             'total' => $venta->total,
+            'recibido' => $venta->recibido,
+            'cambio' => $venta->cambio,
             'registrada_en' => $venta->registrada_en?->toIso8601String(),
             'motivo_cancelacion' => $venta->motivo_cancelacion,
             'cancelada_en' => $venta->cancelada_en?->toIso8601String(),
@@ -560,6 +615,91 @@ class CajeroController extends Controller
                     ])
                     : [],
             ] : null,
+        ];
+    }
+
+    /**
+     * Factura completa lista para mostrar/imprimir (incluye datos del local).
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeFactura(Venta $venta): array
+    {
+        $venta->loadMissing([
+            'pagos',
+            'cajero:idUsuario,nombre,apellido',
+            'pedido.mesa:idMesa,numero,nombre',
+            'pedido.mesero:idUsuario,nombre,apellido',
+            'pedido.detalles' => fn ($q) => $q
+                ->where('estado_item', '!=', 'CANCELADO')
+                ->orderBy('idPedidoDetalle')
+                ->with('producto:idProducto,nombreProducto'),
+        ]);
+
+        $config = RestauranteConfig::query()->first();
+        $pedido = $venta->pedido;
+        $cajero = $venta->cajero;
+
+        $items = $pedido && $pedido->relationLoaded('detalles')
+            ? $pedido->detalles->map(function ($d) {
+                $cantidad = (int) $d->cantidad;
+                $precio = (float) $d->precio_unitario;
+
+                return [
+                    'idPedidoDetalle' => $d->idPedidoDetalle,
+                    'nombreProducto' => $d->producto?->nombreProducto ?? 'Ítem',
+                    'cantidad' => $cantidad,
+                    'precio_unitario' => round($precio, 2),
+                    'importe' => round($precio * $cantidad, 2),
+                    'nota' => $d->nota,
+                ];
+            })->values()
+            : collect();
+
+        return [
+            'idVenta' => $venta->idVenta,
+            'numero_factura' => $venta->numero_factura,
+            'estado' => $venta->estado ?? 'ACTIVA',
+            'registrada_en' => $venta->registrada_en?->toIso8601String(),
+            'subtotal' => $venta->subtotal,
+            'impuesto_o_servicio' => $venta->impuesto_o_servicio,
+            'total' => $venta->total,
+            'recibido' => $venta->recibido,
+            'cambio' => $venta->cambio,
+            'motivo_cancelacion' => $venta->motivo_cancelacion,
+            'cancelada_en' => $venta->cancelada_en?->toIso8601String(),
+            'restaurante' => [
+                'nombre_comercial' => $config?->nombre_comercial ?? 'Restaurante',
+                'nit_o_documento' => $config?->nit_o_documento,
+                'telefono' => $config?->telefono,
+                'direccion' => $config?->direccion,
+                'logo_url' => $config?->logo_url,
+            ],
+            'cajero' => $cajero ? [
+                'idUsuario' => $cajero->idUsuario,
+                'nombre' => $cajero->nombre,
+                'apellido' => $cajero->apellido,
+            ] : null,
+            'mesa' => $pedido?->mesa ? [
+                'idMesa' => $pedido->mesa->idMesa,
+                'numero' => $pedido->mesa->numero,
+                'nombre' => $pedido->mesa->nombre,
+            ] : null,
+            'mesero' => $pedido?->mesero ? [
+                'nombre' => $pedido->mesero->nombre,
+                'apellido' => $pedido->mesero->apellido,
+            ] : null,
+            'pedido' => $pedido ? [
+                'idPedido' => $pedido->idPedido,
+            ] : null,
+            'items' => $items,
+            'pagos' => $venta->pagos->map(fn (Pago $p) => [
+                'idPago' => $p->idPago,
+                'metodo' => $p->metodo,
+                'valor' => $p->valor,
+                'referencia' => $p->referencia,
+                'pagado_en' => $p->pagado_en?->toIso8601String(),
+            ])->values(),
         ];
     }
 

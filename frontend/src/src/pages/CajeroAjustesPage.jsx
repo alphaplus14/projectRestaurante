@@ -4,6 +4,7 @@ import { apiFetch } from '../auth/apiClient';
 import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
+import { FacturaModal } from '../components/FacturaModal';
 
 const METODOS_PAGO = [
     { value: '', label: 'Todos' },
@@ -134,6 +135,10 @@ export function CajeroAjustesPage() {
     const [ventaCancelar, setVentaCancelar] = useState(null);
     const [cancelandoVenta, setCancelandoVenta] = useState(false);
     const [cancelarError, setCancelarError] = useState('');
+    const [facturaModal, setFacturaModal] = useState(false);
+    const [facturaActiva, setFacturaActiva] = useState(null);
+    const [loadingFactura, setLoadingFactura] = useState(false);
+    const [facturaError, setFacturaError] = useState('');
 
     const totalPaginas = useMemo(
         () => Math.max(1, Math.ceil(ventas.length / VENTAS_PAGE_SIZE)),
@@ -246,6 +251,21 @@ export function CajeroAjustesPage() {
             setCancelarError(e?.message || 'No se pudo cancelar la venta.');
         } finally {
             setCancelandoVenta(false);
+        }
+    }
+
+    async function verFactura(venta) {
+        setFacturaModal(true);
+        setFacturaActiva(null);
+        setFacturaError('');
+        setLoadingFactura(true);
+        try {
+            const res = await apiFetch(`/api/cajero/ventas/${venta.idVenta}/factura`);
+            setFacturaActiva(res?.data ?? null);
+        } catch (e) {
+            setFacturaError(e?.message || 'No se pudo cargar la factura.');
+        } finally {
+            setLoadingFactura(false);
         }
     }
 
@@ -576,18 +596,27 @@ export function CajeroAjustesPage() {
                                                 <span className="font-semibold">Motivo: </span>{v.motivo_cancelacion}
                                             </p>
                                         ) : null}
-                                        {!cancelada ? (
+                                        <div className="mt-3 flex flex-wrap gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setCancelarError('');
-                                                    setVentaCancelar(v);
-                                                }}
-                                                className="mt-3 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-1.5 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/40"
+                                                onClick={() => void verFactura(v)}
+                                                className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-xs font-medium hover:bg-stone-100 dark:hover:bg-stone-800"
                                             >
-                                                Cancelar venta
+                                                Ver factura
                                             </button>
-                                        ) : null}
+                                            {!cancelada ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCancelarError('');
+                                                        setVentaCancelar(v);
+                                                    }}
+                                                    className="rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-1.5 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/40"
+                                                >
+                                                    Cancelar venta
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </li>
                                     );
                                 })}
@@ -627,6 +656,13 @@ export function CajeroAjustesPage() {
                 error={cancelarError}
                 onClose={() => !cancelandoVenta && setVentaCancelar(null)}
                 onConfirm={confirmarCancelarVenta}
+            />
+            <FacturaModal
+                open={facturaModal}
+                factura={facturaActiva}
+                loading={loadingFactura}
+                error={facturaError}
+                onClose={() => setFacturaModal(false)}
             />
         </div>
     );

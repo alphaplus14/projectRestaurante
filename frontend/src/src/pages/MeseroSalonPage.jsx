@@ -617,6 +617,7 @@ export function MeseroSalonPage() {
     const [loadingCatalogo, setLoadingCatalogo] = useState(false);
     const [addingId, setAddingId] = useState(null);
     const [cancelando, setCancelando] = useState(false);
+    const [enviandoCaja, setEnviandoCaja] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [pedidosListos, setPedidosListos] = useState([]);
     const [llamadasCocina, setLlamadasCocina] = useState([]);
@@ -997,6 +998,29 @@ export function MeseroSalonPage() {
         }
     }
 
+    async function enviarACaja() {
+        if (!pedido?.idPedido) return;
+        const idPedido = pedido.idPedido;
+        setEnviandoCaja(true);
+        setBanner('');
+        try {
+            const res = await apiFetch(`/api/mesero/pedidos/${idPedido}/enviar-caja`, {
+                method: 'POST',
+            });
+            if (res?.data?.idPedido) {
+                setPedido(res.data);
+            } else {
+                await loadPedido(idPedido, { silent: true });
+            }
+            setBanner(res?.message || 'Cuenta enviada a caja.');
+            await fetchMesas({ silent: true });
+        } catch (e) {
+            setBanner(e?.message || 'No se pudo enviar la cuenta a caja.');
+        } finally {
+            setEnviandoCaja(false);
+        }
+    }
+
     async function onSalir() {
         await logoutTenantSession();
         window.location.href = '/staff?rol=mesero';
@@ -1029,11 +1053,13 @@ export function MeseroSalonPage() {
             ),
         [pedido],
     );
-    const cuentaListaParaCaja =
-        pedido &&
-        ['LISTO', 'ENTREGADO'].includes(pedido.estado) &&
-        (pedido.detalles?.length ?? 0) > 0 &&
-        !hayItemsPendientesCocina;
+    const tieneItemsActivos = useMemo(
+        () => (pedido?.detalles ?? []).some((l) => l.estado_item !== 'CANCELADO'),
+        [pedido],
+    );
+    const pedidoFinalizado = pedido && ['CERRADO', 'CANCELADO'].includes(pedido.estado);
+    const puedeEnviarCaja = pedido && !pedidoFinalizado && tieneItemsActivos;
+    const enviadoCaja = Boolean(pedido?.enviado_caja_en);
     const puedeCancelarPedido = pedido && !['CERRADO', 'CANCELADO'].includes(pedido.estado);
     const menuSinSeleccion = !categoriaActiva && !busquedaAplicada && !loadingCatalogo;
     const bloqueado = selectedMesa?.pedido_activo?.bloqueado;
@@ -1390,6 +1416,43 @@ export function MeseroSalonPage() {
                                             </button>
                                         ) : null}
 
+                                        {puedeEnviarCaja ? (
+                                            <button
+                                                type="button"
+                                                disabled={enviandoCaja}
+                                                onClick={enviarACaja}
+                                                className={classNames(
+                                                    'w-full rounded-xl font-semibold py-3.5 text-sm disabled:opacity-50 focus-visible:ring-2 touch-manipulation text-white',
+                                                    enviadoCaja
+                                                        ? 'bg-blue-700 hover:bg-blue-600 focus-visible:ring-blue-500'
+                                                        : 'bg-emerald-700 hover:bg-emerald-600 focus-visible:ring-emerald-500',
+                                                )}
+                                            >
+                                                {enviandoCaja
+                                                    ? 'Enviando…'
+                                                    : enviadoCaja
+                                                      ? 'Actualizar cuenta en cajero'
+                                                      : 'Enviar cuenta a cajero'}
+                                            </button>
+                                        ) : null}
+
+                                        {enviadoCaja && !pedidoFinalizado ? (
+                                            <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 space-y-1">
+                                                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                    Enviada a caja
+                                                    {pedido.enviado_caja_en
+                                                        ? ` · ${formatHora(pedido.enviado_caja_en)}`
+                                                        : ''}
+                                                </p>
+                                                <p className="text-xs text-blue-800/90 dark:text-blue-200/80">
+                                                    {hayItemsPendientesCocina
+                                                        ? 'Aún hay platos en cocina; el cajero podrá cobrar cuando estén listos. '
+                                                        : 'El cajero ya puede cobrar esta cuenta. '}
+                                                    Si el cliente pide o quita algo, toca «Actualizar cuenta en cajero».
+                                                </p>
+                                            </div>
+                                        ) : null}
+
                                         {puedeCancelarPedido ? (
                                             <button
                                                 type="button"
@@ -1401,20 +1464,7 @@ export function MeseroSalonPage() {
                                             </button>
                                         ) : null}
 
-                                        {cuentaListaParaCaja ? (
-                                            <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-center space-y-1">
-                                                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                                    Cuenta lista — cobro en caja
-                                                </p>
-                                                <p className="text-xs text-blue-800/90 dark:text-blue-200/80">
-                                                    Total {formatMoney(totalPedido)}. El cajero liberará la mesa al registrar el pago.
-                                                </p>
-                                            </div>
-                                        ) : ['LISTO', 'ENTREGADO'].includes(pedido.estado) && hayItemsPendientesCocina ? (
-                                            <p className="text-xs text-center text-stone-600 dark:text-stone-500">
-                                                Hay platos nuevos en cocina. La cuenta irá a caja cuando todo esté listo.
-                                            </p>
-                                        ) : ['CERRADO', 'CANCELADO'].includes(pedido.estado) ? (
+                                        {pedidoFinalizado ? (
                                             <p className="text-xs text-center text-stone-600 dark:text-stone-500">
                                                 Pedido finalizado.
                                             </p>

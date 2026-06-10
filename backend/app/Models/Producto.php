@@ -23,6 +23,7 @@ class Producto extends Model
         'categoria_idCategoria',
         'receta_idReceta',
         'activo',
+        'eliminado_en',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class Producto extends Model
         return [
             'precio' => 'decimal:2',
             'activo' => 'boolean',
+            'eliminado_en' => 'datetime',
         ];
     }
 

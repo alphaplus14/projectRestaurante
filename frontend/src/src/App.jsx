@@ -11,6 +11,7 @@ import { MeseroSalonPage } from './pages/MeseroSalonPage';
 import { MeseroAjustesPage } from './pages/MeseroAjustesPage';
 import { CajeroCajaPage } from './pages/CajeroCajaPage';
 import { CajeroAjustesPage } from './pages/CajeroAjustesPage';
+import { CajeroFacturasPage } from './pages/CajeroFacturasPage';
 import { AdminProductosPage } from './pages/AdminProductosPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminMeserosPage } from './pages/AdminMeserosPage';
@@ -43,6 +44,7 @@ import { RequireCliente } from './auth/RequireCliente';
 import { RequireMaster } from './auth/RequireMaster';
 import { RequireMasterHost } from './auth/RequireMasterHost';
 import { RequireOnboardingHost } from './auth/RequireOnboardingHost';
+import { SessionHistoryGuard } from './auth/SessionHistoryGuard';
 
 function RootRedirect() {
     if (isMasterHost()) {
@@ -60,6 +62,7 @@ function CatchAllRedirect() {
 
 export function App() {
     return (
+        <SessionHistoryGuard>
         <Routes>
             <Route path="/" element={<RootRedirect />} />
 
@@ -178,6 +181,14 @@ export function App() {
                 element={
                     <RequireCajero>
                         <CajeroAjustesPage />
+                    </RequireCajero>
+                }
+            />
+            <Route
+                path="/cajero/facturas"
+                element={
+                    <RequireCajero>
+                        <CajeroFacturasPage />
                     </RequireCajero>
                 }
             />
@@ -304,5 +315,6 @@ export function App() {
 
             <Route path="*" element={<CatchAllRedirect />} />
         </Routes>
+        </SessionHistoryGuard>
     );
 }

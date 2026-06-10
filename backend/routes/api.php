@@ -131,6 +131,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('productos', [ProductoController::class, 'indexMesero']);
         Route::post('pedidos', [MeseroController::class, 'storePedido']);
         Route::post('pedidos/{pedido:idPedido}/cancelar', [MeseroController::class, 'cancelarPedido']);
+        Route::post('pedidos/{pedido:idPedido}/enviar-caja', [MeseroController::class, 'enviarACaja']);
         Route::get('pedidos/{pedido:idPedido}', [MeseroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/detalles', [MeseroController::class, 'storeDetalle']);
     });
@@ -143,6 +144,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('mesas', [CajeroController::class, 'mesas']);
         Route::get('ventas', [CajeroController::class, 'ventas']);
         Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+        Route::get('ventas/{venta:idVenta}/factura', [CajeroController::class, 'factura']);
         Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/cobrar', [CajeroController::class, 'cobrar']);
@@ -182,6 +184,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::put('mesas/{mesa:idMesa}', [AdminMesaController::class, 'update']);
         Route::patch('mesas/{mesa:idMesa}/activo', [AdminMesaController::class, 'setActivo']);
         Route::delete('mesas/{mesa:idMesa}', [AdminMesaController::class, 'destroy']);
+        Route::post('mesas/{mesa:idMesa}/restaurar', [AdminMesaController::class, 'restaurar']);
         Route::get('mesas/{mesa:idMesa}/historial', [AdminMesaController::class, 'historialPedidos']);
 
         Route::get('productos', [AdminProductoController::class, 'index']);
@@ -191,6 +194,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::match(['put', 'post'], 'productos/{producto:idProducto}', [AdminProductoController::class, 'update']);
         Route::patch('productos/{producto:idProducto}/activo', [AdminProductoController::class, 'setActivo']);
         Route::delete('productos/{producto:idProducto}', [AdminProductoController::class, 'destroy']);
+        Route::post('productos/{producto:idProducto}/restaurar', [AdminProductoController::class, 'restaurar']);
 
         Route::get('meseros', [AdminMeseroController::class, 'index']);
         Route::post('meseros', [AdminMeseroController::class, 'store']);
