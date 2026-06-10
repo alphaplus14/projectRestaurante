@@ -55,7 +55,7 @@ export function AdminLicenseBanner() {
                 <span className="font-semibold">Licencia por vencer: </span>
                 {info.message}{' '}
                 <Link
-                    to="/admin/suscripcion"
+                    to="/admin/configuracion#suscripcion"
                     className={
                         urgent
                             ? 'font-semibold underline underline-offset-2 hover:text-red-950 dark:hover:text-red-100'

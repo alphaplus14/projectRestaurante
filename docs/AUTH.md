@@ -120,6 +120,10 @@ Gestión 2FA (logueado como Master):
 
 **Contraseña Master en producción:** mínimo 12 caracteres con mayúsculas, minúsculas y números (`MasterPasswordPolicy`). En local se permite `master123` con advertencia en log.
 
+**Login Master (UI):** contraseña mínimo 5 caracteres; si 2FA está activo, el OTP se limpia al fallar o al pulsar *Reenviar código al correo*.
+
+**Renovación de suscripciones (Nequi):** flujo Master + admin documentado en [BILLING_RENEWAL.md](./BILLING_RENEWAL.md).
+
 ---
 
 ## Google OAuth cliente (Sprint 1)

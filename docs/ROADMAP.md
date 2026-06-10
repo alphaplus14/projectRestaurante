@@ -203,3 +203,26 @@ php artisan test --filter=Sprint1Security
 # Master: activar 2FA en dashboard → logout → login pide código TOTP
 # Google OAuth: callback URL lleva ?code=... (no ?token=...)
 ```
+
+---
+
+## Fase 8 — Renovación Nequi (semi-automática) ✅
+
+**Objetivo:** el admin del restaurante notifica pagos por Nequi; el Master confirma o rechaza y extiende la licencia.
+
+| # | Tarea | Estado | Archivos / docs |
+|---|--------|--------|-----------------|
+| 8.1 | Tablas master `platform_billing_settings`, `subscription_renewal_requests` | ✅ | Migraciones master |
+| 8.2 | API Master: ajustes Nequi + aprobar/rechazar solicitudes | ✅ | `MasterBillingController.php` |
+| 8.3 | API Admin: estado suscripción + notificar pago | ✅ | `AdminSubscriptionController.php`, `AdminLicenseController.php` |
+| 8.4 | UI Master: Ajustes (QR/precios) + panel Pagos | ✅ | `MasterSettingsPanel.jsx`, `MasterBillingRenewalsPanel.jsx` |
+| 8.5 | UI Admin: Configuración → suscripción + banner licencia | ✅ | `AdminSubscriptionPanel.jsx`, `AdminLicenseBanner.jsx` |
+| 8.6 | Tests + documentación | ✅ | `MasterBillingRenewalTest.php`, [BILLING_RENEWAL.md](./BILLING_RENEWAL.md) |
+
+### Verificación Fase 8 (local)
+
+1. Master → **Ajustes** → llave Nequi, QR y precios por paquete.
+2. Admin → **Configuración** → *Suscripción y licencia* → elegir paquete, referencia, **Notificar pago**.
+3. Master → **Pagos** → **Confirmar pago** → `access_expires_at` extendido en el tenant.
+
+Ver checklist completo en [BILLING_RENEWAL.md](./BILLING_RENEWAL.md#checklist-prueba-local).

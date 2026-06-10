@@ -162,31 +162,24 @@ En Master, restaurantes en estado **pending**, **failed** o **provisioning** →
 
 ### F. Renovación con Nequi (semi-automática)
 
-1. **Master → Ajustes:** configura llave/número Nequi, QR y **precios por paquete** (1, 3, 6 y 12 meses).
-2. **Admin del restaurante:** en `/admin/suscripcion` (también desde el aviso de licencia) elige meses, paga por Nequi y pulsa **Notificar pago** con la referencia.
-3. **Master → Pagos:** revisa solicitudes pendientes, confirma o rechaza. Al confirmar se extiende `access_expires_at` automáticamente.
+Guía completa (pantallas, API, prueba local, tests): **[BILLING_RENEWAL.md](./BILLING_RENEWAL.md)**.
 
-Endpoints:
+Resumen:
 
-| Rol | Ruta |
-|-----|------|
-| Master | `GET/POST /api/master/billing/settings`, `GET /api/master/billing/renewal-requests`, `POST .../approve`, `POST .../reject` |
-| Admin tenant | `GET /api/admin/suscripcion`, `POST /api/admin/suscripcion/renovacion` |
+1. **Master → Ajustes:** llave/QR Nequi y precios fijos por paquete (1 / 3 / 6 / 12 meses).
+2. **Admin → Configuración** (`/admin/configuracion#suscripcion`): paga por Nequi, **Notificar pago** con referencia (mín. 3 caracteres).
+3. **Master → Pagos:** **Confirmar pago** o **Rechazar**. Al confirmar, `extendAccessByMonths()` actualiza `access_expires_at`.
 
-Solo puede haber **una solicitud pendiente** por restaurante. No hay webhook Nequi: la confirmación es manual por el Master.
+| Rol | URL local |
+|-----|-----------|
+| Master ajustes / pagos | http://master.localhost:5173/master/dashboard |
+| Admin renovación | http://{slug}.localhost:5173/admin/configuracion#suscripcion |
 
-Variables:
+Reglas clave: **una solicitud `pending` por restaurante**; sin webhook Nequi; banner de aviso cuando faltan ≤ `TENANT_LICENSE_WARNING_DAYS` (default 7).
 
-```env
-# Meses al completar onboarding (0 = sin vencimiento; fallback si la invitación no trae meses)
-TENANT_DEFAULT_LICENSE_MONTHS=1
-# Días antes del vencimiento para avisar al admin del restaurante
-TENANT_LICENSE_WARNING_DAYS=7
-```
+Migraciones master necesarias: `platform_billing_settings`, `subscription_renewal_requests` (`php artisan master:migrate`).
 
-Clientes antiguos pueden tener `access_expires_at` null (sin límite) hasta que Master asigne meses.
-
-Más contexto: [ROADMAP.md](./ROADMAP.md), [AUTH.md](./AUTH.md).
+Más contexto: [AUTH.md](./AUTH.md), [ROADMAP.md](./ROADMAP.md).
 
 ## Flujo resumido
 

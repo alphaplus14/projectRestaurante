@@ -162,3 +162,7 @@ npm run dev
 - **Multi-restaurante (multi-tenant):** ver `docs/TENANCY.md`. En desarrollo local
   con una sola base de datos se usa el modo `single` (no requiere base `master`).
 - **Autenticación y 2FA:** ver `docs/AUTH.md`.
+- **Índice de documentación:** ver `docs/README.md`.
+- **Renovación de suscripción (Nequi):** ver `docs/BILLING_RENEWAL.md` (Master → Ajustes/Pagos,
+  admin → **Configuración** → *Suscripción y licencia*). Tras actualizar el repo, ejecuta `npm install` en `frontend/`
+  si aparece error de módulo faltante (p. ej. `jspdf` para facturas PDF).
