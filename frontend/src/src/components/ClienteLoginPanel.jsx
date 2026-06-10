@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { setToken } from '../auth/authStorage';
+import { clearSessionEndedState } from '../auth/sessionNavigation';
+import { useSessionEndedNotice } from '../auth/useSessionEndedNotice';
 import { getTenantSlugForApi } from '../tenancy/tenantContext';
 import { PasswordInput } from './PasswordInput';
 
@@ -31,6 +33,7 @@ export function ClienteLoginPanel({
     const [cedula, setCedula] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const sessionEndedNotice = useSessionEndedNotice();
 
     const deviceName = useMemo(() => `web-${navigator.platform || 'browser'}`, []);
     const tenantSlug = useMemo(() => getTenantSlugForApi(), []);
@@ -59,6 +62,7 @@ export function ClienteLoginPanel({
             throw new Error('No llegó el token de sesión.');
         }
         setToken(data.token);
+        clearSessionEndedState();
         onSuccess?.(data);
         if (redirectPath) {
             navigate(redirectPath, { replace: true });
@@ -228,6 +232,11 @@ export function ClienteLoginPanel({
                             placeholder="••••••••"
                         />
                     </div>
+                    {sessionEndedNotice ? (
+                        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                            {sessionEndedNotice}
+                        </div>
+                    ) : null}
                     {error ? (
                         <div className="rounded-xl border border-red-500/25 bg-red-50 dark:bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
                             {error}
@@ -337,6 +346,11 @@ export function ClienteLoginPanel({
                             onChange={(e) => setPasswordConfirm(e.target.value)}
                         />
                     </div>
+                    {sessionEndedNotice ? (
+                        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                            {sessionEndedNotice}
+                        </div>
+                    ) : null}
                     {error ? (
                         <div className="rounded-xl border border-red-500/25 bg-red-50 dark:bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
                             {error}
