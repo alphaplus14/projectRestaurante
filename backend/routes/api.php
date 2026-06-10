@@ -95,6 +95,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('productos', [ProductoController::class, 'indexMesero']);
         Route::post('pedidos', [MeseroController::class, 'storePedido']);
         Route::post('pedidos/{pedido:idPedido}/cancelar', [MeseroController::class, 'cancelarPedido']);
+        Route::post('pedidos/{pedido:idPedido}/enviar-caja', [MeseroController::class, 'enviarACaja']);
         Route::get('pedidos/{pedido:idPedido}', [MeseroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/detalles', [MeseroController::class, 'storeDetalle']);
     });
@@ -107,6 +108,7 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('mesas', [CajeroController::class, 'mesas']);
         Route::get('ventas', [CajeroController::class, 'ventas']);
         Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+        Route::get('ventas/{venta:idVenta}/factura', [CajeroController::class, 'factura']);
         Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
         Route::post('pedidos/{pedido:idPedido}/cobrar', [CajeroController::class, 'cobrar']);

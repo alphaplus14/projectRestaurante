@@ -16,9 +16,12 @@ class Venta extends Model
 
     protected $fillable = [
         'pedido_idPedido',
+        'numero_factura',
         'subtotal',
         'impuesto_o_servicio',
         'total',
+        'recibido',
+        'cambio',
         'registrada_en',
         'cajero_idUsuario',
         'estado',
@@ -34,6 +37,8 @@ class Venta extends Model
             'subtotal' => 'decimal:2',
             'impuesto_o_servicio' => 'decimal:2',
             'total' => 'decimal:2',
+            'recibido' => 'decimal:2',
+            'cambio' => 'decimal:2',
             'registrada_en' => 'datetime',
             'cancelada_en' => 'datetime',
             'admin_visto' => 'boolean',
