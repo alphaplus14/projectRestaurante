@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
-import { clearToken, getToken } from '../auth/authStorage';
+import { getToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ClienteLoginPanel } from '../components/ClienteLoginPanel';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
@@ -341,14 +342,7 @@ export function LandingPage() {
     }
 
     async function cerrarSesionCliente() {
-        try {
-            if (getToken()) {
-                await apiFetch('/api/auth/logout', { method: 'POST' });
-            }
-        } catch {
-            /* sesión ya inválida o sin red */
-        }
-        clearToken();
+        await logoutTenantSession();
         setSesionCliente(false);
         cerrarLoginEsquina();
         closeMobileNav();

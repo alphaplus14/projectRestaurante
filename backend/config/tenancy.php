@@ -29,6 +29,9 @@ return [
 
     'onboarding_token_ttl_hours' => (int) env('TENANT_ONBOARDING_TTL_HOURS', 72),
 
+    /** Meses de licencia al completar onboarding (0 = sin fecha de vencimiento). */
+    'default_license_months' => (int) env('TENANT_DEFAULT_LICENSE_MONTHS', 1),
+
     'frontend_scheme' => env('TENANT_FRONTEND_SCHEME', 'http'),
 
     /** Host del frontend en correos (127.0.0.1 o localhost; debe coincidir con npm run dev). */

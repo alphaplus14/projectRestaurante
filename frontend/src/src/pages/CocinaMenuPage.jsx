@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { apiFetch } from '../auth/apiClient';
 import { staffLoginUrl } from '../auth/staffLogin';
-import { clearToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
 
@@ -136,7 +136,7 @@ export function CocinaMenuPage() {
     async function solicitarSalir() {
         const ok = await confirmStaffLogout();
         if (!ok) return;
-        clearToken();
+        await logoutTenantSession();
         window.location.href = staffLoginUrl('COCINERO');
     }
 

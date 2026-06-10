@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Master\OnboardingInvitation;
 use App\Models\Master\Tenant;
 use App\Services\Tenancy\OnboardingInvitationMailer;
+use App\Support\Tenancy\TenantSlug;
 use App\Support\Tenancy\TenantUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,11 +32,14 @@ class MasterInvitationController extends Controller
                 'nombre_comercial' => $t->nombre_comercial,
                 'status' => $t->status,
                 'provision_error' => $t->provision_error,
-                'tenant_url' => $t->status === 'active' ? $t->tenantAppUrl() : null,
-                'admin_login' => $t->status === 'active' ? $t->tenantAppUrl().'/login-admin' : null,
-                'cliente_url' => $t->status === 'active' ? $t->tenantAppUrl().'/cliente' : null,
+                'tenant_url' => $t->isAccessActive() ? $t->tenantAppUrl() : null,
+                'admin_login' => $t->isAccessActive() ? $t->tenantAppUrl().'/staff?rol=admin' : null,
+                'cliente_url' => $t->isAccessActive() ? $t->tenantAppUrl().'/cliente' : null,
                 'created_at' => $t->created_at?->toIso8601String(),
                 'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),
+                'access_expires_at' => $t->access_expires_at?->toIso8601String(),
+                'access_active' => $t->isAccessActive(),
+                'access_days_remaining' => $t->accessDaysRemaining(),
                 'last_invitation' => $t->invitations->first() ? [
                     'email' => $t->invitations->first()->email,
                     'expires_at' => $t->invitations->first()->expires_at->toIso8601String(),
@@ -47,6 +51,15 @@ class MasterInvitationController extends Controller
 
     public function store(Request $request, OnboardingInvitationMailer $mailer): JsonResponse
     {
+        $rawSlug = (string) $request->input('slug', '');
+        $slugError = TenantSlug::validationMessage($rawSlug);
+        if ($slugError !== null) {
+            throw ValidationException::withMessages(['slug' => [$slugError]]);
+        }
+
+        $normalizedSlug = TenantSlug::normalize($rawSlug);
+        $request->merge(['slug' => $normalizedSlug]);
+
         $data = $request->validate([
             'email' => ['required', 'email', 'max:190'],
             'slug' => [
@@ -61,6 +74,10 @@ class MasterInvitationController extends Controller
                     config('tenancy.reserved_subdomains', [])
                 )),
             ],
+        ], [
+            'slug.regex' => 'El subdominio solo puede tener letras, números y guiones (la ñ se guarda como n).',
+            'slug.unique' => 'Ese subdominio ya está en uso. Elige otro nombre.',
+            'slug.not_in' => 'Ese subdominio está reservado. Elige otro nombre.',
         ]);
 
         $plainToken = Str::random(48);
@@ -95,8 +112,8 @@ class MasterInvitationController extends Controller
         $message = $emailResult['sent']
             ? 'Invitación creada y correo enviado al cliente.'
             : ($mailer->isConfigured()
-                ? 'Invitación creada, pero no se pudo enviar el correo. Copia el enlace manualmente.'
-                : 'Invitación creada. Configura SMTP en .env o copia el enlace manualmente.');
+                ? 'Invitación creada. No se pudo enviar el correo — copia el enlace de abajo.'
+                : 'Invitación creada. Configura SMTP en .env o copia el enlace de abajo.');
 
         return response()->json([
             'message' => $message,
@@ -146,7 +163,7 @@ class MasterInvitationController extends Controller
 
         $message = $emailResult['sent']
             ? 'Nuevo enlace generado y correo reenviado.'
-            : 'Nuevo enlace generado. No se pudo enviar el correo; copia el enlace.';
+            : 'Nuevo enlace generado. No se pudo enviar el correo — copia el enlace de abajo.';
 
         return response()->json([
             'message' => $message,

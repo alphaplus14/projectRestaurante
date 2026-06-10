@@ -48,6 +48,10 @@ function translateOne(raw) {
         return '';
     }
 
+    if (/^este login es solo para /i.test(s)) {
+        return s;
+    }
+
     if (/must be at least\s+(\d+)\s+characters/i.test(s)) {
         const m = s.match(/must be at least\s+(\d+)\s+characters/i);
         const n = m ? m[1] : '6';

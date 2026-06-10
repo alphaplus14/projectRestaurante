@@ -183,9 +183,12 @@ export function FacturaModal({ open, factura, loading, error, onClose }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm"
+                        aria-label="Cerrar"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-600/80 bg-red-600 hover:bg-red-500 dark:bg-red-700 dark:hover:bg-red-600 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
                     >
-                        Cerrar
+                        <span className="text-3xl font-light leading-none -mt-0.5" aria-hidden>
+                            ×
+                        </span>
                     </button>
                 </div>
 

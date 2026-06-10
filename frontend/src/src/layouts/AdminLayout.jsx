@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../auth/apiClient';
 import { staffLoginUrl } from '../auth/staffLogin';
-import { clearToken } from '../auth/authStorage';
+import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { confirmStaffLogout } from '../utils/confirmLogout';
 
@@ -145,7 +145,7 @@ export function AdminLayout({ title, children }) {
     async function solicitarCerrarSesion() {
         const ok = await confirmStaffLogout();
         if (!ok) return;
-        clearToken();
+        await logoutTenantSession();
         navigate(staffLoginUrl('ADMINISTRADOR'), { replace: true });
     }
 
