@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\AdminCajeroController;
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\CajeroController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminLicenseController;
 use App\Http\Controllers\Api\AdminMesaController;
 use App\Http\Controllers\Api\AdminPedidoCancelacionController;
 use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminReservaController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
+use App\Http\Controllers\Api\AdminSubscriptionController;
 use App\Http\Controllers\Api\AdminVentaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Api\CocinaProductoController;
 use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
+use App\Http\Controllers\Api\Master\MasterBillingController;
 use App\Http\Controllers\Api\Master\MasterInvitationController;
 use App\Http\Controllers\Api\Master\MasterPlatformController;
 use App\Http\Controllers\Api\Master\MasterTenantAccessController;
@@ -41,6 +44,8 @@ Route::prefix('master')->group(function () {
     Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
     Route::post('auth/two-factor-challenge', [MasterAuthController::class, 'twoFactorChallenge'])
         ->middleware('throttle:two-factor');
+    Route::post('auth/two-factor-email', [MasterAuthController::class, 'resendTwoFactorEmail'])
+        ->middleware('throttle:two-factor');
 
     Route::get('onboarding/{token}', [OnboardingController::class, 'show'])
         ->middleware('throttle:onboarding');
@@ -56,6 +61,11 @@ Route::prefix('master')->group(function () {
         Route::post('two-factor/recovery-codes', [MasterTwoFactorController::class, 'recoveryCodes']);
         Route::delete('two-factor/disable', [MasterTwoFactorController::class, 'disable']);
         Route::get('platform/settings', [MasterPlatformController::class, 'settings']);
+        Route::get('billing/settings', [MasterBillingController::class, 'settings']);
+        Route::match(['put', 'post'], 'billing/settings', [MasterBillingController::class, 'updateSettings']);
+        Route::get('billing/renewal-requests', [MasterBillingController::class, 'renewalRequests']);
+        Route::post('billing/renewal-requests/{renewalRequest}/approve', [MasterBillingController::class, 'approveRenewal']);
+        Route::post('billing/renewal-requests/{renewalRequest}/reject', [MasterBillingController::class, 'rejectRenewal']);
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
         Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
@@ -155,6 +165,9 @@ Route::middleware('tenant.identify')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
+        Route::get('licencia', [AdminLicenseController::class, 'status']);
+        Route::get('suscripcion', [AdminSubscriptionController::class, 'show']);
+        Route::post('suscripcion/renovacion', [AdminSubscriptionController::class, 'storeRenewal']);
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
         Route::get('ventas', [AdminVentaController::class, 'index']);

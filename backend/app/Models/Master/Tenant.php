@@ -20,6 +20,7 @@ class Tenant extends Model
         'onboarding_completed_at',
         'access_expires_at',
         'access_cancel_at_period_end',
+        'license_months',
     ];
 
     protected function casts(): array

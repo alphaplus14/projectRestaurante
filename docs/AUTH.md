@@ -110,8 +110,9 @@ Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibili
 ## Master: login y 2FA (Sprint 1)
 
 1. `POST /api/master/auth/login` con email y contraseña.
-2. Si 2FA activo → `{ two_factor: true, challenge_token }`.
+2. Si 2FA activo → `{ two_factor: true, challenge_token, email_sent }`. Se envía el **mismo código TOTP de 6 dígitos** al correo del Master (requiere SMTP configurado).
 3. `POST /api/master/auth/two-factor-challenge` → token `master_api_token`.
+4. `POST /api/master/auth/two-factor-email` con `challenge_token` → reenvía el código al correo (máx. 5 envíos / 5 min por usuario).
 
 Gestión 2FA (logueado como Master):
 

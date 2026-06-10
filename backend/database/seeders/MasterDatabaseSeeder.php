@@ -11,22 +11,40 @@ class MasterDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = strtolower(trim((string) env('MASTER_ADMIN_EMAIL', 'master@local.test')));
-        $password = (string) env('MASTER_ADMIN_PASSWORD', 'master123');
-
-        MasterPasswordPolicy::assertForEnvironment($password);
-
-        if (app()->environment('local', 'testing') && MasterPasswordPolicy::isKnownWeakDefault($password)) {
-            Log::warning('MASTER_ADMIN_PASSWORD uses a known weak default. Change it before production.');
-        }
-
-        MasterUser::query()->updateOrCreate(
-            ['email' => $email],
+        $accounts = [
             [
-                'name' => 'Master Admin',
-                'password' => $password,
-                'activo' => true,
+                'email' => strtolower(trim((string) env('MASTER_ADMIN_EMAIL', 'master@local.test'))),
+                'name' => (string) env('MASTER_ADMIN_NAME', 'Master Admin'),
+                'password' => (string) env('MASTER_ADMIN_PASSWORD', 'master123'),
             ],
-        );
+            [
+                'email' => strtolower(trim((string) env('MASTER_SECOND_EMAIL', 'cesarrodas113@gmail.com'))),
+                'name' => (string) env('MASTER_SECOND_NAME', 'Cesar Rodas'),
+                'password' => (string) env('MASTER_SECOND_PASSWORD', 'admin123'),
+            ],
+        ];
+
+        foreach ($accounts as $account) {
+            if ($account['email'] === '') {
+                continue;
+            }
+
+            MasterPasswordPolicy::assertForEnvironment($account['password']);
+
+            if (app()->environment('local', 'testing') && MasterPasswordPolicy::isKnownWeakDefault($account['password'])) {
+                Log::warning('Master seed password uses a known weak default.', [
+                    'email' => $account['email'],
+                ]);
+            }
+
+            MasterUser::query()->updateOrCreate(
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'password' => $account['password'],
+                    'activo' => true,
+                ],
+            );
+        }
     }
 }

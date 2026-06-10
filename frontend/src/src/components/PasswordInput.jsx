@@ -61,7 +61,7 @@ export function PasswordInput({ className, wrapperClassName, toggleClassName, di
                     {...inputProps}
                     disabled={disabled}
                     type={visible ? 'text' : 'password'}
-                    className={classNames(inputClass, 'pr-11')}
+                    className={classNames(inputClass, 'password-input-field pr-11')}
                 />
                 <button
                     type="button"

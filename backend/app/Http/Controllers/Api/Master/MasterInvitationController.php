@@ -42,6 +42,7 @@ class MasterInvitationController extends Controller
                 'access_scheduled_cancellation' => $t->isAccessScheduledForCancellation(),
                 'access_active' => $t->isAccessActive(),
                 'access_days_remaining' => $t->accessDaysRemaining(),
+                'license_months' => $t->license_months,
                 'last_invitation' => $t->invitations->first() ? [
                     'email' => $t->invitations->first()->email,
                     'expires_at' => $t->invitations->first()->expires_at->toIso8601String(),
@@ -76,6 +77,7 @@ class MasterInvitationController extends Controller
                     config('tenancy.reserved_subdomains', [])
                 )),
             ],
+            'license_months' => ['required', 'integer', 'min:1', 'max:36'],
         ], [
             'slug.regex' => 'El subdominio solo puede tener letras, números y guiones (la ñ se guarda como n).',
             'slug.unique' => 'Ese subdominio ya está en uso. Elige otro nombre.',
@@ -93,6 +95,7 @@ class MasterInvitationController extends Controller
                 'db_name' => $dbName,
                 'contact_email' => $data['email'],
                 'status' => 'pending',
+                'license_months' => (int) $data['license_months'],
             ]);
 
             $invitation = OnboardingInvitation::query()->create([
@@ -124,6 +127,7 @@ class MasterInvitationController extends Controller
                 'slug' => $tenant->slug,
                 'onboarding_url' => $onboardingUrl,
                 'subdomain_preview' => $tenant->slug.'.'.TenantUrl::baseDomain(),
+                'license_months' => $tenant->license_months,
                 'email_sent' => $emailResult['sent'],
                 'email_error' => $emailResult['error'],
             ],

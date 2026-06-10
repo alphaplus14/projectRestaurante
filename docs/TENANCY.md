@@ -155,15 +155,33 @@ En Master, restaurantes en estado **pending**, **failed** o **provisioning** →
 
 | Acción | Efecto |
 |--------|--------|
+| **Nueva invitación** | Master define `license_months` (1–36). Al completar onboarding se activa `access_expires_at` con esos meses |
 | **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` o con cancelación programada |
 | **Desactivar acceso** | Si hay licencia vigente: marca `access_cancel_at_period_end` — el cliente **sigue entrando hasta** `access_expires_at`; luego se suspende solo. Sin fecha de vencimiento: suspensión inmediata |
 | **Reactivar suscripción** | Solo el Master, extendiendo meses tras el pago (quita cancelación programada) |
 
+### F. Renovación con Nequi (semi-automática)
+
+1. **Master → Ajustes:** configura llave/número Nequi, QR y **precios por paquete** (1, 3, 6 y 12 meses).
+2. **Admin del restaurante:** en `/admin/suscripcion` (también desde el aviso de licencia) elige meses, paga por Nequi y pulsa **Notificar pago** con la referencia.
+3. **Master → Pagos:** revisa solicitudes pendientes, confirma o rechaza. Al confirmar se extiende `access_expires_at` automáticamente.
+
+Endpoints:
+
+| Rol | Ruta |
+|-----|------|
+| Master | `GET/POST /api/master/billing/settings`, `GET /api/master/billing/renewal-requests`, `POST .../approve`, `POST .../reject` |
+| Admin tenant | `GET /api/admin/suscripcion`, `POST /api/admin/suscripcion/renovacion` |
+
+Solo puede haber **una solicitud pendiente** por restaurante. No hay webhook Nequi: la confirmación es manual por el Master.
+
 Variables:
 
 ```env
-# Meses al completar onboarding (0 = sin vencimiento)
+# Meses al completar onboarding (0 = sin vencimiento; fallback si la invitación no trae meses)
 TENANT_DEFAULT_LICENSE_MONTHS=1
+# Días antes del vencimiento para avisar al admin del restaurante
+TENANT_LICENSE_WARNING_DAYS=7
 ```
 
 Clientes antiguos pueden tener `access_expires_at` null (sin límite) hasta que Master asigne meses.

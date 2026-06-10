@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { masterApiFetch } from '../auth/masterApiClient';
 import { clearMasterToken } from '../auth/masterAuthStorage';
+import { MasterBillingRenewalsPanel } from '../components/MasterBillingRenewalsPanel';
 import { MasterConfirmModal } from '../components/MasterConfirmModal';
 import { MasterSettingsPanel } from '../components/MasterSettingsPanel';
 import { MasterTenantCard } from '../components/MasterTenantCard';
@@ -13,9 +14,12 @@ import { validateTenantSlugInput } from '../utils/tenantSlug';
 
 const TABS = [
     { id: 'clientes', label: 'Clientes' },
+    { id: 'pagos', label: 'Pagos' },
     { id: 'ajustes', label: 'Ajustes' },
     { id: 'seguridad', label: 'Seguridad' },
 ];
+
+const LICENSE_MONTH_OPTIONS = [1, 3, 6, 12];
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -27,6 +31,7 @@ export function MasterDashboardPage() {
     const [tenants, setTenants] = useState([]);
     const [email, setEmail] = useState('');
     const [slug, setSlug] = useState('');
+    const [licenseMonths, setLicenseMonths] = useState(1);
     const slugValidation = validateTenantSlugInput(slug);
     const [banner, setBanner] = useState('');
     const [lastLink, setLastLink] = useState('');
@@ -74,6 +79,7 @@ export function MasterDashboardPage() {
                 body: JSON.stringify({
                     email: email.trim(),
                     slug: check.normalized,
+                    license_months: licenseMonths,
                 }),
             });
             setLastLink(res?.data?.onboarding_url || '');
@@ -296,7 +302,8 @@ export function MasterDashboardPage() {
                         <section className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 space-y-4">
                             <h2 className="font-semibold">Nueva invitación</h2>
                             <p className="text-sm text-stone-600 dark:text-stone-400">
-                                El cliente recibirá un correo con el enlace de configuración inicial (onboarding).
+                                El cliente recibirá un correo con el enlace de configuración inicial (onboarding). Al
+                                completar el formulario, se activará la licencia por los meses que indiques.
                             </p>
                             <form onSubmit={crearInvitacion} className="grid gap-3 sm:grid-cols-2">
                                 <label className="text-sm sm:col-span-2">
@@ -334,6 +341,23 @@ export function MasterDashboardPage() {
                                             {slugValidation.error}
                                         </p>
                                     ) : null}
+                                </label>
+                                <label className="text-sm sm:col-span-2 sm:max-w-xs">
+                                    <span className="text-stone-500">Meses de suscripción pagados</span>
+                                    <select
+                                        value={licenseMonths}
+                                        onChange={(e) => setLicenseMonths(Number(e.target.value))}
+                                        className="mt-1 w-full rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-2 bg-stone-50 dark:bg-stone-950"
+                                    >
+                                        {LICENSE_MONTH_OPTIONS.map((m) => (
+                                            <option key={m} value={m}>
+                                                {m} {m === 1 ? 'mes' : 'meses'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1.5 text-xs text-stone-500">
+                                        La licencia arranca al terminar el onboarding del cliente.
+                                    </p>
                                 </label>
                                 <div className="flex items-end sm:col-span-2 sm:max-w-xs">
                                     <button
@@ -406,7 +430,16 @@ export function MasterDashboardPage() {
                     </>
                 ) : null}
 
-                {activeTab === 'ajustes' ? <MasterSettingsPanel /> : null}
+                {activeTab === 'pagos' ? (
+                    <MasterBillingRenewalsPanel
+                        onMessage={(msg) => {
+                            setBanner(msg);
+                            void load();
+                        }}
+                    />
+                ) : null}
+
+                {activeTab === 'ajustes' ? <MasterSettingsPanel onMessage={setBanner} /> : null}
 
                 {activeTab === 'seguridad' ? (
                     <div className="space-y-4">

@@ -36,3 +36,27 @@ html.dark {
 .dark .swal2-popup.napa-swal .swal2-html-container {
     color: #d6d3d1 !important;
 }
+
+/* Un solo ícono mostrar/ocultar: ocultar el del navegador (Edge/Chrome) */
+.password-input-field::-ms-reveal,
+.password-input-field::-ms-clear {
+    display: none;
+}
+
+.password-input-field::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+}
+
+.password-input-field::-webkit-textfield-decoration-container {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@supports selector(::-webkit-reveal) {
+    .password-input-field::-webkit-reveal {
+        display: none;
+    }
+}

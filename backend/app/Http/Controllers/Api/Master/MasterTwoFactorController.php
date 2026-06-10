@@ -97,7 +97,7 @@ class MasterTwoFactorController extends Controller
         config(['database.default' => 'master']);
 
         $data = $request->validate([
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:5'],
         ]);
 
         /** @var MasterUser $user */
@@ -129,7 +129,7 @@ class MasterTwoFactorController extends Controller
         config(['database.default' => 'master']);
 
         $data = $request->validate([
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:5'],
         ]);
 
         /** @var MasterUser $user */

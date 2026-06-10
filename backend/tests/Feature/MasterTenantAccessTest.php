@@ -93,4 +93,21 @@ class MasterTenantAccessTest extends TestCase
         $this->assertSame('suspended', $tenant->status);
         $this->assertFalse($tenant->access_cancel_at_period_end);
     }
+
+    public function test_invitation_requires_and_stores_license_months(): void
+    {
+        $slug = 'inv-lic-'.uniqid();
+
+        $response = $this->postJson('/api/master/invitations', [
+            'email' => 'invita@test.local',
+            'slug' => $slug,
+            'license_months' => 3,
+        ], $this->masterAuthHeaders());
+
+        $response->assertCreated();
+
+        $tenant = Tenant::query()->where('slug', $slug)->first();
+        $this->assertNotNull($tenant);
+        $this->assertSame(3, (int) $tenant->license_months);
+    }
 }

@@ -17,6 +17,7 @@ import { AdminMeserosPage } from './pages/AdminMeserosPage';
 import { AdminCocinerosPage } from './pages/AdminCocinerosPage';
 import { AdminCajerosPage } from './pages/AdminCajerosPage';
 import { AdminConfiguracionPage } from './pages/AdminConfiguracionPage';
+import { AdminSuscripcionPage } from './pages/AdminSuscripcionPage';
 import { AdminMesasPage } from './pages/AdminMesasPage';
 import { AdminReservasPage } from './pages/AdminReservasPage';
 import { AdminPlatosCanceladosPage } from './pages/AdminPlatosCanceladosPage';
@@ -281,6 +282,14 @@ export function App() {
                 element={
                     <RequireAdmin>
                         <AdminUsuariosPage />
+                    </RequireAdmin>
+                }
+            />
+            <Route
+                path="/admin/suscripcion"
+                element={
+                    <RequireAdmin>
+                        <AdminSuscripcionPage />
                     </RequireAdmin>
                 }
             />

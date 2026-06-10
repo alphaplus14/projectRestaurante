@@ -2,13 +2,18 @@
 
 namespace App\Services\Auth;
 
+use App\Mail\MasterTwoFactorLoginMail;
 use App\Models\Master\MasterUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
+use PragmaRX\Google2FA\Google2FA;
 
 class MasterTwoFactorService
 {
@@ -16,6 +21,7 @@ class MasterTwoFactorService
 
     public function __construct(
         private readonly TwoFactorAuthenticationProvider $provider,
+        private readonly Google2FA $google2fa,
     ) {}
 
     public function createChallenge(MasterUser $user, ?string $deviceName = null): string
@@ -28,6 +34,55 @@ class MasterTwoFactorService
         ], now()->addMinutes(self::CHALLENGE_TTL_MINUTES));
 
         return $token;
+    }
+
+    public function sendLoginCodeByEmail(MasterUser $user): bool
+    {
+        $code = $this->currentTotpCode($user);
+        if ($code === null) {
+            return false;
+        }
+
+        $rateKey = 'master-2fa-email:'.$user->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            return false;
+        }
+
+        try {
+            Mail::to($user->email)->send(new MasterTwoFactorLoginMail(
+                userName: (string) ($user->name ?: 'Master'),
+                code: $code,
+                validSeconds: (int) $this->google2fa->getKeyRegeneration(),
+            ));
+            RateLimiter::hit($rateKey, 300);
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar código 2FA Master por correo.', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public function sendLoginCodeForChallenge(string $challengeToken): bool
+    {
+        $resolved = $this->resolveChallenge($challengeToken);
+
+        return $this->sendLoginCodeByEmail($resolved['user']);
+    }
+
+    public function currentTotpCode(MasterUser $user): ?string
+    {
+        if (empty($user->two_factor_secret)) {
+            return null;
+        }
+
+        $secret = Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
+
+        return (string) $this->google2fa->getCurrentOtp($secret);
     }
 
     /**

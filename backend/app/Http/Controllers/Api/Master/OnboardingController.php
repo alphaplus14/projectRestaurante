@@ -251,6 +251,7 @@ class OnboardingController extends Controller
                 'subdomain' => $tenant->slug.'.'.TenantUrl::baseDomain(),
                 'expires_at' => $invitation->expires_at->toIso8601String(),
                 'provision_error' => $tenant->provision_error,
+                'license_months' => $tenant->license_months,
             ],
             'invitation' => $invitation,
         ];

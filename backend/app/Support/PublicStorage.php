@@ -17,6 +17,11 @@ class PublicStorage
         return $file->store('tenants/'.$slug.'/branding', 'public');
     }
 
+    public static function storePlatformNequiQr(UploadedFile $file): string
+    {
+        return $file->store('platform/billing', 'public');
+    }
+
     /**
      * Normaliza lo guardado en BD: siempre ruta relativa (ej. tenants/sena/branding/logo.png).
      */

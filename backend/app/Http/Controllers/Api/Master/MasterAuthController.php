@@ -18,7 +18,7 @@ class MasterAuthController extends Controller
 
         $data = $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:5'],
         ]);
 
         $email = strtolower(trim($data['email']));
@@ -36,11 +36,15 @@ class MasterAuthController extends Controller
 
         if ($user->hasEnabledTwoFactorAuthentication()) {
             $challengeToken = $twoFactor->createChallenge($user);
+            $emailSent = $twoFactor->sendLoginCodeByEmail($user);
 
             return response()->json([
                 'two_factor' => true,
                 'challenge_token' => $challengeToken,
-                'message' => 'Ingresa el código de tu app de autenticación.',
+                'email_sent' => $emailSent,
+                'message' => $emailSent
+                    ? 'Ingresa el código de tu app o revisa tu correo Master.'
+                    : 'Ingresa el código de tu app de autenticación.',
             ]);
         }
 
@@ -66,6 +70,26 @@ class MasterAuthController extends Controller
             $data['code'] ?? null,
             $data['recovery_code'] ?? null,
         );
+    }
+
+    public function resendTwoFactorEmail(Request $request, MasterTwoFactorService $twoFactor): JsonResponse
+    {
+        $data = $request->validate([
+            'challenge_token' => ['required', 'string'],
+        ]);
+
+        $sent = $twoFactor->sendLoginCodeForChallenge($data['challenge_token']);
+
+        if (! $sent) {
+            throw ValidationException::withMessages([
+                'challenge_token' => ['No se pudo reenviar el correo. Espera un momento o usa tu app de autenticación.'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Código enviado de nuevo a tu correo Master.',
+            'email_sent' => true,
+        ]);
     }
 
     public function me(Request $request): JsonResponse

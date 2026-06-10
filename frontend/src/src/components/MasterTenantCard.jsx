@@ -194,6 +194,12 @@ export function MasterTenantCard({
                             <div>
                                 <p className="text-[10px] uppercase tracking-wide font-semibold text-stone-500">Estado</p>
                                 <p className="text-sm text-stone-600 dark:text-stone-400">Esperando onboarding del cliente</p>
+                                {tenant.license_months ? (
+                                    <p className="text-xs text-violet-700 dark:text-violet-300 mt-1">
+                                        Licencia incluida: {tenant.license_months}{' '}
+                                        {tenant.license_months === 1 ? 'mes' : 'meses'} (al activar)
+                                    </p>
+                                ) : null}
                             </div>
                         )}
                         {license ? (

@@ -4,6 +4,7 @@ import { apiFetch } from '../auth/apiClient';
 import { staffLoginUrl } from '../auth/staffLogin';
 import { logoutTenantSession } from '../auth/logoutSession';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { AdminLicenseBanner } from '../components/AdminLicenseBanner';
 import { confirmStaffLogout } from '../utils/confirmLogout';
 
 function classNames(...xs) {
@@ -267,6 +268,8 @@ export function AdminLayout({ title, children }) {
                             </button>
                         </div>
                     </div>
+
+                    <AdminLicenseBanner />
 
                     <div className="px-6 py-10">{children}</div>
                 </main>
