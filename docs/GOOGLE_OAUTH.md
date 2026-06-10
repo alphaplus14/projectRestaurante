@@ -75,8 +75,9 @@ Si no está tu correo, Google puede fallar o no devolver datos al callback.
 3. Laravel redirige a Google.
 4. Google vuelve a `/auth/google/cliente/callback`.
 5. Laravel crea o enlaza el usuario **CLIENTE** y redirige a  
-   `{FRONTEND_URL}/cliente/oauth-callback?token=...&redirect=...`
-6. La SPA guarda el token y lleva al usuario a la ruta indicada.
+   `{FRONTEND_URL}/cliente/oauth-callback?code=...&redirect=...` (código de un solo uso, TTL 2 min).
+6. La SPA llama `POST /api/auth/oauth/exchange` con el código y recibe el token Sanctum.
+7. La SPA guarda el token y lleva al usuario a la ruta indicada.
 
 ## 7. Producción
 

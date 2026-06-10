@@ -9,7 +9,7 @@ import {
 
 /** Login/registro: no enviar token viejo ni redirigir a /acceso-bloqueado (mostrar error en el formulario). */
 function isAuthEntryPath(path) {
-    return /^\/api\/auth\/(login(?:-|$)|register-|forgot-password|reset-password|two-factor)/.test(path);
+    return /^\/api\/auth\/(login(?:-|$)|register-|forgot-password|reset-password|two-factor|oauth\/exchange)/.test(path);
 }
 
 export async function apiFetch(path, options = {}) {

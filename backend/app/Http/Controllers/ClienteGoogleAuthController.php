@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cargo;
 use App\Models\Master\Tenant;
 use App\Models\Usuario;
+use App\Support\OAuth\OAuthExchangeCode;
 use App\Support\OAuth\TenantOAuthState;
 use App\Support\Tenancy\TenantContext;
 use App\Support\Tenancy\TenantGate;
@@ -24,6 +25,7 @@ class ClienteGoogleAuthController extends Controller
     public function __construct(
         private readonly TenantGate $tenantGate,
         private readonly TenantOAuthState $oauthState,
+        private readonly OAuthExchangeCode $oauthExchange,
     ) {}
 
     public function redirect(Request $request): SymfonyRedirect
@@ -111,9 +113,10 @@ class ClienteGoogleAuthController extends Controller
         }
 
         $token = $usuario->createToken('google-oauth')->plainTextToken;
+        $code = $this->oauthExchange->issue($token, (string) $tenantSlug);
 
         return redirect($this->oauthCallbackUrl($frontend, [
-            'token' => $token,
+            'code' => $code,
             'redirect' => $redirectPath,
         ]));
     }

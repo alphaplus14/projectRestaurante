@@ -22,7 +22,9 @@ use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
 use App\Http\Controllers\Api\Master\MasterInvitationController;
+use App\Http\Controllers\Api\Master\MasterPlatformController;
 use App\Http\Controllers\Api\Master\MasterTenantAccessController;
+use App\Http\Controllers\Api\Master\MasterTwoFactorController;
 use App\Http\Controllers\Api\Master\OnboardingController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -37,6 +39,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('master')->group(function () {
     Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('auth/two-factor-challenge', [MasterAuthController::class, 'twoFactorChallenge'])
+        ->middleware('throttle:two-factor');
 
     Route::get('onboarding/{token}', [OnboardingController::class, 'show'])
         ->middleware('throttle:onboarding');
@@ -46,6 +50,12 @@ Route::prefix('master')->group(function () {
     Route::middleware('auth.master')->group(function () {
         Route::get('auth/me', [MasterAuthController::class, 'me']);
         Route::post('auth/logout', [MasterAuthController::class, 'logout']);
+        Route::get('two-factor/status', [MasterTwoFactorController::class, 'status']);
+        Route::post('two-factor/enable', [MasterTwoFactorController::class, 'enable']);
+        Route::post('two-factor/confirm', [MasterTwoFactorController::class, 'confirm']);
+        Route::post('two-factor/recovery-codes', [MasterTwoFactorController::class, 'recoveryCodes']);
+        Route::delete('two-factor/disable', [MasterTwoFactorController::class, 'disable']);
+        Route::get('platform/settings', [MasterPlatformController::class, 'settings']);
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
         Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
@@ -74,6 +84,7 @@ Route::middleware('tenant.identify')->group(function () {
             Route::post('login-cajero', [AuthController::class, 'loginCajero']);
             Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
             Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
+            Route::post('oauth/exchange', [AuthController::class, 'exchangeOAuthCode']);
         });
 
         // Admin: login propio + 2FA (Fortify rate limiters).

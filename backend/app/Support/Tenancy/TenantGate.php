@@ -65,7 +65,7 @@ class TenantGate
             && $tenant->access_expires_at
             && $tenant->access_expires_at->isPast()
         ) {
-            $tenant->update(['status' => 'suspended']);
+            $tenant->update(['status' => 'suspended', 'access_cancel_at_period_end' => false]);
             $tenant->refresh();
         }
 

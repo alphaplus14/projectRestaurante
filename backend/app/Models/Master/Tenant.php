@@ -19,6 +19,7 @@ class Tenant extends Model
         'provisioned_at',
         'onboarding_completed_at',
         'access_expires_at',
+        'access_cancel_at_period_end',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Tenant extends Model
             'provisioned_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'access_expires_at' => 'datetime',
+            'access_cancel_at_period_end' => 'boolean',
         ];
     }
 
@@ -63,12 +65,38 @@ class Tenant extends Model
             : now();
 
         $this->access_expires_at = $base->addMonths($months);
+        $this->access_cancel_at_period_end = false;
 
         if ($this->status === 'suspended') {
             $this->status = 'active';
         }
 
         $this->save();
+    }
+
+    public function scheduleAccessCancellationAtPeriodEnd(): bool
+    {
+        if ($this->access_expires_at && $this->access_expires_at->isFuture()) {
+            $this->access_cancel_at_period_end = true;
+            $this->save();
+
+            return true;
+        }
+
+        $this->update([
+            'status' => 'suspended',
+            'access_cancel_at_period_end' => false,
+        ]);
+
+        return false;
+    }
+
+    public function isAccessScheduledForCancellation(): bool
+    {
+        return (bool) $this->access_cancel_at_period_end
+            && $this->status === 'active'
+            && $this->access_expires_at
+            && $this->access_expires_at->isFuture();
     }
 
     public function invitations(): HasMany

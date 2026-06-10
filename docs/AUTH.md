@@ -62,13 +62,13 @@ Reset contraseña (Fortify, sin sesión web):
 |---------|-------|-------|--------|
 | `auth` | logins staff/cliente, forgot-password, reset-password, master login | correo + IP | `AUTH_RATE_LIMIT` (default 6/min) |
 | `login` | `login-admin` | correo + IP (Fortify) | 5/min |
-| `two-factor` | `two-factor-challenge` | challenge_token + IP | 5/min |
+| `two-factor` | `two-factor-challenge` (tenant admin + master) | challenge_token + IP | 5/min |
 | `onboarding` | `GET /api/master/onboarding/{token}` | IP | `ONBOARDING_RATE_LIMIT` (30/min) |
 | `onboarding-complete` | `POST /api/master/onboarding/{token}` | IP + token | `ONBOARDING_COMPLETE_RATE_LIMIT` (5/min) |
 
 **Contraseñas staff (panel admin):** mínimo 8 caracteres (igual que registro cliente y onboarding).
 
-**Google OAuth:** el parámetro `state` va firmado con HMAC (`TenantOAuthState`). Un `state` alterado o legacy sin firma se rechaza en el callback.
+**Google OAuth:** el parámetro `state` va firmado con HMAC (`TenantOAuthState`). Un `state` alterado o legacy sin firma se rechaza en el callback. El token Sanctum se entrega vía `POST /api/auth/oauth/exchange` (código de un solo uso), no en la query del callback.
 
 ---
 
@@ -103,4 +103,26 @@ Fortify **no** expone rutas HTTP (`Fortify::ignoreRoutes()` en `register()` del 
 | ❌ Login web Fortify | `AdminAuthController` + Sanctum |
 | ❌ Registro / perfil Fortify | Acciones eliminadas (no aplican al dominio `Usuario`) |
 
-Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibilidad con enlaces antiguos).
+Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibilidad con enlaces antigos).
+
+---
+
+## Master: login y 2FA (Sprint 1)
+
+1. `POST /api/master/auth/login` con email y contraseña.
+2. Si 2FA activo → `{ two_factor: true, challenge_token }`.
+3. `POST /api/master/auth/two-factor-challenge` → token `master_api_token`.
+
+Gestión 2FA (logueado como Master):
+
+- `GET/POST/DELETE /api/master/two-factor/*` (enable, confirm, recovery-codes con contraseña, disable).
+
+**Contraseña Master en producción:** mínimo 12 caracteres con mayúsculas, minúsculas y números (`MasterPasswordPolicy`). En local se permite `master123` con advertencia en log.
+
+---
+
+## Google OAuth cliente (Sprint 1)
+
+Tras el callback de Google, el backend **no** envía el token Sanctum en la URL. Redirige con `?code=` (64 caracteres, TTL 2 min).
+
+La SPA llama `POST /api/auth/oauth/exchange` con `{ code }` y recibe `{ token }`. El código es de un solo uso y ligado al slug del tenant.

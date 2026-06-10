@@ -176,3 +176,30 @@ php artisan test --filter=TenantOAuthState
 
 - [TENANCY.md](./TENANCY.md) — multi-tenant, URLs locales, SMTP
 - [AUTH.md](./AUTH.md) — tokens, roles, 2FA, rate limits
+- [MIGRATIONS.md](./MIGRATIONS.md) — flujo único de migraciones
+
+---
+
+## Fase 7 — Sprint 1 (producción mínima segura) ✅
+
+**Objetivo:** secretos documentados, Master 2FA, OAuth sin token en URL, migraciones claras.
+
+| # | Tarea | Estado | Archivos |
+|---|--------|--------|----------|
+| 7.1 | Completar `.env.example` (backend + frontend) | ✅ | `backend/.env.example`, `frontend/.env.example` |
+| 7.2 | Política contraseña Master en producción | ✅ | `MasterPasswordPolicy.php`, `MasterDatabaseSeeder.php` |
+| 7.3 | 2FA TOTP en login Master + panel dashboard | ✅ | `MasterTwoFactorService.php`, `MasterAuthController.php`, `MasterTwoFactorPanel.jsx` |
+| 7.4 | Documentar flujo único de migraciones | ✅ | `docs/MIGRATIONS.md` |
+| 7.5 | OAuth: código de un solo uso (no token en query) | ✅ | `OAuthExchangeCode.php`, `POST /api/auth/oauth/exchange` |
+| 7.6 | Tests Sprint 1 | ✅ | `Sprint1SecurityTest.php` |
+
+### Verificación Sprint 1
+
+```bash
+cd backend
+php artisan master:migrate
+php artisan test --filter=Sprint1Security
+
+# Master: activar 2FA en dashboard → logout → login pide código TOTP
+# Google OAuth: callback URL lleva ?code=... (no ?token=...)
+```

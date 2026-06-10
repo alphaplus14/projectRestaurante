@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Master;
 
 use App\Http\Controllers\Controller;
 use App\Models\Master\MasterUser;
+use App\Services\Auth\MasterTwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class MasterAuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, MasterTwoFactorService $twoFactor): JsonResponse
     {
         config(['database.default' => 'master']);
 
@@ -20,8 +21,10 @@ class MasterAuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $email = strtolower(trim($data['email']));
+
         $user = MasterUser::query()
-            ->where('email', $data['email'])
+            ->where('email', $email)
             ->where('activo', true)
             ->first();
 
@@ -31,20 +34,45 @@ class MasterAuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('master-web')->plainTextToken;
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            $challengeToken = $twoFactor->createChallenge($user);
 
-        return response()->json([
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
+            return response()->json([
+                'two_factor' => true,
+                'challenge_token' => $challengeToken,
+                'message' => 'Ingresa el código de tu app de autenticación.',
+            ]);
+        }
+
+        return $twoFactor->tokenResponse($user);
+    }
+
+    public function twoFactorChallenge(Request $request, MasterTwoFactorService $twoFactor): JsonResponse
+    {
+        $data = $request->validate([
+            'challenge_token' => ['required', 'string'],
+            'code' => ['nullable', 'string'],
+            'recovery_code' => ['nullable', 'string'],
         ]);
+
+        if (empty($data['code']) && empty($data['recovery_code'])) {
+            throw ValidationException::withMessages([
+                'code' => ['Ingresa el código de 6 dígitos o un código de recuperación.'],
+            ]);
+        }
+
+        return $twoFactor->completeChallenge(
+            $data['challenge_token'],
+            $data['code'] ?? null,
+            $data['recovery_code'] ?? null,
+        );
     }
 
     public function me(Request $request): JsonResponse
     {
+        config(['database.default' => 'master']);
+
+        /** @var MasterUser $user */
         $user = $request->user();
 
         return response()->json([
@@ -52,12 +80,15 @@ class MasterAuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
+        config(['database.default' => 'master']);
+
         $user = $request->user();
         $user?->currentAccessToken()?->delete();
 

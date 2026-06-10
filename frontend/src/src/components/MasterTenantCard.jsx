@@ -8,6 +8,11 @@ const STATUS_STYLES = {
         pill: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 ring-emerald-500/25',
         accent: 'border-l-emerald-500',
     },
+    scheduled_cancel: {
+        text: 'Acceso hasta vencimiento',
+        pill: 'bg-amber-500/15 text-amber-900 dark:text-amber-200 ring-amber-500/25',
+        accent: 'border-l-amber-500',
+    },
     pending: {
         text: 'Pendiente',
         pill: 'bg-amber-500/15 text-amber-900 dark:text-amber-200 ring-amber-500/25',
@@ -36,6 +41,9 @@ const STATUS_STYLES = {
 };
 
 function resolveStatus(tenant) {
+    if (tenant.access_scheduled_cancellation && tenant.access_expires_at) {
+        return STATUS_STYLES.scheduled_cancel;
+    }
     if (tenant.status === 'active' && tenant.access_expires_at && !tenant.access_active) {
         return STATUS_STYLES.expired;
     }
@@ -64,6 +72,15 @@ function licenseMeta(tenant) {
 
     if (!tenant.access_active) {
         return { label: 'Licencia', value: `Venció ${date}`, hint: 'Renueva para restaurar el acceso', tone: 'danger' };
+    }
+
+    if (tenant.access_scheduled_cancellation) {
+        return {
+            label: 'Licencia',
+            value: `Acceso hasta ${date}`,
+            hint: 'Cancelación programada. Reactiva extendiendo meses.',
+            tone: 'warning',
+        };
     }
 
     const days = tenant.access_days_remaining;
@@ -111,6 +128,8 @@ export function MasterTenantCard({
     onResend,
     onExtend,
     onSuspend,
+    onExtendRequest,
+    onSuspendRequest,
 }) {
     const status = resolveStatus(tenant);
     const license = canManageAccess(tenant) ? licenseMeta(tenant) : null;
@@ -242,8 +261,10 @@ export function MasterTenantCard({
                                 </p>
                                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                                     {tenant.status === 'suspended'
-                                        ? 'Elige cuántos meses habilitar al restaurar el acceso.'
-                                        : 'Suma meses a la fecha actual de vencimiento.'}
+                                        ? 'Elige cuántos meses habilitar al reactivar la suscripción.'
+                                        : tenant.access_scheduled_cancellation
+                                          ? 'Al extender meses se reactiva la suscripción y se quita la cancelación programada.'
+                                          : 'Suma meses a la fecha actual de vencimiento.'}
                                 </p>
                             </div>
                         </div>
@@ -257,7 +278,11 @@ export function MasterTenantCard({
                                         key={months}
                                         type="button"
                                         disabled={busy}
-                                        onClick={() => onExtend(tenant, months)}
+                                        onClick={() =>
+                                            onExtendRequest
+                                                ? onExtendRequest(tenant, months)
+                                                : onExtend(tenant, months)
+                                        }
                                         className={classNames(
                                             'rounded-xl px-3 py-2.5 text-sm font-semibold transition-all disabled:opacity-50',
                                             isPrimary
@@ -271,17 +296,23 @@ export function MasterTenantCard({
                             })}
                         </div>
 
-                        {tenant.status === 'active' && tenant.access_active ? (
+                        {tenant.status === 'active' && tenant.access_active && !tenant.access_scheduled_cancellation ? (
                             <div className="flex justify-end pt-1 border-t border-stone-200/80 dark:border-stone-800">
                                 <button
                                     type="button"
                                     disabled={accessActionId === tenant.id}
-                                    onClick={() => onSuspend(tenant)}
+                                    onClick={() =>
+                                        onSuspendRequest ? onSuspendRequest(tenant) : onSuspend(tenant)
+                                    }
                                     className="text-sm font-medium text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 disabled:opacity-50 px-2 py-1 rounded-lg hover:bg-red-500/5 transition-colors"
                                 >
-                                    {accessActionId === tenant.id ? 'Desactivando…' : 'Desactivar acceso'}
+                                    {accessActionId === tenant.id ? 'Procesando…' : 'Desactivar acceso'}
                                 </button>
                             </div>
+                        ) : tenant.access_scheduled_cancellation ? (
+                            <p className="text-xs text-amber-800 dark:text-amber-200 pt-1 border-t border-stone-200/80 dark:border-stone-800">
+                                El acceso se cortará automáticamente al vencer la licencia. Para reactivar, extiende meses.
+                            </p>
                         ) : null}
                     </div>
                 ) : null}

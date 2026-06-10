@@ -1,5 +1,7 @@
 # Multi-tenant (módulo Master)
 
+> Migraciones: ver [MIGRATIONS.md](./MIGRATIONS.md) (flujo único master / plantilla / tenants).
+
 ## Decisiones
 
 - **Un subdominio por cliente:** `mi-local.tudominio.com`
@@ -153,8 +155,9 @@ En Master, restaurantes en estado **pending**, **failed** o **provisioning** →
 
 | Acción | Efecto |
 |--------|--------|
-| **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` |
-| **Desactivar acceso** | `status = suspended` → API del restaurante responde 403 |
+| **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` o con cancelación programada |
+| **Desactivar acceso** | Si hay licencia vigente: marca `access_cancel_at_period_end` — el cliente **sigue entrando hasta** `access_expires_at`; luego se suspende solo. Sin fecha de vencimiento: suspensión inmediata |
+| **Reactivar suscripción** | Solo el Master, extendiendo meses tras el pago (quita cancelación programada) |
 
 Variables:
 

@@ -38,6 +38,8 @@ class MasterInvitationController extends Controller
                 'created_at' => $t->created_at?->toIso8601String(),
                 'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),
                 'access_expires_at' => $t->access_expires_at?->toIso8601String(),
+                'access_cancel_at_period_end' => (bool) $t->access_cancel_at_period_end,
+                'access_scheduled_cancellation' => $t->isAccessScheduledForCancellation(),
                 'access_active' => $t->isAccessActive(),
                 'access_days_remaining' => $t->accessDaysRemaining(),
                 'last_invitation' => $t->invitations->first() ? [
