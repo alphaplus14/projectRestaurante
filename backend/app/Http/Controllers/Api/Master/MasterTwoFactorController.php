@@ -12,7 +12,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
-use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 
 class MasterTwoFactorController extends Controller
 {
@@ -88,38 +87,6 @@ class MasterTwoFactorController extends Controller
             'data' => [
                 'enabled' => true,
                 'confirmed' => true,
-            ],
-        ]);
-    }
-
-    public function recoveryCodes(Request $request, GenerateNewRecoveryCodes $generate): JsonResponse
-    {
-        config(['database.default' => 'master']);
-
-        $data = $request->validate([
-            'password' => ['required', 'string', 'min:5'],
-        ]);
-
-        /** @var MasterUser $user */
-        $user = $request->user();
-
-        if (! Hash::check($data['password'], (string) $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => ['Contraseña incorrecta.'],
-            ]);
-        }
-
-        if (! $user->hasEnabledTwoFactorAuthentication()) {
-            return response()->json(['message' => 'Primero activa la verificación en dos pasos.'], 422);
-        }
-
-        $generate($user);
-        $user->refresh();
-
-        return response()->json([
-            'message' => 'Nuevos códigos de recuperación generados. Guárdalos en un lugar seguro.',
-            'data' => [
-                'recovery_codes' => $user->recoveryCodes(),
             ],
         ]);
     }

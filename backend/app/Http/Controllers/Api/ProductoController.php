@@ -11,14 +11,6 @@ use Illuminate\Http\Request;
 class ProductoController extends Controller
 {
     /**
-     * Catálogo para clientes autenticados (solo productos y categorías activos).
-     */
-    public function indexCliente(Request $request): JsonResponse
-    {
-        return $this->catalogoActivo($request);
-    }
-
-    /**
      * Mismo catálogo para visitantes (sin sesión): solo datos ya visibles para clientes registrados (activos).
      */
     public function catalogoPublico(Request $request): JsonResponse

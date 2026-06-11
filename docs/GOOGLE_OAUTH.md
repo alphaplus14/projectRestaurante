@@ -31,11 +31,11 @@ GOOGLE_CLIENT_SECRET=tu-client-secret
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/cliente/callback
 ```
 
-Ejecuta migración si aún no lo hiciste:
+Ejecuta los parches tenant si aún no lo hiciste (requiere BD importada desde `restaurante.sql`):
 
 ```bash
 cd backend
-php artisan migrate
+php artisan migrate --path=database/migrations/tenant_patches --force
 ```
 
 ## 3. Error SSL en Windows (`cURL error 60`)

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\RestauranteConfig;
 use App\Support\PublicStorage;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AdminRestauranteConfigController extends Controller
 {
@@ -25,13 +24,6 @@ class AdminRestauranteConfigController extends Controller
         return response()->json([
             'data' => $this->serialize($config),
         ]);
-    }
-
-    public function update(Request $request): JsonResponse
-    {
-        return response()->json([
-            'message' => 'La identidad del restaurante (nombre, logo, teléfono y dirección) la gestiona el proveedor del software y no puede modificarse desde el panel de administración.',
-        ], 403);
     }
 
     private function normalizeStoredLogo(RestauranteConfig $config): void

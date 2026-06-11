@@ -116,7 +116,7 @@ Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibili
 
 Gestión 2FA (logueado como Master):
 
-- `GET/POST/DELETE /api/master/two-factor/*` (enable, confirm, recovery-codes con contraseña, disable).
+- `GET/POST/DELETE /api/master/two-factor/*` (enable, confirm, disable). Los códigos de recuperación se entregan al activar 2FA.
 
 **Contraseña Master en producción:** mínimo 12 caracteres con mayúsculas, minúsculas y números (`MasterPasswordPolicy`). En local se permite `master123` con advertencia en log.
 

@@ -1,0 +1,5 @@
+#!/bin/sh
+MSG_FILE="$1"
+[ -f "$MSG_FILE" ] || exit 0
+grep -v -e 'Co-authored-by: Cursor <cursoragent@cursor.com>' -e 'Made-with: Cursor' "$MSG_FILE" > "${MSG_FILE}.tmp"
+mv "${MSG_FILE}.tmp" "$MSG_FILE"

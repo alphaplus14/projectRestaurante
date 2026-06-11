@@ -58,12 +58,12 @@ Route::prefix('master')->group(function () {
         Route::get('two-factor/status', [MasterTwoFactorController::class, 'status']);
         Route::post('two-factor/enable', [MasterTwoFactorController::class, 'enable']);
         Route::post('two-factor/confirm', [MasterTwoFactorController::class, 'confirm']);
-        Route::post('two-factor/recovery-codes', [MasterTwoFactorController::class, 'recoveryCodes']);
         Route::delete('two-factor/disable', [MasterTwoFactorController::class, 'disable']);
         Route::get('platform/settings', [MasterPlatformController::class, 'settings']);
         Route::get('billing/settings', [MasterBillingController::class, 'settings']);
         Route::match(['put', 'post'], 'billing/settings', [MasterBillingController::class, 'updateSettings']);
         Route::get('billing/renewal-requests', [MasterBillingController::class, 'renewalRequests']);
+        Route::get('billing/renewal-history', [MasterBillingController::class, 'renewalHistory']);
         Route::post('billing/renewal-requests/{renewalRequest}/approve', [MasterBillingController::class, 'approveRenewal']);
         Route::post('billing/renewal-requests/{renewalRequest}/reject', [MasterBillingController::class, 'rejectRenewal']);
         Route::get('tenants', [MasterInvitationController::class, 'index']);
@@ -110,8 +110,6 @@ Route::middleware('tenant.identify')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(function () {
-        Route::get('productos', [ProductoController::class, 'indexCliente']);
-        Route::get('mesas', [ClienteReservaController::class, 'mesas']);
         Route::get('reservas', [ClienteReservaController::class, 'index']);
         Route::get('reservas/disponibilidad', [ClienteReservaController::class, 'disponibilidad']);
         Route::post('reservas', [ClienteReservaController::class, 'store']);
@@ -122,7 +120,6 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('mesas', [MeseroController::class, 'mesas']);
         Route::get('perfil', [MeseroController::class, 'perfil']);
         Route::get('pedidos/historial', [MeseroController::class, 'historialPedidos']);
-        Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
         Route::get('alertas', [MeseroController::class, 'alertas']);
         Route::post('alertas/llamada-cocina/{llamada}/atender', [MeseroController::class, 'atenderLlamadaCocina']);
         Route::post('alertas/cambio-menu/{log:idLog}/atender', [MeseroController::class, 'atenderCambioMenu']);
@@ -143,7 +140,6 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('llamar-mesero', [CajeroController::class, 'llamarMesero']);
         Route::get('mesas', [CajeroController::class, 'mesas']);
         Route::get('ventas', [CajeroController::class, 'ventas']);
-        Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
         Route::get('ventas/{venta:idVenta}/factura', [CajeroController::class, 'factura']);
         Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
@@ -212,7 +208,6 @@ Route::middleware('tenant.identify')->group(function () {
         Route::patch('cajeros/{usuario:idUsuario}/activo', [AdminCajeroController::class, 'setActivo']);
 
         Route::get('restaurante-config', [AdminRestauranteConfigController::class, 'show']);
-        Route::match(['put', 'post'], 'restaurante-config', [AdminRestauranteConfigController::class, 'update']);
 
         Route::get('reportes/ventas-hoy', [ReporteController::class, 'ventasHoy']);
         Route::get('reportes/ventas', [ReporteController::class, 'ventasPorFecha']);

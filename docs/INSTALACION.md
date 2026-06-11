@@ -54,17 +54,19 @@ cp .env.example .env        # En Windows (PowerShell): copy .env.example .env
 php artisan key:generate
 ```
 
-Configura la conexión a la base de datos en el archivo `.env` y luego ejecuta las
-migraciones:
+Configura la conexión a la base de datos en el archivo `.env`, importa el esquema base
+y aplica los parches:
 
 ```bash
-php artisan migrate --force
+# Importar esquema tenant (ajusta usuario/BD según tu .env)
+mysql -u root -p restaurante < ../restaurante.sql
+
 php artisan migrate --path=database/migrations/tenant_patches --force
 ```
 
-> **Nota:** la segunda migración (`tenant_patches`) aplica los ajustes propios del
-> proyecto (columnas adicionales como `enviado_caja_en`, facturación, 2FA, etc.).
-> Es obligatoria para que funcionen todos los módulos.
+> **Nota:** los parches en `tenant_patches/` aplican columnas y tablas adicionales
+> (facturación, 2FA, soft-delete, etc.). Son obligatorios para todos los módulos.
+> Ya no hay migraciones en la raíz de `database/migrations/` — ver `docs/MIGRATIONS.md`.
 
 ---
 
@@ -136,7 +138,7 @@ cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate --force
+mysql -u root -p restaurante < ../restaurante.sql
 php artisan migrate --path=database/migrations/tenant_patches --force
 
 # 3. Frontend

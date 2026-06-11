@@ -25,9 +25,18 @@ php artisan master:migrate --seed
 
 **Cuándo:** desarrollo single-tenant o para mantener el dump SQL de referencia.
 
+El esquema base **no** está en migraciones Laravel de la raíz. Impórtalo desde el dump del repo:
+
+```bash
+# Ejemplo (ajusta usuario/host/BD según tu .env)
+mysql -u root -p restaurante < ../restaurante.sql
+```
+
+Luego aplica los parches del proyecto:
+
 ```bash
 cd backend
-php artisan migrate
+php artisan migrate --path=database/migrations/tenant_patches --force
 php artisan db:seed --class=Database\\Seeders\\RestauranteSeeder   # opcional, demo
 ```
 
@@ -37,6 +46,8 @@ Tras cambiar esquema tenant, actualiza también:
 
 1. Parches en `database/migrations/tenant_patches/` (idempotentes, con `hasColumn`).
 2. El dump `restaurante.sql` en la raíz del repo (si lo usas para instalaciones).
+
+> **Nota:** ya no hay archivos `*_*.php` en `database/migrations/` (solo subcarpetas `master/` y `tenant_patches/`). **No** ejecutes `php artisan migrate` sin `--path`.
 
 ---
 
@@ -59,8 +70,10 @@ Aplica cada parche pendiente en **cada tenant activo**. Los parches registran su
 
 | Acción incorrecta | Riesgo |
 |-------------------|--------|
+| `php artisan migrate` sin `--path` | Ya no aplica parches; puede confundir con un flujo obsoleto |
 | `migrate` en BD master sin `--path=database/migrations/master` | Tablas tenant mezcladas en master |
-| Editar solo `database/migrations/` sin `tenant_patches/` | Tenants nuevos desincronizados |
+| Duplicar parches en la raíz de `database/migrations/` y en `tenant_patches/` | Desincronización (eliminado en limpieza 2026-06) |
+| Editar solo la raíz de `database/migrations/` sin `tenant_patches/` | Tenants nuevos desincronizados |
 | `migrate:fresh` en producción | Pérdida de datos |
 | Parches no idempotentes | Fallo al re-ejecutar en tenants |
 
@@ -75,8 +88,9 @@ cd backend
 php artisan master:migrate --seed
 
 # 2. Plantilla (si DB restaurante vacía o nueva)
-php artisan migrate
-# php artisan db:seed   # demo opcional
+mysql -u root -p restaurante < ../restaurante.sql
+php artisan migrate --path=database/migrations/tenant_patches --force
+# php artisan db:seed --class=Database\\Seeders\\RestauranteSeeder   # demo opcional
 
 # 3. Tras cambios de parches
 php artisan tenants:migrate-patches

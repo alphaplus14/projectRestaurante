@@ -98,12 +98,13 @@ export function MasterLoginPage() {
         setResendBusy(true);
         setError('');
         try {
-            const res = await masterApiFetch('/api/master/auth/two-factor-email', {
+            await masterApiFetch('/api/master/auth/two-factor-email', {
                 method: 'POST',
                 body: JSON.stringify({ challenge_token: challengeToken }),
             });
             setEmailSent(true);
-            setInfo(res?.message || 'Código reenviado a tu correo.');
+            const correo = email.trim();
+            setInfo(correo ? `✓ Código reenviado a ${correo}` : '✓ Código reenviado correctamente');
             setTwoFactorCode('');
         } catch (err) {
             setError(err?.message || 'No se pudo reenviar el correo.');

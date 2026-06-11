@@ -180,4 +180,65 @@ class MasterBillingRenewalTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_master_can_list_renewal_history_with_filters(): void
+    {
+        $tenantA = Tenant::query()->create([
+            'slug' => 'hist-a-'.uniqid(),
+            'db_name' => 'hist-a-'.uniqid(),
+            'contact_email' => 'hist-a@local.test',
+            'nombre_comercial' => 'Restaurante Alpha',
+            'status' => 'active',
+            'onboarding_completed_at' => now(),
+            'access_expires_at' => now()->addMonth(),
+        ]);
+
+        $tenantB = Tenant::query()->create([
+            'slug' => 'hist-b-'.uniqid(),
+            'db_name' => 'hist-b-'.uniqid(),
+            'contact_email' => 'hist-b@local.test',
+            'nombre_comercial' => 'Restaurante Beta',
+            'status' => 'active',
+            'onboarding_completed_at' => now(),
+            'access_expires_at' => now()->addMonth(),
+        ]);
+
+        SubscriptionRenewalRequest::query()->create([
+            'tenant_id' => $tenantA->id,
+            'months' => 3,
+            'amount_cop' => 140000,
+            'payment_reference' => 'ALPHA-REF-001',
+            'status' => SubscriptionRenewalRequest::STATUS_APPROVED,
+            'reviewed_at' => now()->subDay(),
+        ]);
+
+        SubscriptionRenewalRequest::query()->create([
+            'tenant_id' => $tenantB->id,
+            'months' => 1,
+            'amount_cop' => 50000,
+            'payment_reference' => 'BETA-REF-002',
+            'status' => SubscriptionRenewalRequest::STATUS_REJECTED,
+            'reviewed_at' => now(),
+        ]);
+
+        $headers = $this->masterAuthHeaders();
+
+        $all = $this->getJson('/api/master/billing/renewal-history', $headers);
+        $all->assertOk()
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'total']]);
+        $this->assertGreaterThanOrEqual(2, count($all->json('data')));
+
+        $approved = $this->getJson('/api/master/billing/renewal-history?status=approved&q=Alpha', $headers);
+        $approved->assertOk();
+        $this->assertNotEmpty($approved->json('data'));
+        $this->assertTrue(
+            collect($approved->json('data'))->every(fn (array $row) => $row['status'] === 'approved')
+        );
+
+        $pendingOnly = $this->getJson('/api/master/billing/renewal-requests', $headers);
+        $pendingOnly->assertOk();
+        $this->assertTrue(
+            collect($pendingOnly->json('data'))->every(fn (array $row) => $row['status'] === 'pending')
+        );
+    }
 }

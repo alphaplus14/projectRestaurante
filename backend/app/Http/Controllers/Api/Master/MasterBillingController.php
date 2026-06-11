@@ -67,8 +67,8 @@ class MasterBillingController extends Controller
     public function renewalRequests(): JsonResponse
     {
         $requests = SubscriptionRenewalRequest::query()
-            ->with('tenant:id,slug,nombre_comercial,contact_email,status,access_expires_at')
-            ->orderByRaw("CASE status WHEN 'pending' THEN 0 ELSE 1 END")
+            ->with($this->renewalRequestRelations())
+            ->where('status', SubscriptionRenewalRequest::STATUS_PENDING)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
@@ -76,6 +76,54 @@ class MasterBillingController extends Controller
 
         return response()->json([
             'data' => $requests,
+        ]);
+    }
+
+    public function renewalHistory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['nullable', 'string', 'in:pending,approved,rejected,all'],
+            'q' => ['nullable', 'string', 'max:80'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+        ]);
+
+        $perPage = (int) ($data['per_page'] ?? 20);
+        $status = $data['status'] ?? 'all';
+        $search = trim((string) ($data['q'] ?? ''));
+
+        $query = SubscriptionRenewalRequest::query()
+            ->with($this->renewalRequestRelations())
+            ->orderByDesc('created_at');
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $like = '%'.$this->escapeLike($search).'%';
+            $query->where(function ($outer) use ($like) {
+                $outer->where('payment_reference', 'like', $like)
+                    ->orWhereHas('tenant', function ($tenant) use ($like) {
+                        $tenant->where('slug', 'like', $like)
+                            ->orWhere('nombre_comercial', 'like', $like)
+                            ->orWhere('contact_email', 'like', $like);
+                    });
+            });
+        }
+
+        $paginator = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginator->getCollection()
+                ->map(fn (SubscriptionRenewalRequest $row) => $this->serializeRenewalRequest($row))
+                ->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
         ]);
     }
 
@@ -119,7 +167,7 @@ class MasterBillingController extends Controller
             'master_note' => $data['master_note'] ?? null,
         ]);
 
-        $renewalRequest->load('tenant:id,slug,nombre_comercial,contact_email,status,access_expires_at');
+        $renewalRequest->load($this->renewalRequestRelations());
 
         return response()->json([
             'message' => "Pago confirmado. Acceso extendido {$renewalRequest->months} mes(es).",
@@ -146,7 +194,7 @@ class MasterBillingController extends Controller
             'master_note' => $data['master_note'] ?? null,
         ]);
 
-        $renewalRequest->load('tenant:id,slug,nombre_comercial,contact_email,status,access_expires_at');
+        $renewalRequest->load($this->renewalRequestRelations());
 
         return response()->json([
             'message' => 'Solicitud de renovación rechazada.',
@@ -180,6 +228,22 @@ class MasterBillingController extends Controller
     }
 
     /**
+     * @return array<int, string>
+     */
+    private function renewalRequestRelations(): array
+    {
+        return [
+            'tenant:id,slug,nombre_comercial,contact_email,status,access_expires_at',
+            'reviewer:id,name,email',
+        ];
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function serializeRenewalRequest(SubscriptionRenewalRequest $row): array
@@ -200,6 +264,7 @@ class MasterBillingController extends Controller
             'status' => $row->status,
             'admin_note' => $row->admin_note,
             'master_note' => $row->master_note,
+            'reviewed_by_name' => $row->reviewer?->name,
             'reviewed_at' => $row->reviewed_at?->toIso8601String(),
             'created_at' => $row->created_at?->toIso8601String(),
         ];

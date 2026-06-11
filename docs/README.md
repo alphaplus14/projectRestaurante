@@ -22,6 +22,7 @@ SaaS multi-tenant: Laravel 13 (backend) + React 19 (frontend). Master en `master
 | [BILLING_RENEWAL.md](./BILLING_RENEWAL.md) | Renovación Nequi: Master (ajustes/pagos) + admin (Configuración → Suscripción) |
 | [MIGRATIONS.md](./MIGRATIONS.md) | Flujo único de migraciones master vs tenant |
 | [GOOGLE_OAUTH.md](./GOOGLE_OAUTH.md) | OAuth Google (cliente y exchange de código) |
+| [API_CLEANUP.md](./API_CLEANUP.md) | Endpoints retirados y alternativas |
 
 ---
 

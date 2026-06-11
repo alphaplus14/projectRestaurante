@@ -94,7 +94,7 @@ Si el tenant tiene `access_expires_at` y quedan **≤ N días** (`TENANT_LICENSE
 
 **API:** `GET /api/admin/licencia` → `show_warning`, `days_remaining`, `message`.
 
-**Componentes:** `AdminLicenseBanner.jsx`, sección en `AdminConfiguracionPage` (`AdminSubscriptionPanel.jsx`). La ruta `/admin/suscripcion` redirige a configuración.
+**Componentes:** `AdminLicenseBanner.jsx`, sección en `AdminConfiguracionPage` (`AdminSubscriptionPanel.jsx`).
 
 ---
 
@@ -154,7 +154,8 @@ Por cada solicitud se muestra: restaurante, meses, monto, referencia, nota del a
 
 | Método | Ruta |
 |--------|------|
-| GET | `/api/master/billing/renewal-requests` |
+| GET | `/api/master/billing/renewal-requests` | Solo pendientes |
+| GET | `/api/master/billing/renewal-history` | Historial paginado (`status`, `q`, `page`, `per_page`) |
 | POST | `/api/master/billing/renewal-requests/{id}/approve` |
 | POST | `/api/master/billing/renewal-requests/{id}/reject` |
 

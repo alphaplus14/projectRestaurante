@@ -200,13 +200,7 @@ class MeseroController extends Controller
 
     /**
      * Pedidos marcados listos en cocina, pendientes de retirar por el mesero.
-     */
-    public function pedidosListos(Request $request): JsonResponse
-    {
-        return response()->json($this->pedidosListosData($request));
-    }
-
-    /**
+     *
      * @return array<string, mixed>
      */
     private function pedidosListosData(Request $request): array

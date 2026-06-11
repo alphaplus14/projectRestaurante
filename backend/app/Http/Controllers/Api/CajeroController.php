@@ -215,17 +215,6 @@ class CajeroController extends Controller
         ]);
     }
 
-    public function ventasHoy(Request $request): JsonResponse
-    {
-        $hoy = now()->toDateString();
-        $request->merge([
-            'desde' => $hoy,
-            'hasta' => $hoy,
-        ]);
-
-        return $this->ventas($request);
-    }
-
     public function perfil(Request $request): JsonResponse
     {
         /** @var Usuario $cajero */

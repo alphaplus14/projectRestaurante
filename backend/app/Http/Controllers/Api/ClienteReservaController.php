@@ -19,31 +19,6 @@ class ClienteReservaController extends Controller
 
     private const MAX_DIAS_ANTICIPACION = 10;
 
-    public function mesas(Request $request): JsonResponse
-    {
-        $mesas = Mesa::query()
-            ->where('activa', true)
-            ->orderBy('numero')
-            ->get(['idMesa', 'numero', 'nombre', 'capacidad']);
-
-        return response()->json([
-            'data' => $mesas->map(function (Mesa $m) {
-                $nombre = trim((string) ($m->nombre ?? ''));
-                $label = $nombre !== ''
-                    ? "Mesa {$m->numero} — {$nombre}"
-                    : "Mesa {$m->numero}";
-
-                return [
-                    'idMesa' => $m->idMesa,
-                    'numero' => $m->numero,
-                    'nombre' => $m->nombre,
-                    'capacidad' => $m->capacidad,
-                    'label' => $label,
-                ];
-            }),
-        ]);
-    }
-
     public function index(Request $request): JsonResponse
     {
         $clienteId = (int) $request->user()->getAuthIdentifier();
