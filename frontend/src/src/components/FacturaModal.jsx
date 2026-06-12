@@ -1,5 +1,4 @@
 import React from 'react';
-import { jsPDF } from 'jspdf';
 
 function formatMoney(n) {
     const v = Number(n || 0);
@@ -50,8 +49,11 @@ function calcularMontos(factura) {
  * Genera la factura en PDF (formato tiquete 80mm) y la abre en una pestaña nueva
  * para visualizar/imprimir. Si el navegador bloquea la pestaña, la descarga.
  */
-export function imprimirFactura(factura) {
+export async function imprimirFactura(factura) {
     if (!factura) return;
+
+    // jspdf se carga bajo demanda: solo pesa en el navegador cuando se imprime.
+    const { jsPDF } = await import('jspdf');
 
     const r = factura.restaurante || {};
     const cancelada = factura.estado === 'CANCELADA';

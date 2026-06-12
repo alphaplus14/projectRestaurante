@@ -92,6 +92,21 @@ php artisan migrate --path=database/migrations/tenant_patches --force
 | `tailwindcss` | ^4.0.0 | Framework de estilos CSS |
 | `@tailwindcss/vite` | ^4.0.0 | Integración de Tailwind con Vite |
 
+### Variables de entorno
+
+```bash
+cd frontend
+cp .env.example .env.local    # Windows: copy .env.example .env.local
+```
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_TENANT_BASE_DOMAIN` | Dominio base para subdominios (`localhost` en dev) |
+| `VITE_TENANT_PORT` | Puerto de Vite (por defecto `5173`) |
+| `VITE_DEV_TENANT_SLUG` | Slug del restaurante si usas `127.0.0.1` sin subdominio |
+
+Ver `docs/TENANCY.md` para multi-tenant y producción.
+
 ### Comandos de instalación
 
 ```bash
@@ -143,6 +158,7 @@ php artisan migrate --path=database/migrations/tenant_patches --force
 
 # 3. Frontend
 cd ../frontend
+cp .env.example .env.local
 npm install
 
 # 4. Ejecutar (en dos terminales separadas)

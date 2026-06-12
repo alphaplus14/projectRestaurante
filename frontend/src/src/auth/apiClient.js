@@ -6,10 +6,15 @@ import {
     redirectToTenantAccessBlocked,
     shouldHandleTenantAccessRedirect,
 } from '../utils/tenantAccess';
+import {
+    handleTenantUnauthorized,
+    isAuthApiPath,
+    shouldHandleTenantUnauthorized,
+} from './unauthorizedHandler';
 
 /** Login/registro: no enviar token viejo ni redirigir a /acceso-bloqueado (mostrar error en el formulario). */
 function isAuthEntryPath(path) {
-    return /^\/api\/auth\/(login(?:-|$)|register-|forgot-password|reset-password|two-factor|oauth\/exchange)/.test(path);
+    return isAuthApiPath(path);
 }
 
 export async function apiFetch(path, options = {}) {
@@ -40,6 +45,14 @@ export async function apiFetch(path, options = {}) {
     if (!res.ok) {
         const dataObj = isJson && data && typeof data === 'object' ? data : null;
         const rawText = typeof data === 'string' ? data : null;
+
+        if (res.status === 401 && !options.skipSessionRedirect && shouldHandleTenantUnauthorized(path)) {
+            handleTenantUnauthorized();
+            const err = new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+            err.status = 401;
+            err.unauthorized = true;
+            throw err;
+        }
 
         if (shouldHandleTenantAccessRedirect() && !isAuthEntryPath(path)) {
             const blocked = detectTenantAccessBlock(res.status, dataObj);
