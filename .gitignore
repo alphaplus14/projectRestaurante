@@ -14,6 +14,9 @@ backend/storage/*.key
 # Raíz
 .env
 .env.*
+*.tar
+backend.tar
+frontend.tar
 # Plantillas de entorno (sin secretos; deben versionarse)
 !backend/.env.example
 !frontend/.env.example

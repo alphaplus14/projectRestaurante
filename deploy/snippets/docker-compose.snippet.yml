@@ -1,0 +1,25 @@
+# Pegar al final de /opt/docker-vps/docker-compose.yml (antes de la sección "volumes:" si existe)
+#
+# También agregar a nginx → depends_on:
+#   - restaurante_back
+#   - restaurante_front
+
+  restaurante_back:
+    build: ./restaurante_back
+    container_name: restaurante_back
+    expose:
+      - "80"
+    volumes:
+      - ./restaurante_back:/var/www/html
+    depends_on:
+      - mysql
+    restart: always
+
+  restaurante_front:
+    build: ./restaurante_front
+    container_name: restaurante_front
+    expose:
+      - "80"
+    depends_on:
+      - restaurante_back
+    restart: always

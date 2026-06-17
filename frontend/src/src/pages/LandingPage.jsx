@@ -30,36 +30,47 @@ const footerInteractiveLinkClass = classNames(
     'active:bg-stone-300/80 dark:active:bg-white/15',
 );
 
+const CAROUSEL_MENU_IMG = '/fotos carrousel menu inicio';
+
+function carouselMenuImage(filename) {
+    return encodeURI(`${CAROUSEL_MENU_IMG}/${filename}`);
+}
+
 const DESTACADOS = [
     {
         title: 'Carta menú',
         desc: 'Consulta platos, bebidas y combos en tiempo real.',
         href: '#login-esquina',
         accent: 'from-amber-500/25 to-orange-600/20',
+        image: carouselMenuImage('menu.png'),
     },
     {
         title: 'Tu cuenta cliente',
         desc: 'Guarda tu sesión y accede siempre al menú actualizado.',
         href: '#login-esquina',
         accent: 'from-yellow-500/20 to-amber-600/15',
+        image: carouselMenuImage('cliente.png'),
     },
     {
         title: 'Ambiente familiar',
         desc: 'Tradición y calidez para compartir en mesa.',
         href: '#nosotros',
         accent: 'from-stone-400/25 to-stone-600/15',
+        image: carouselMenuImage('familia.jpg'),
     },
     {
         title: 'Pedidos claros',
         desc: 'Precios visibles y categorías ordenadas.',
         href: '#carta',
         accent: 'from-orange-500/20 to-red-900/10',
+        image: carouselMenuImage('domiciliario.jpg'),
     },
     {
         title: '¿Tienes un evento?',
         desc: 'Contáctanos para cotizar espacios y menús especiales.',
         href: '#contacto',
         accent: 'from-amber-700/20 to-neutral-900/20',
+        image: carouselMenuImage('cumpleaños.png'),
     },
 ];
 
@@ -116,7 +127,20 @@ function TarjetaServicioDestacado({ item, className }) {
 
     const inner = (
         <>
-            <div className={classNames('h-40 sm:h-48 bg-gradient-to-br shrink-0', item.accent)} />
+            <div className="relative h-40 sm:h-48 shrink-0 overflow-hidden">
+                {item.image ? (
+                    <img
+                        src={item.image}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        draggable={false}
+                    />
+                ) : null}
+                <div
+                    className={classNames('absolute inset-0 bg-gradient-to-br', item.accent)}
+                    aria-hidden
+                />
+            </div>
             <div className="p-6 sm:p-7 flex flex-col flex-1">
                 <h3 className="text-lg font-semibold text-stone-900 dark:text-neutral-50 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{item.title}</h3>
                 <p className="mt-3 text-base text-stone-600 dark:text-neutral-400 leading-relaxed flex-1">{item.desc}</p>
@@ -255,6 +279,7 @@ export function LandingPage() {
                     : 'Disponible con tu cuenta cliente: inicia sesión para reservar.',
                 href: sesionCliente ? '/cliente/reservas' : '#login-esquina',
                 accent: 'from-teal-500/25 to-cyan-700/15',
+                image: carouselMenuImage('mesero.png'),
             },
             ...DESTACADOS,
         ],
