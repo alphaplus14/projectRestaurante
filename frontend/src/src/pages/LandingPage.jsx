@@ -4,6 +4,7 @@ import { apiFetch } from '../auth/apiClient';
 import { getToken } from '../auth/authStorage';
 import { logoutTenantSession } from '../auth/logoutSession';
 import { ClienteLoginPanel } from '../components/ClienteLoginPanel';
+import { RestarantinoLogo } from '../components/RestarantinoLogo';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
@@ -419,20 +420,11 @@ export function LandingPage() {
 
                     <Link
                         to="/cliente"
-                        className="flex flex-1 min-w-0 items-center gap-2 sm:gap-3 lg:flex-none lg:shrink-0 touch-manipulation"
+                        className="flex flex-1 min-w-0 items-center lg:flex-none lg:shrink-0 touch-manipulation"
                         onClick={closeMobileNav}
+                        aria-label="Restarantino — inicio"
                     >
-                        <span className="h-9 w-9 sm:h-10 sm:w-10 lg:h-11 lg:w-11 rounded-xl sm:rounded-2xl shrink-0 bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-neutral-950 font-bold text-sm sm:text-base lg:text-lg shadow-md">
-                            R
-                        </span>
-                        <span className="flex flex-col leading-tight min-w-0 text-left">
-                            <span className="font-semibold tracking-tight text-stone-900 dark:text-neutral-50 text-sm sm:text-base lg:text-lg truncate">
-                                Proyecto Restaurante
-                            </span>
-                            <span className="hidden xl:block text-[11px] uppercase tracking-[0.12em] text-stone-500 dark:text-neutral-500 truncate">
-                                Cocina & mesa
-                            </span>
-                        </span>
+                        <RestarantinoLogo size="md" />
                     </Link>
 
                     {/* Navegación horizontal solo pantallas grandes; tableta usa menú */}
@@ -830,11 +822,8 @@ export function LandingPage() {
             <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300 py-14 pb-[max(3.5rem,calc(env(safe-area-inset-bottom)+1rem))]">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
                         <div className="sm:col-span-2 lg:col-span-1">
-                            <div className="flex items-center gap-2 text-stone-900 dark:text-white font-semibold text-lg">
-                                <span className="h-9 w-9 rounded-xl bg-amber-400 flex items-center justify-center text-neutral-950 font-bold text-sm">
-                                    R
-                                </span>
-                                Proyecto Restaurante
+                            <div className="flex items-center">
+                                <RestarantinoLogo size="lg" />
                             </div>
                             <p className="mt-4 text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
                                 Cocina marina con pescados y mariscos frescos, preparados al momento y servidos en un ambiente
@@ -874,7 +863,7 @@ export function LandingPage() {
                         </div>
                     </div>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
-                    Copyright © {new Date().getFullYear()} Proyecto Restaurante · Demo académico
+                    Copyright © {new Date().getFullYear()} Restarantino · Demo académico
                 </div>
             </footer>
         </div>

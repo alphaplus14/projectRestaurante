@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ClienteLoginPanel } from '../components/ClienteLoginPanel';
+import { RestarantinoLogo } from '../components/RestarantinoLogo';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function LoginClientePage() {
@@ -29,10 +30,9 @@ export function LoginClientePage() {
                             Acceso clientes
                         </div>
 
-                        <h1 className="mt-4 text-3xl min-[380px]:text-4xl sm:text-5xl font-semibold tracking-tight text-stone-900 dark:text-neutral-50 break-words">
-                            Bienvenido a{' '}
-                            <span className="text-amber-700 dark:text-amber-300">Proyecto Restaurante</span>
-                        </h1>
+                        <div className="mt-4">
+                            <RestarantinoLogo size="lg" className="max-w-[min(100%,16rem)]" />
+                        </div>
                         <p className="mt-4 text-sm sm:text-base text-stone-700 dark:text-neutral-300 leading-relaxed max-w-prose">
                             La carta del menú la puedes ver sin cuenta desde el inicio. Crea una cuenta o inicia sesión para reservar mesa.
                         </p>
