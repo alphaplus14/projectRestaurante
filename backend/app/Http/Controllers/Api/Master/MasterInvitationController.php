@@ -38,8 +38,16 @@ class MasterInvitationController extends Controller
                 'created_at' => $t->created_at?->toIso8601String(),
                 'onboarding_completed_at' => $t->onboarding_completed_at?->toIso8601String(),
                 'access_expires_at' => $t->access_expires_at?->toIso8601String(),
+<<<<<<< HEAD
                 'access_active' => $t->isAccessActive(),
                 'access_days_remaining' => $t->accessDaysRemaining(),
+=======
+                'access_cancel_at_period_end' => (bool) $t->access_cancel_at_period_end,
+                'access_scheduled_cancellation' => $t->isAccessScheduledForCancellation(),
+                'access_active' => $t->isAccessActive(),
+                'access_days_remaining' => $t->accessDaysRemaining(),
+                'license_months' => $t->license_months,
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                 'last_invitation' => $t->invitations->first() ? [
                     'email' => $t->invitations->first()->email,
                     'expires_at' => $t->invitations->first()->expires_at->toIso8601String(),
@@ -74,6 +82,10 @@ class MasterInvitationController extends Controller
                     config('tenancy.reserved_subdomains', [])
                 )),
             ],
+<<<<<<< HEAD
+=======
+            'license_months' => ['required', 'integer', 'min:1', 'max:36'],
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         ], [
             'slug.regex' => 'El subdominio solo puede tener letras, números y guiones (la ñ se guarda como n).',
             'slug.unique' => 'Ese subdominio ya está en uso. Elige otro nombre.',
@@ -91,6 +103,10 @@ class MasterInvitationController extends Controller
                 'db_name' => $dbName,
                 'contact_email' => $data['email'],
                 'status' => 'pending',
+<<<<<<< HEAD
+=======
+                'license_months' => (int) $data['license_months'],
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
             ]);
 
             $invitation = OnboardingInvitation::query()->create([
@@ -122,6 +138,10 @@ class MasterInvitationController extends Controller
                 'slug' => $tenant->slug,
                 'onboarding_url' => $onboardingUrl,
                 'subdomain_preview' => $tenant->slug.'.'.TenantUrl::baseDomain(),
+<<<<<<< HEAD
+=======
+                'license_months' => $tenant->license_months,
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                 'email_sent' => $emailResult['sent'],
                 'email_error' => $emailResult['error'],
             ],

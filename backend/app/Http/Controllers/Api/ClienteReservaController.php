@@ -19,6 +19,7 @@ class ClienteReservaController extends Controller
 
     private const MAX_DIAS_ANTICIPACION = 10;
 
+<<<<<<< HEAD
     public function mesas(Request $request): JsonResponse
     {
         $mesas = Mesa::query()
@@ -44,6 +45,8 @@ class ClienteReservaController extends Controller
         ]);
     }
 
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     public function index(Request $request): JsonResponse
     {
         $clienteId = (int) $request->user()->getAuthIdentifier();

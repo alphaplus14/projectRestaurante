@@ -19,6 +19,11 @@ class Tenant extends Model
         'provisioned_at',
         'onboarding_completed_at',
         'access_expires_at',
+<<<<<<< HEAD
+=======
+        'access_cancel_at_period_end',
+        'license_months',
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     ];
 
     protected function casts(): array
@@ -27,6 +32,10 @@ class Tenant extends Model
             'provisioned_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'access_expires_at' => 'datetime',
+<<<<<<< HEAD
+=======
+            'access_cancel_at_period_end' => 'boolean',
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         ];
     }
 
@@ -63,6 +72,10 @@ class Tenant extends Model
             : now();
 
         $this->access_expires_at = $base->addMonths($months);
+<<<<<<< HEAD
+=======
+        $this->access_cancel_at_period_end = false;
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
         if ($this->status === 'suspended') {
             $this->status = 'active';
@@ -71,6 +84,34 @@ class Tenant extends Model
         $this->save();
     }
 
+<<<<<<< HEAD
+=======
+    public function scheduleAccessCancellationAtPeriodEnd(): bool
+    {
+        if ($this->access_expires_at && $this->access_expires_at->isFuture()) {
+            $this->access_cancel_at_period_end = true;
+            $this->save();
+
+            return true;
+        }
+
+        $this->update([
+            'status' => 'suspended',
+            'access_cancel_at_period_end' => false,
+        ]);
+
+        return false;
+    }
+
+    public function isAccessScheduledForCancellation(): bool
+    {
+        return (bool) $this->access_cancel_at_period_end
+            && $this->status === 'active'
+            && $this->access_expires_at
+            && $this->access_expires_at->isFuture();
+    }
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     public function invitations(): HasMany
     {
         return $this->hasMany(OnboardingInvitation::class, 'tenant_id');

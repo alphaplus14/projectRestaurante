@@ -1,5 +1,10 @@
 # Multi-tenant (módulo Master)
 
+<<<<<<< HEAD
+=======
+> Migraciones: ver [MIGRATIONS.md](./MIGRATIONS.md) (flujo único master / plantilla / tenants).
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 ## Decisiones
 
 - **Un subdominio por cliente:** `mi-local.tudominio.com`
@@ -153,6 +158,7 @@ En Master, restaurantes en estado **pending**, **failed** o **provisioning** →
 
 | Acción | Efecto |
 |--------|--------|
+<<<<<<< HEAD
 | **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` |
 | **Desactivar acceso** | `status = suspended` → API del restaurante responde 403 |
 
@@ -166,6 +172,33 @@ TENANT_DEFAULT_LICENSE_MONTHS=1
 Clientes antiguos pueden tener `access_expires_at` null (sin límite) hasta que Master asigne meses.
 
 Más contexto: [ROADMAP.md](./ROADMAP.md), [AUTH.md](./AUTH.md).
+=======
+| **Nueva invitación** | Master define `license_months` (1–36). Al completar onboarding se activa `access_expires_at` con esos meses |
+| **+N meses** | Extiende `access_expires_at`; reactiva si estaba `suspended` o con cancelación programada |
+| **Desactivar acceso** | Si hay licencia vigente: marca `access_cancel_at_period_end` — el cliente **sigue entrando hasta** `access_expires_at`; luego se suspende solo. Sin fecha de vencimiento: suspensión inmediata |
+| **Reactivar suscripción** | Solo el Master, extendiendo meses tras el pago (quita cancelación programada) |
+
+### F. Renovación con Nequi (semi-automática)
+
+Guía completa (pantallas, API, prueba local, tests): **[BILLING_RENEWAL.md](./BILLING_RENEWAL.md)**.
+
+Resumen:
+
+1. **Master → Ajustes:** llave/QR Nequi y precios fijos por paquete (1 / 3 / 6 / 12 meses).
+2. **Admin → Configuración** (`/admin/configuracion#suscripcion`): paga por Nequi, **Notificar pago** con referencia (mín. 3 caracteres).
+3. **Master → Pagos:** **Confirmar pago** o **Rechazar**. Al confirmar, `extendAccessByMonths()` actualiza `access_expires_at`.
+
+| Rol | URL local |
+|-----|-----------|
+| Master ajustes / pagos | http://master.localhost:5173/master/dashboard |
+| Admin renovación | http://{slug}.localhost:5173/admin/configuracion#suscripcion |
+
+Reglas clave: **una solicitud `pending` por restaurante**; sin webhook Nequi; banner de aviso cuando faltan ≤ `TENANT_LICENSE_WARNING_DAYS` (default 7).
+
+Migraciones master necesarias: `platform_billing_settings`, `subscription_renewal_requests` (`php artisan master:migrate`).
+
+Más contexto: [AUTH.md](./AUTH.md), [ROADMAP.md](./ROADMAP.md).
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 ## Flujo resumido
 

@@ -62,13 +62,21 @@ Reset contraseña (Fortify, sin sesión web):
 |---------|-------|-------|--------|
 | `auth` | logins staff/cliente, forgot-password, reset-password, master login | correo + IP | `AUTH_RATE_LIMIT` (default 6/min) |
 | `login` | `login-admin` | correo + IP (Fortify) | 5/min |
+<<<<<<< HEAD
 | `two-factor` | `two-factor-challenge` | challenge_token + IP | 5/min |
+=======
+| `two-factor` | `two-factor-challenge` (tenant admin + master) | challenge_token + IP | 5/min |
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 | `onboarding` | `GET /api/master/onboarding/{token}` | IP | `ONBOARDING_RATE_LIMIT` (30/min) |
 | `onboarding-complete` | `POST /api/master/onboarding/{token}` | IP + token | `ONBOARDING_COMPLETE_RATE_LIMIT` (5/min) |
 
 **Contraseñas staff (panel admin):** mínimo 8 caracteres (igual que registro cliente y onboarding).
 
+<<<<<<< HEAD
 **Google OAuth:** el parámetro `state` va firmado con HMAC (`TenantOAuthState`). Un `state` alterado o legacy sin firma se rechaza en el callback.
+=======
+**Google OAuth:** el parámetro `state` va firmado con HMAC (`TenantOAuthState`). Un `state` alterado o legacy sin firma se rechaza en el callback. El token Sanctum se entrega vía `POST /api/auth/oauth/exchange` (código de un solo uso), no en la query del callback.
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 ---
 
@@ -103,4 +111,35 @@ Fortify **no** expone rutas HTTP (`Fortify::ignoreRoutes()` en `register()` del 
 | ❌ Login web Fortify | `AdminAuthController` + Sanctum |
 | ❌ Registro / perfil Fortify | Acciones eliminadas (no aplican al dominio `Usuario`) |
 
+<<<<<<< HEAD
 Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibilidad con enlaces antiguos).
+=======
+Redirects legacy en frontend: `/login-admin` → `/staff?rol=admin` (compatibilidad con enlaces antigos).
+
+---
+
+## Master: login y 2FA (Sprint 1)
+
+1. `POST /api/master/auth/login` con email y contraseña.
+2. Si 2FA activo → `{ two_factor: true, challenge_token, email_sent }`. Se envía el **mismo código TOTP de 6 dígitos** al correo del Master (requiere SMTP configurado).
+3. `POST /api/master/auth/two-factor-challenge` → token `master_api_token`.
+4. `POST /api/master/auth/two-factor-email` con `challenge_token` → reenvía el código al correo (máx. 5 envíos / 5 min por usuario).
+
+Gestión 2FA (logueado como Master):
+
+- `GET/POST/DELETE /api/master/two-factor/*` (enable, confirm, disable). Los códigos de recuperación se entregan al activar 2FA.
+
+**Contraseña Master en producción:** mínimo 12 caracteres con mayúsculas, minúsculas y números (`MasterPasswordPolicy`). En local se permite `master123` con advertencia en log.
+
+**Login Master (UI):** contraseña mínimo 5 caracteres; si 2FA está activo, el OTP se limpia al fallar o al pulsar *Reenviar código al correo*.
+
+**Renovación de suscripciones (Nequi):** flujo Master + admin documentado en [BILLING_RENEWAL.md](./BILLING_RENEWAL.md).
+
+---
+
+## Google OAuth cliente (Sprint 1)
+
+Tras el callback de Google, el backend **no** envía el token Sanctum en la URL. Redirige con `?code=` (64 caracteres, TTL 2 min).
+
+La SPA llama `POST /api/auth/oauth/exchange` con `{ code }` y recibe `{ token }`. El código es de un solo uso y ligado al slug del tenant.
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235

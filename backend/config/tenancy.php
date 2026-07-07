@@ -32,6 +32,12 @@ return [
     /** Meses de licencia al completar onboarding (0 = sin fecha de vencimiento). */
     'default_license_months' => (int) env('TENANT_DEFAULT_LICENSE_MONTHS', 1),
 
+<<<<<<< HEAD
+=======
+    /** Días antes del vencimiento para avisar al admin del tenant. */
+    'license_warning_days' => (int) env('TENANT_LICENSE_WARNING_DAYS', 7),
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     'frontend_scheme' => env('TENANT_FRONTEND_SCHEME', 'http'),
 
     /** Host del frontend en correos (127.0.0.1 o localhost; debe coincidir con npm run dev). */

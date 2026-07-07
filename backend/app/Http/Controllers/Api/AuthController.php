@@ -5,6 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cargo;
 use App\Models\Usuario;
+<<<<<<< HEAD
+=======
+use App\Support\OAuth\OAuthExchangeCode;
+use App\Support\Tenancy\TenantGate;
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -101,6 +106,25 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Sesión cerrada.',
         ]);
+    }
+
+    public function exchangeOAuthCode(Request $request, OAuthExchangeCode $exchange, TenantGate $tenantGate): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'size:64'],
+        ]);
+
+        $tenantSlug = $tenantGate->resolveSlugFromRequest($request);
+
+        $token = $exchange->redeem($data['code'], $tenantSlug);
+
+        if ($token === null) {
+            throw ValidationException::withMessages([
+                'code' => ['El enlace de Google expiró o ya se usó. Vuelve a intentar desde el login.'],
+            ]);
+        }
+
+        return response()->json(['token' => $token]);
     }
 
     private function issueToken(Request $request, ?string $requiredRole = null)

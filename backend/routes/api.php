@@ -7,12 +7,17 @@ use App\Http\Controllers\Api\AdminCajeroController;
 use App\Http\Controllers\Api\AdminCocineroController;
 use App\Http\Controllers\Api\CajeroController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminLicenseController;
 use App\Http\Controllers\Api\AdminMesaController;
 use App\Http\Controllers\Api\AdminPedidoCancelacionController;
 use App\Http\Controllers\Api\AdminMeseroController;
 use App\Http\Controllers\Api\AdminProductoController;
 use App\Http\Controllers\Api\AdminReservaController;
 use App\Http\Controllers\Api\AdminRestauranteConfigController;
+<<<<<<< HEAD
+=======
+use App\Http\Controllers\Api\AdminSubscriptionController;
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 use App\Http\Controllers\Api\AdminVentaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClienteReservaController;
@@ -21,8 +26,16 @@ use App\Http\Controllers\Api\CocinaProductoController;
 use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\Master\MasterAuthController;
+<<<<<<< HEAD
 use App\Http\Controllers\Api\Master\MasterInvitationController;
 use App\Http\Controllers\Api\Master\MasterTenantAccessController;
+=======
+use App\Http\Controllers\Api\Master\MasterBillingController;
+use App\Http\Controllers\Api\Master\MasterInvitationController;
+use App\Http\Controllers\Api\Master\MasterPlatformController;
+use App\Http\Controllers\Api\Master\MasterTenantAccessController;
+use App\Http\Controllers\Api\Master\MasterTwoFactorController;
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 use App\Http\Controllers\Api\Master\OnboardingController;
 use App\Http\Controllers\Api\MeseroController;
 use App\Http\Controllers\Api\ProductoController;
@@ -37,6 +50,13 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('master')->group(function () {
     Route::post('auth/login', [MasterAuthController::class, 'login'])->middleware('throttle:auth');
+<<<<<<< HEAD
+=======
+    Route::post('auth/two-factor-challenge', [MasterAuthController::class, 'twoFactorChallenge'])
+        ->middleware('throttle:two-factor');
+    Route::post('auth/two-factor-email', [MasterAuthController::class, 'resendTwoFactorEmail'])
+        ->middleware('throttle:two-factor');
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
     Route::get('onboarding/{token}', [OnboardingController::class, 'show'])
         ->middleware('throttle:onboarding');
@@ -46,6 +66,20 @@ Route::prefix('master')->group(function () {
     Route::middleware('auth.master')->group(function () {
         Route::get('auth/me', [MasterAuthController::class, 'me']);
         Route::post('auth/logout', [MasterAuthController::class, 'logout']);
+<<<<<<< HEAD
+=======
+        Route::get('two-factor/status', [MasterTwoFactorController::class, 'status']);
+        Route::post('two-factor/enable', [MasterTwoFactorController::class, 'enable']);
+        Route::post('two-factor/confirm', [MasterTwoFactorController::class, 'confirm']);
+        Route::delete('two-factor/disable', [MasterTwoFactorController::class, 'disable']);
+        Route::get('platform/settings', [MasterPlatformController::class, 'settings']);
+        Route::get('billing/settings', [MasterBillingController::class, 'settings']);
+        Route::match(['put', 'post'], 'billing/settings', [MasterBillingController::class, 'updateSettings']);
+        Route::get('billing/renewal-requests', [MasterBillingController::class, 'renewalRequests']);
+        Route::get('billing/renewal-history', [MasterBillingController::class, 'renewalHistory']);
+        Route::post('billing/renewal-requests/{renewalRequest}/approve', [MasterBillingController::class, 'approveRenewal']);
+        Route::post('billing/renewal-requests/{renewalRequest}/reject', [MasterBillingController::class, 'rejectRenewal']);
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         Route::get('tenants', [MasterInvitationController::class, 'index']);
         Route::post('invitations', [MasterInvitationController::class, 'store']);
         Route::post('tenants/{tenant}/resend-invitation', [MasterInvitationController::class, 'resend']);
@@ -74,6 +108,10 @@ Route::middleware('tenant.identify')->group(function () {
             Route::post('login-cajero', [AuthController::class, 'loginCajero']);
             Route::post('forgot-password', [AdminPasswordResetController::class, 'sendResetLink']);
             Route::post('reset-password', [AdminPasswordResetController::class, 'resetPassword']);
+<<<<<<< HEAD
+=======
+            Route::post('oauth/exchange', [AuthController::class, 'exchangeOAuthCode']);
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         });
 
         // Admin: login propio + 2FA (Fortify rate limiters).
@@ -89,8 +127,11 @@ Route::middleware('tenant.identify')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'role:CLIENTE'])->prefix('cliente')->group(function () {
+<<<<<<< HEAD
         Route::get('productos', [ProductoController::class, 'indexCliente']);
         Route::get('mesas', [ClienteReservaController::class, 'mesas']);
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         Route::get('reservas', [ClienteReservaController::class, 'index']);
         Route::get('reservas/disponibilidad', [ClienteReservaController::class, 'disponibilidad']);
         Route::post('reservas', [ClienteReservaController::class, 'store']);
@@ -101,7 +142,10 @@ Route::middleware('tenant.identify')->group(function () {
         Route::get('mesas', [MeseroController::class, 'mesas']);
         Route::get('perfil', [MeseroController::class, 'perfil']);
         Route::get('pedidos/historial', [MeseroController::class, 'historialPedidos']);
+<<<<<<< HEAD
         Route::get('pedidos-listos', [MeseroController::class, 'pedidosListos']);
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         Route::get('alertas', [MeseroController::class, 'alertas']);
         Route::post('alertas/llamada-cocina/{llamada}/atender', [MeseroController::class, 'atenderLlamadaCocina']);
         Route::post('alertas/cambio-menu/{log:idLog}/atender', [MeseroController::class, 'atenderCambioMenu']);
@@ -122,7 +166,10 @@ Route::middleware('tenant.identify')->group(function () {
         Route::post('llamar-mesero', [CajeroController::class, 'llamarMesero']);
         Route::get('mesas', [CajeroController::class, 'mesas']);
         Route::get('ventas', [CajeroController::class, 'ventas']);
+<<<<<<< HEAD
         Route::get('ventas-hoy', [CajeroController::class, 'ventasHoy']);
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         Route::get('ventas/{venta:idVenta}/factura', [CajeroController::class, 'factura']);
         Route::post('ventas/{venta:idVenta}/cancelar', [CajeroController::class, 'cancelarVenta']);
         Route::get('pedidos/{pedido:idPedido}', [CajeroController::class, 'showPedido']);
@@ -146,6 +193,12 @@ Route::middleware('tenant.identify')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'role:ADMINISTRADOR'])->prefix('admin')->group(function () {
+<<<<<<< HEAD
+=======
+        Route::get('licencia', [AdminLicenseController::class, 'status']);
+        Route::get('suscripcion', [AdminSubscriptionController::class, 'show']);
+        Route::post('suscripcion/renovacion', [AdminSubscriptionController::class, 'storeRenewal']);
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         Route::get('dashboard', [AdminDashboardController::class, 'index']);
 
         Route::get('ventas', [AdminVentaController::class, 'index']);
@@ -188,7 +241,10 @@ Route::middleware('tenant.identify')->group(function () {
         Route::patch('cajeros/{usuario:idUsuario}/activo', [AdminCajeroController::class, 'setActivo']);
 
         Route::get('restaurante-config', [AdminRestauranteConfigController::class, 'show']);
+<<<<<<< HEAD
         Route::match(['put', 'post'], 'restaurante-config', [AdminRestauranteConfigController::class, 'update']);
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
         Route::get('reportes/ventas-hoy', [ReporteController::class, 'ventasHoy']);
         Route::get('reportes/ventas', [ReporteController::class, 'ventasPorFecha']);

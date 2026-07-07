@@ -6,10 +6,22 @@ import {
     redirectToTenantAccessBlocked,
     shouldHandleTenantAccessRedirect,
 } from '../utils/tenantAccess';
+<<<<<<< HEAD
 
 /** Login/registro: no enviar token viejo ni redirigir a /acceso-bloqueado (mostrar error en el formulario). */
 function isAuthEntryPath(path) {
     return /^\/api\/auth\/(login(?:-|$)|register-|forgot-password|reset-password|two-factor)/.test(path);
+=======
+import {
+    handleTenantUnauthorized,
+    isAuthApiPath,
+    shouldHandleTenantUnauthorized,
+} from './unauthorizedHandler';
+
+/** Login/registro: no enviar token viejo ni redirigir a /acceso-bloqueado (mostrar error en el formulario). */
+function isAuthEntryPath(path) {
+    return isAuthApiPath(path);
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 }
 
 export async function apiFetch(path, options = {}) {
@@ -41,6 +53,17 @@ export async function apiFetch(path, options = {}) {
         const dataObj = isJson && data && typeof data === 'object' ? data : null;
         const rawText = typeof data === 'string' ? data : null;
 
+<<<<<<< HEAD
+=======
+        if (res.status === 401 && !options.skipSessionRedirect && shouldHandleTenantUnauthorized(path)) {
+            handleTenantUnauthorized();
+            const err = new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+            err.status = 401;
+            err.unauthorized = true;
+            throw err;
+        }
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         if (shouldHandleTenantAccessRedirect() && !isAuthEntryPath(path)) {
             const blocked = detectTenantAccessBlock(res.status, dataObj);
             if (blocked) {

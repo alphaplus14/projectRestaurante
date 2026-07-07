@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../auth/apiClient';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AdminTwoFactorPanel } from '../components/AdminTwoFactorPanel';
+<<<<<<< HEAD
+=======
+import { AdminSubscriptionPanel } from '../components/AdminSubscriptionPanel';
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 import { adminAlertError } from '../utils/adminAlerts';
 
 function formatFecha(iso) {
@@ -166,6 +170,11 @@ export function AdminConfiguracionPage() {
                     </div>
 
                     <AdminTwoFactorPanel />
+<<<<<<< HEAD
+=======
+
+                    <AdminSubscriptionPanel />
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                 </div>
             </div>
         </AdminLayout>

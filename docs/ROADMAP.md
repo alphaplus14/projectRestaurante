@@ -176,3 +176,56 @@ php artisan test --filter=TenantOAuthState
 
 - [TENANCY.md](./TENANCY.md) — multi-tenant, URLs locales, SMTP
 - [AUTH.md](./AUTH.md) — tokens, roles, 2FA, rate limits
+<<<<<<< HEAD
+=======
+- [MIGRATIONS.md](./MIGRATIONS.md) — flujo único de migraciones
+
+---
+
+## Fase 7 — Sprint 1 (producción mínima segura) ✅
+
+**Objetivo:** secretos documentados, Master 2FA, OAuth sin token en URL, migraciones claras.
+
+| # | Tarea | Estado | Archivos |
+|---|--------|--------|----------|
+| 7.1 | Completar `.env.example` (backend + frontend) | ✅ | `backend/.env.example`, `frontend/.env.example` |
+| 7.2 | Política contraseña Master en producción | ✅ | `MasterPasswordPolicy.php`, `MasterDatabaseSeeder.php` |
+| 7.3 | 2FA TOTP en login Master + panel dashboard | ✅ | `MasterTwoFactorService.php`, `MasterAuthController.php`, `MasterTwoFactorPanel.jsx` |
+| 7.4 | Documentar flujo único de migraciones | ✅ | `docs/MIGRATIONS.md` |
+| 7.5 | OAuth: código de un solo uso (no token en query) | ✅ | `OAuthExchangeCode.php`, `POST /api/auth/oauth/exchange` |
+| 7.6 | Tests Sprint 1 | ✅ | `Sprint1SecurityTest.php` |
+
+### Verificación Sprint 1
+
+```bash
+cd backend
+php artisan master:migrate
+php artisan test --filter=Sprint1Security
+
+# Master: activar 2FA en dashboard → logout → login pide código TOTP
+# Google OAuth: callback URL lleva ?code=... (no ?token=...)
+```
+
+---
+
+## Fase 8 — Renovación Nequi (semi-automática) ✅
+
+**Objetivo:** el admin del restaurante notifica pagos por Nequi; el Master confirma o rechaza y extiende la licencia.
+
+| # | Tarea | Estado | Archivos / docs |
+|---|--------|--------|-----------------|
+| 8.1 | Tablas master `platform_billing_settings`, `subscription_renewal_requests` | ✅ | Migraciones master |
+| 8.2 | API Master: ajustes Nequi + aprobar/rechazar solicitudes | ✅ | `MasterBillingController.php` |
+| 8.3 | API Admin: estado suscripción + notificar pago | ✅ | `AdminSubscriptionController.php`, `AdminLicenseController.php` |
+| 8.4 | UI Master: Ajustes (QR/precios) + panel Pagos | ✅ | `MasterSettingsPanel.jsx`, `MasterBillingRenewalsPanel.jsx` |
+| 8.5 | UI Admin: Configuración → suscripción + banner licencia | ✅ | `AdminSubscriptionPanel.jsx`, `AdminLicenseBanner.jsx` |
+| 8.6 | Tests + documentación | ✅ | `MasterBillingRenewalTest.php`, [BILLING_RENEWAL.md](./BILLING_RENEWAL.md) |
+
+### Verificación Fase 8 (local)
+
+1. Master → **Ajustes** → llave Nequi, QR y precios por paquete.
+2. Admin → **Configuración** → *Suscripción y licencia* → elegir paquete, referencia, **Notificar pago**.
+3. Master → **Pagos** → **Confirmar pago** → `access_expires_at` extendido en el tenant.
+
+Ver checklist completo en [BILLING_RENEWAL.md](./BILLING_RENEWAL.md#checklist-prueba-local).
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235

@@ -54,14 +54,26 @@ class TenantProvisioner
             $this->seedTenantBootstrap($payload);
             $this->finalizeTenantData($payload);
 
+<<<<<<< HEAD
             $defaultMonths = (int) config('tenancy.default_license_months', 1);
+=======
+            $months = (int) ($tenant->license_months ?? 0);
+            if ($months <= 0) {
+                $months = (int) config('tenancy.default_license_months', 1);
+            }
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
             $tenant->update([
                 'status' => 'active',
                 'nombre_comercial' => $payload['nombre_comercial'],
                 'provisioned_at' => now(),
                 'onboarding_completed_at' => now(),
+<<<<<<< HEAD
                 'access_expires_at' => $defaultMonths > 0 ? now()->addMonths($defaultMonths) : null,
+=======
+                'access_expires_at' => $months > 0 ? now()->addMonths($months) : null,
+                'access_cancel_at_period_end' => false,
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                 'provision_error' => null,
             ]);
         } catch (Throwable $e) {

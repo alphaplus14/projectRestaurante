@@ -1,5 +1,8 @@
 import React from 'react';
+<<<<<<< HEAD
 import { jsPDF } from 'jspdf';
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 function formatMoney(n) {
     const v = Number(n || 0);
@@ -50,9 +53,18 @@ function calcularMontos(factura) {
  * Genera la factura en PDF (formato tiquete 80mm) y la abre en una pestaña nueva
  * para visualizar/imprimir. Si el navegador bloquea la pestaña, la descarga.
  */
+<<<<<<< HEAD
 export function imprimirFactura(factura) {
     if (!factura) return;
 
+=======
+export async function imprimirFactura(factura) {
+    if (!factura) return;
+
+    // jspdf se carga bajo demanda: solo pesa en el navegador cuando se imprime.
+    const { jsPDF } = await import('jspdf');
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     const r = factura.restaurante || {};
     const cancelada = factura.estado === 'CANCELADA';
     const items = factura.items || [];

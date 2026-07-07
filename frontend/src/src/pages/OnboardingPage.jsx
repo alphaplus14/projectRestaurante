@@ -530,6 +530,19 @@ export function OnboardingPage() {
                     {meta ? (
                         <p className="text-sm text-stone-600 dark:text-stone-400">
                             Tu sitio será <strong className="text-violet-700 dark:text-violet-400">{meta.subdomain}</strong>
+<<<<<<< HEAD
+=======
+                            {meta.license_months ? (
+                                <>
+                                    {' '}
+                                    · Suscripción:{' '}
+                                    <strong>
+                                        {meta.license_months} {meta.license_months === 1 ? 'mes' : 'meses'}
+                                    </strong>{' '}
+                                    (se activa al terminar)
+                                </>
+                            ) : null}
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                         </p>
                     ) : null}
                     <StepIndicator current={step} />

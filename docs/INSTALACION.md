@@ -54,6 +54,7 @@ cp .env.example .env        # En Windows (PowerShell): copy .env.example .env
 php artisan key:generate
 ```
 
+<<<<<<< HEAD
 Configura la conexión a la base de datos en el archivo `.env` y luego ejecuta las
 migraciones:
 
@@ -65,6 +66,21 @@ php artisan migrate --path=database/migrations/tenant_patches --force
 > **Nota:** la segunda migración (`tenant_patches`) aplica los ajustes propios del
 > proyecto (columnas adicionales como `enviado_caja_en`, facturación, 2FA, etc.).
 > Es obligatoria para que funcionen todos los módulos.
+=======
+Configura la conexión a la base de datos en el archivo `.env`, importa el esquema base
+y aplica los parches:
+
+```bash
+# Importar esquema tenant (ajusta usuario/BD según tu .env)
+mysql -u root -p restaurante < ../restaurante.sql
+
+php artisan migrate --path=database/migrations/tenant_patches --force
+```
+
+> **Nota:** los parches en `tenant_patches/` aplican columnas y tablas adicionales
+> (facturación, 2FA, soft-delete, etc.). Son obligatorios para todos los módulos.
+> Ya no hay migraciones en la raíz de `database/migrations/` — ver `docs/MIGRATIONS.md`.
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 ---
 
@@ -90,6 +106,24 @@ php artisan migrate --path=database/migrations/tenant_patches --force
 | `tailwindcss` | ^4.0.0 | Framework de estilos CSS |
 | `@tailwindcss/vite` | ^4.0.0 | Integración de Tailwind con Vite |
 
+<<<<<<< HEAD
+=======
+### Variables de entorno
+
+```bash
+cd frontend
+cp .env.example .env.local    # Windows: copy .env.example .env.local
+```
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_TENANT_BASE_DOMAIN` | Dominio base para subdominios (`localhost` en dev) |
+| `VITE_TENANT_PORT` | Puerto de Vite (por defecto `5173`) |
+| `VITE_DEV_TENANT_SLUG` | Slug del restaurante si usas `127.0.0.1` sin subdominio |
+
+Ver `docs/TENANCY.md` para multi-tenant y producción.
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 ### Comandos de instalación
 
 ```bash
@@ -136,11 +170,19 @@ cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
+<<<<<<< HEAD
 php artisan migrate --force
+=======
+mysql -u root -p restaurante < ../restaurante.sql
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 php artisan migrate --path=database/migrations/tenant_patches --force
 
 # 3. Frontend
 cd ../frontend
+<<<<<<< HEAD
+=======
+cp .env.example .env.local
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 npm install
 
 # 4. Ejecutar (en dos terminales separadas)
@@ -162,3 +204,10 @@ npm run dev
 - **Multi-restaurante (multi-tenant):** ver `docs/TENANCY.md`. En desarrollo local
   con una sola base de datos se usa el modo `single` (no requiere base `master`).
 - **Autenticación y 2FA:** ver `docs/AUTH.md`.
+<<<<<<< HEAD
+=======
+- **Índice de documentación:** ver `docs/README.md`.
+- **Renovación de suscripción (Nequi):** ver `docs/BILLING_RENEWAL.md` (Master → Ajustes/Pagos,
+  admin → **Configuración** → *Suscripción y licencia*). Tras actualizar el repo, ejecuta `npm install` en `frontend/`
+  si aparece error de módulo faltante (p. ej. `jspdf` para facturas PDF).
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235

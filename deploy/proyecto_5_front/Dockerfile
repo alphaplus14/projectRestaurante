@@ -1,0 +1,25 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY . .
+
+ARG VITE_TENANT_BASE_DOMAIN=2.25.166.100
+ARG VITE_TENANT_PORT=8086
+ARG VITE_TENANT_SCHEME=http
+ARG VITE_TENANT_DEFAULT_SLUG=restaurante
+
+ENV VITE_TENANT_BASE_DOMAIN=$VITE_TENANT_BASE_DOMAIN
+ENV VITE_TENANT_PORT=$VITE_TENANT_PORT
+ENV VITE_TENANT_SCHEME=$VITE_TENANT_SCHEME
+ENV VITE_TENANT_DEFAULT_SLUG=$VITE_TENANT_DEFAULT_SLUG
+
+RUN npm run build
+
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx-site.conf /etc/nginx/conf.d/default.conf

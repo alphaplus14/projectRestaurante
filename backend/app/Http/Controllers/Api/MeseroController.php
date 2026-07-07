@@ -200,6 +200,7 @@ class MeseroController extends Controller
 
     /**
      * Pedidos marcados listos en cocina, pendientes de retirar por el mesero.
+<<<<<<< HEAD
      */
     public function pedidosListos(Request $request): JsonResponse
     {
@@ -207,6 +208,9 @@ class MeseroController extends Controller
     }
 
     /**
+=======
+     *
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
      * @return array<string, mixed>
      */
     private function pedidosListosData(Request $request): array

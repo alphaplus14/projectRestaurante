@@ -215,6 +215,7 @@ class CajeroController extends Controller
         ]);
     }
 
+<<<<<<< HEAD
     public function ventasHoy(Request $request): JsonResponse
     {
         $hoy = now()->toDateString();
@@ -226,6 +227,8 @@ class CajeroController extends Controller
         return $this->ventas($request);
     }
 
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     public function perfil(Request $request): JsonResponse
     {
         /** @var Usuario $cajero */

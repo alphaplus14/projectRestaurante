@@ -6,6 +6,10 @@ import { clearSessionEndedState } from '../auth/sessionNavigation';
 import { useSessionEndedNotice } from '../auth/useSessionEndedNotice';
 import { getTenantSlugForApi } from '../tenancy/tenantContext';
 import { PasswordInput } from './PasswordInput';
+<<<<<<< HEAD
+=======
+import { RestarantinoLogo } from './RestarantinoLogo';
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 function classNames(...xs) {
     return xs.filter(Boolean).join(' ');
@@ -135,9 +139,13 @@ export function ClienteLoginPanel({
                     </div>
                     <div className="text-xs sm:text-sm text-stone-700 dark:text-neutral-300">{subtitle}</div>
                 </div>
+<<<<<<< HEAD
                 <div className="h-10 w-10 rounded-xl bg-amber-400/15 border border-amber-300/20 flex items-center justify-center shrink-0">
                     <span className="text-amber-800 dark:text-amber-200 font-bold">R</span>
                 </div>
+=======
+                <RestarantinoLogo size="sm" className="max-w-[5.5rem]" />
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
             </div>
 
             <div className="mt-4 flex rounded-xl border border-stone-200 dark:border-white/10 p-0.5 bg-stone-50 dark:bg-neutral-950/50">

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+<<<<<<< HEAD
 import { LoginClientePage } from './pages/LoginClientePage';
 import { LoginStaffPage } from './pages/LoginStaffPage';
 import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
@@ -35,6 +36,9 @@ import { ClienteCartaPage } from './pages/ClienteCartaPage';
 import { ClienteReservasPage } from './pages/ClienteReservasPage';
 import { ClienteOAuthCallbackPage } from './pages/ClienteOAuthCallbackPage';
 import { TenantAccessBlockedPage } from './pages/TenantAccessBlockedPage';
+=======
+import { isMasterHost } from './tenancy/tenantContext';
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 import { RequireCocina } from './auth/RequireCocina';
 import { RequireMesero } from './auth/RequireMesero';
 import { RequireCajero } from './auth/RequireCajero';
@@ -45,6 +49,61 @@ import { RequireMasterHost } from './auth/RequireMasterHost';
 import { RequireOnboardingHost } from './auth/RequireOnboardingHost';
 import { SessionHistoryGuard } from './auth/SessionHistoryGuard';
 
+<<<<<<< HEAD
+=======
+// Code splitting: cada página se descarga solo cuando se navega a ella.
+// lazyPage adapta los exports con nombre al default export que espera React.lazy.
+function lazyPage(loader, name) {
+    return React.lazy(() => loader().then((m) => ({ default: m[name] })));
+}
+
+const LoginClientePage = lazyPage(() => import('./pages/LoginClientePage'), 'LoginClientePage');
+const LoginStaffPage = lazyPage(() => import('./pages/LoginStaffPage'), 'LoginStaffPage');
+const AdminForgotPasswordPage = lazyPage(() => import('./pages/AdminForgotPasswordPage'), 'AdminForgotPasswordPage');
+const AdminResetPasswordPage = lazyPage(() => import('./pages/AdminResetPasswordPage'), 'AdminResetPasswordPage');
+const CocinaPedidosPage = lazyPage(() => import('./pages/CocinaPedidosPage'), 'CocinaPedidosPage');
+const CocinaInventarioPage = lazyPage(() => import('./pages/CocinaInventarioPage'), 'CocinaInventarioPage');
+const CocinaMenuPage = lazyPage(() => import('./pages/CocinaMenuPage'), 'CocinaMenuPage');
+const MeseroSalonPage = lazyPage(() => import('./pages/MeseroSalonPage'), 'MeseroSalonPage');
+const MeseroAjustesPage = lazyPage(() => import('./pages/MeseroAjustesPage'), 'MeseroAjustesPage');
+const CajeroCajaPage = lazyPage(() => import('./pages/CajeroCajaPage'), 'CajeroCajaPage');
+const CajeroAjustesPage = lazyPage(() => import('./pages/CajeroAjustesPage'), 'CajeroAjustesPage');
+const CajeroFacturasPage = lazyPage(() => import('./pages/CajeroFacturasPage'), 'CajeroFacturasPage');
+const AdminProductosPage = lazyPage(() => import('./pages/AdminProductosPage'), 'AdminProductosPage');
+const AdminDashboardPage = lazyPage(() => import('./pages/AdminDashboardPage'), 'AdminDashboardPage');
+const AdminMeserosPage = lazyPage(() => import('./pages/AdminMeserosPage'), 'AdminMeserosPage');
+const AdminCocinerosPage = lazyPage(() => import('./pages/AdminCocinerosPage'), 'AdminCocinerosPage');
+const AdminCajerosPage = lazyPage(() => import('./pages/AdminCajerosPage'), 'AdminCajerosPage');
+const AdminConfiguracionPage = lazyPage(() => import('./pages/AdminConfiguracionPage'), 'AdminConfiguracionPage');
+const AdminMesasPage = lazyPage(() => import('./pages/AdminMesasPage'), 'AdminMesasPage');
+const AdminReservasPage = lazyPage(() => import('./pages/AdminReservasPage'), 'AdminReservasPage');
+const AdminPlatosCanceladosPage = lazyPage(() => import('./pages/AdminPlatosCanceladosPage'), 'AdminPlatosCanceladosPage');
+const AdminReportesPage = lazyPage(() => import('./pages/AdminReportesPage'), 'AdminReportesPage');
+const AdminVentasPage = lazyPage(() => import('./pages/AdminVentasPage'), 'AdminVentasPage');
+const AdminInventarioPage = lazyPage(() => import('./pages/AdminInventarioPage'), 'AdminInventarioPage');
+const AdminFinanzasPage = lazyPage(() => import('./pages/AdminFinanzasPage'), 'AdminFinanzasPage');
+const AdminUsuariosPage = lazyPage(() => import('./pages/AdminUsuariosPage'), 'AdminUsuariosPage');
+const LandingPage = lazyPage(() => import('./pages/LandingPage'), 'LandingPage');
+const MasterLoginPage = lazyPage(() => import('./pages/MasterLoginPage'), 'MasterLoginPage');
+const MasterDashboardPage = lazyPage(() => import('./pages/MasterDashboardPage'), 'MasterDashboardPage');
+const OnboardingPage = lazyPage(() => import('./pages/OnboardingPage'), 'OnboardingPage');
+const ClienteCartaPage = lazyPage(() => import('./pages/ClienteCartaPage'), 'ClienteCartaPage');
+const ClienteReservasPage = lazyPage(() => import('./pages/ClienteReservasPage'), 'ClienteReservasPage');
+const ClienteOAuthCallbackPage = lazyPage(() => import('./pages/ClienteOAuthCallbackPage'), 'ClienteOAuthCallbackPage');
+const TenantAccessBlockedPage = lazyPage(() => import('./pages/TenantAccessBlockedPage'), 'TenantAccessBlockedPage');
+
+function PageLoader() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-stone-100 dark:bg-stone-950">
+            <div className="flex items-center gap-3 text-stone-600 dark:text-stone-400">
+                <span className="h-5 w-5 rounded-full border-2 border-stone-400 border-t-transparent animate-spin" aria-hidden />
+                <span className="text-sm">Cargando…</span>
+            </div>
+        </div>
+    );
+}
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 function RootRedirect() {
     if (isMasterHost()) {
         return <Navigate to="/master" replace />;
@@ -62,6 +121,10 @@ function CatchAllRedirect() {
 export function App() {
     return (
         <SessionHistoryGuard>
+<<<<<<< HEAD
+=======
+        <Suspense fallback={<PageLoader />}>
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         <Routes>
             <Route path="/" element={<RootRedirect />} />
 
@@ -306,6 +369,10 @@ export function App() {
 
             <Route path="*" element={<CatchAllRedirect />} />
         </Routes>
+<<<<<<< HEAD
+=======
+        </Suspense>
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         </SessionHistoryGuard>
     );
 }

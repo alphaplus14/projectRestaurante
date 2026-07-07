@@ -18,7 +18,28 @@ class MasterTenantAccessController extends Controller
             ]);
         }
 
+<<<<<<< HEAD
         $tenant->update(['status' => 'suspended']);
+=======
+        if ($tenant->isAccessScheduledForCancellation()) {
+            return response()->json([
+                'message' => 'El acceso ya está programado para finalizar al vencer la licencia actual.',
+                'data' => $this->serializeTenant($tenant),
+            ]);
+        }
+
+        $scheduled = $tenant->scheduleAccessCancellationAtPeriodEnd();
+
+        if ($scheduled) {
+            $tenant->refresh();
+            $fecha = $tenant->access_expires_at?->timezone(config('app.timezone'))->format('d/m/Y');
+
+            return response()->json([
+                'message' => "Acceso programado para finalizar el {$fecha}. El cliente puede seguir usando el sistema hasta esa fecha.",
+                'data' => $this->serializeTenant($tenant),
+            ]);
+        }
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
         return response()->json([
             'message' => 'Acceso desactivado. El cliente ya no puede entrar a su subdominio.',
@@ -44,11 +65,28 @@ class MasterTenantAccessController extends Controller
             'months' => ['required', 'integer', 'min:1', 'max:36'],
         ]);
 
+<<<<<<< HEAD
         $tenant->extendAccessByMonths((int) $data['months']);
 
         return response()->json([
             'message' => "Acceso extendido {$data['months']} mes(es).",
             'data' => $this->serializeTenant($tenant->fresh()),
+=======
+        $wasSuspended = $tenant->status === 'suspended';
+        $wasCancelled = (bool) $tenant->access_cancel_at_period_end;
+
+        $tenant->extendAccessByMonths((int) $data['months']);
+        $tenant->refresh();
+
+        $message = "Acceso extendido {$data['months']} mes(es).";
+        if ($wasSuspended || $wasCancelled) {
+            $message .= ' Suscripción reactivada por el Master.';
+        }
+
+        return response()->json([
+            'message' => $message,
+            'data' => $this->serializeTenant($tenant),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         ]);
     }
 
@@ -62,6 +100,11 @@ class MasterTenantAccessController extends Controller
             'slug' => $tenant->slug,
             'status' => $tenant->status,
             'access_expires_at' => $tenant->access_expires_at?->toIso8601String(),
+<<<<<<< HEAD
+=======
+            'access_cancel_at_period_end' => (bool) $tenant->access_cancel_at_period_end,
+            'access_scheduled_cancellation' => $tenant->isAccessScheduledForCancellation(),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
             'access_active' => $tenant->isAccessActive(),
             'access_days_remaining' => $tenant->accessDaysRemaining(),
         ];

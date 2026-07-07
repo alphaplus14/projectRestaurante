@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\RestauranteConfig;
 use App\Support\PublicStorage;
 use Illuminate\Http\JsonResponse;
+<<<<<<< HEAD
 use Illuminate\Http\Request;
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 
 class AdminRestauranteConfigController extends Controller
 {
@@ -27,8 +30,9 @@ class AdminRestauranteConfigController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    private function normalizeStoredLogo(RestauranteConfig $config): void
     {
+<<<<<<< HEAD
         return response()->json([
             'message' => 'La identidad del restaurante (nombre, logo, teléfono y dirección) la gestiona el proveedor del software y no puede modificarse desde el panel de administración.',
         ], 403);
@@ -36,6 +40,8 @@ class AdminRestauranteConfigController extends Controller
 
     private function normalizeStoredLogo(RestauranteConfig $config): void
     {
+=======
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
         $normalized = PublicStorage::normalizeStoredPath($config->logo_url);
         if ($normalized === $config->logo_url) {
             return;

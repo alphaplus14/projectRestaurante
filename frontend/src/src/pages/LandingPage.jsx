@@ -4,6 +4,10 @@ import { apiFetch } from '../auth/apiClient';
 import { getToken } from '../auth/authStorage';
 import { logoutTenantSession } from '../auth/logoutSession';
 import { ClienteLoginPanel } from '../components/ClienteLoginPanel';
+<<<<<<< HEAD
+=======
+import { RestarantinoLogo } from '../components/RestarantinoLogo';
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 function classNames(...xs) {
@@ -30,36 +34,65 @@ const footerInteractiveLinkClass = classNames(
     'active:bg-stone-300/80 dark:active:bg-white/15',
 );
 
+<<<<<<< HEAD
+=======
+const CAROUSEL_MENU_IMG = '/fotos carrousel menu inicio';
+
+function carouselMenuImage(filename) {
+    return encodeURI(`${CAROUSEL_MENU_IMG}/${filename}`);
+}
+
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
 const DESTACADOS = [
     {
         title: 'Carta menú',
         desc: 'Consulta platos, bebidas y combos en tiempo real.',
         href: '#login-esquina',
         accent: 'from-amber-500/25 to-orange-600/20',
+<<<<<<< HEAD
+=======
+        image: carouselMenuImage('menu.png'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     },
     {
         title: 'Tu cuenta cliente',
         desc: 'Guarda tu sesión y accede siempre al menú actualizado.',
         href: '#login-esquina',
         accent: 'from-yellow-500/20 to-amber-600/15',
+<<<<<<< HEAD
+=======
+        image: carouselMenuImage('cliente.png'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     },
     {
         title: 'Ambiente familiar',
         desc: 'Tradición y calidez para compartir en mesa.',
         href: '#nosotros',
         accent: 'from-stone-400/25 to-stone-600/15',
+<<<<<<< HEAD
+=======
+        image: carouselMenuImage('familia.jpg'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     },
     {
         title: 'Pedidos claros',
         desc: 'Precios visibles y categorías ordenadas.',
         href: '#carta',
         accent: 'from-orange-500/20 to-red-900/10',
+<<<<<<< HEAD
+=======
+        image: carouselMenuImage('domiciliario.jpg'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     },
     {
         title: '¿Tienes un evento?',
         desc: 'Contáctanos para cotizar espacios y menús especiales.',
         href: '#contacto',
         accent: 'from-amber-700/20 to-neutral-900/20',
+<<<<<<< HEAD
+=======
+        image: carouselMenuImage('cumpleaños.png'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
     },
 ];
 
@@ -116,7 +149,24 @@ function TarjetaServicioDestacado({ item, className }) {
 
     const inner = (
         <>
+<<<<<<< HEAD
             <div className={classNames('h-40 sm:h-48 bg-gradient-to-br shrink-0', item.accent)} />
+=======
+            <div className="relative h-40 sm:h-48 shrink-0 overflow-hidden">
+                {item.image ? (
+                    <img
+                        src={item.image}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        draggable={false}
+                    />
+                ) : null}
+                <div
+                    className={classNames('absolute inset-0 bg-gradient-to-br', item.accent)}
+                    aria-hidden
+                />
+            </div>
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
             <div className="p-6 sm:p-7 flex flex-col flex-1">
                 <h3 className="text-lg font-semibold text-stone-900 dark:text-neutral-50 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{item.title}</h3>
                 <p className="mt-3 text-base text-stone-600 dark:text-neutral-400 leading-relaxed flex-1">{item.desc}</p>
@@ -255,6 +305,10 @@ export function LandingPage() {
                     : 'Disponible con tu cuenta cliente: inicia sesión para reservar.',
                 href: sesionCliente ? '/cliente/reservas' : '#login-esquina',
                 accent: 'from-teal-500/25 to-cyan-700/15',
+<<<<<<< HEAD
+=======
+                image: carouselMenuImage('mesero.png'),
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
             },
             ...DESTACADOS,
         ],
@@ -394,6 +448,7 @@ export function LandingPage() {
 
                     <Link
                         to="/cliente"
+<<<<<<< HEAD
                         className="flex flex-1 min-w-0 items-center gap-2 sm:gap-3 lg:flex-none lg:shrink-0 touch-manipulation"
                         onClick={closeMobileNav}
                     >
@@ -408,6 +463,13 @@ export function LandingPage() {
                                 Cocina & mesa
                             </span>
                         </span>
+=======
+                        className="flex flex-1 min-w-0 items-center lg:flex-none lg:shrink-0 touch-manipulation"
+                        onClick={closeMobileNav}
+                        aria-label="Restarantino — inicio"
+                    >
+                        <RestarantinoLogo size="md" />
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                     </Link>
 
                     {/* Navegación horizontal solo pantallas grandes; tableta usa menú */}
@@ -805,11 +867,16 @@ export function LandingPage() {
             <footer className="border-t border-stone-300 dark:border-white/10 bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300 py-14 pb-[max(3.5rem,calc(env(safe-area-inset-bottom)+1rem))]">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
                         <div className="sm:col-span-2 lg:col-span-1">
+<<<<<<< HEAD
                             <div className="flex items-center gap-2 text-stone-900 dark:text-white font-semibold text-lg">
                                 <span className="h-9 w-9 rounded-xl bg-amber-400 flex items-center justify-center text-neutral-950 font-bold text-sm">
                                     R
                                 </span>
                                 Proyecto Restaurante
+=======
+                            <div className="flex items-center">
+                                <RestarantinoLogo size="lg" />
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                             </div>
                             <p className="mt-4 text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-xs">
                                 Cocina marina con pescados y mariscos frescos, preparados al momento y servidos en un ambiente
@@ -849,7 +916,11 @@ export function LandingPage() {
                         </div>
                     </div>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-12 pt-8 border-t border-stone-300 dark:border-stone-700 text-center text-xs text-stone-600 dark:text-stone-500">
+<<<<<<< HEAD
                     Copyright © {new Date().getFullYear()} Proyecto Restaurante · Demo académico
+=======
+                    Copyright © {new Date().getFullYear()} Restarantino · Demo académico
+>>>>>>> d64649b2bf471a991732fdb4970ed329c111f235
                 </div>
             </footer>
         </div>
